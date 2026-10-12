@@ -1,6 +1,6 @@
 # Game Design — Airport Manager (working title)
 
-> Status: Draft v0.12 · Last updated: 2026-10-12
+> Status: Draft v0.13 · Last updated: 2026-10-12
 > This document is the source of truth for *what* we are building. Code follows the design, not the other way round.
 > Decisions marked **(open)** are not final — see [Open Questions](#19-open-questions).
 
@@ -319,6 +319,12 @@ The manager can **always** open diagrams and statistics, for example:
 - Staff performance per station
 
 This is a core tool, not an extra: the player's thinking happens here.
+
+### 13.1 First statistics panel (MVP, item 8)
+- A **Stats** button in the manager view opens the panel (statistics are managing, §15).
+- One row per station, measured over the **last 5 minutes**: queue now, longest queue, average wait in the queue, and how busy the counters / lanes were (%). Gates show how many passengers are waiting.
+- **Bottleneck finder:** the station with the longest average wait is highlighted ("Bottleneck: Security · avg wait 41 s"), so the player sees where an upgrade pays off.
+- Updated twice per second; the simulation records the numbers as data at every station.
 
 ---
 
