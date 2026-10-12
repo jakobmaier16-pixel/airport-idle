@@ -1,6 +1,6 @@
 # Game Design — Airport Manager (working title)
 
-> Status: Draft v0.11 · Last updated: 2026-10-12
+> Status: Draft v0.12 · Last updated: 2026-10-12
 > This document is the source of truth for *what* we are building. Code follows the design, not the other way round.
 > Decisions marked **(open)** are not final — see [Open Questions](#19-open-questions).
 
@@ -177,6 +177,19 @@ This is the main strategic layer. Bad layouts cause:
 - queues and bottlenecks
 - unhappy passengers who spend less
 - missed flights and delays, which hurt airline relationships
+
+
+### 7.8 Station upgrades (MVP, item 7)
+- Upgrades are **managing**, so they happen in the **manager view**: tap a station to open its panel (level, counters/lanes, time per passenger, queue, running cost) and press *Upgrade*.
+- **Small upgrades are instant; big ones take time** with visible construction (§5). The station keeps working meanwhile; a label shows the time left.
+- First upgrade paths (placeholders, tunable per building type):
+
+| Station | Level 2 (instant) | Level 3 (1 min construction) |
+|---|---|---|
+| Check-in | +1 counter (3 → 4) · €2,500 · +€10/min | +1 counter (4 → 5) · €4,000 · +€10/min |
+| Security | +1 lane (2 → 3) · €4,000 · +€15/min | Faster scanners (−25 % time per passenger) · €6,000 · +€10/min |
+
+- Gates and entrances have no upgrades yet. Whether the manager must walk to a station to manage it is still **(open)** (§19 Q10); for now any visible station can be tapped.
 
 ---
 
