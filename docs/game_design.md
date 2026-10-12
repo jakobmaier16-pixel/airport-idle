@@ -1,6 +1,6 @@
 # Game Design — Airport Manager (working title)
 
-> Status: Draft v0.17 · Last updated: 2026-10-12
+> Status: Draft v0.18 · Last updated: 2026-10-12
 > This document is the source of truth for *what* we are building. Code follows the design, not the other way round.
 > Decisions marked **(open)** are not final — see [Open Questions](#19-open-questions).
 
@@ -174,7 +174,9 @@ Only the direction from which passengers arrive at the map edge may be fixed.
 
 ### 7.6 Demolish and rebuild
 - Everything can be demolished, **including during operations**.
-- Demolishing has a cost and/or partial refund (exact rule **(open)**).
+- **Refund: 50 % of the build price** (decided 2026-10-13). Money spent on upgrades is not refunded. Removing walkway is free and refunds nothing.
+- In the build view: pick *Demolish*, tap a building (shown in red with its refund), confirm with *Demolish*.
+- **During operation:** passengers at the building go to another station of the same kind (shop customers carry on); flights at a demolished gate or stand are cancelled; staff working there are dismissed. Cells only that building needed can be repainted.
 
 ### 7.7 Layout quality matters
 This is the main strategic layer. Bad layouts cause:
@@ -194,7 +196,7 @@ This is the main strategic layer. Bad layouts cause:
 | Check-in | +1 counter (3 → 4) · €2,500 · +€10/min | +1 counter (4 → 5) · €4,000 · +€10/min |
 | Security | +1 lane (2 → 3) · €4,000 · +€15/min | Faster scanners (−25 % time per passenger) · €6,000 · +€10/min |
 
-- Gates and entrances have no upgrades yet. Whether the manager must walk to a station to manage it is still **(open)** (§19 Q10); for now any visible station can be tapped.
+- Gates and entrances have no upgrades yet. Whether the manager must walk to a station to manage it is still **(open)** (§19 Q9); for now any visible station can be tapped.
 
 ---
 
@@ -475,13 +477,12 @@ After that, features grow with play time and milestones: shops, staff, passenger
 ### Systems
 6. Staff upgrades: training, promotion, pay, specialization — which, and how?
 7. Bankruptcy: game over, loan, or restructuring?
-8. Demolishing: cost, refund, or both?
-9. Negotiations: how do dialogue choices and deal terms interact in detail?
+8. Negotiations: how do dialogue choices and deal terms interact in detail?
 
 ### Player & feel
-10. What does walking around as the manager actually do in gameplay?
-11. Who is the target player (casual vs. strategy fan)? This affects difficulty and UI depth.
-12. Working title / final game name.
+9. What does walking around as the manager actually do in gameplay?
+10. Who is the target player (casual vs. strategy fan)? This affects difficulty and UI depth.
+11. Working title / final game name.
 
 ### Glossary
 - **Gänge** → corridors / walkways
