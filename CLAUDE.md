@@ -73,14 +73,16 @@ scenes/<feature>/     one folder per feature: <name>.tscn + <name>.gd side by si
   main/               entry point (main scene); switches between manager view and build view
   manager/            the manager (player character)
   camera/             manager_camera (tilted follow) and build_camera (top-down)
-  build/              build view logic (tap -> grid cell, later: placing buildings)
+  build/              build view logic: placing buildings (preview, rotate, place / cancel)
+  buildings/          building visuals: BuildingLayer draws every simulated building
   ground/             map ground, sized from the grid
   ui/                 HUD, view button, joystick, safe area container
 scripts/autoload/     global singletons:
                         Airport       -> simulation root, owns the grid (cell size lives here)
                         TouchGestures -> touch / mouse / trackpad -> drag, tap, pinch signals
 scripts/simulation/   pure simulation data classes (no nodes, no visuals), e.g. AirportGrid
-scripts/resources/    custom Resource classes (data definitions)
+scripts/resources/    custom Resource classes (data definitions), e.g. BuildingType
+data/buildings/       one BuildingType .tres per building (edit footprint, name, look in the Inspector)
 assets/               models/, textures/, materials/, audio/, fonts/
 ```
 

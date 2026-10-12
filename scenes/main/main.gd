@@ -15,6 +15,12 @@ var current_view: View = View.MANAGER
 
 func _ready() -> void:
 	_hud.view_toggle_pressed.connect(_on_view_toggle_pressed)
+	_hud.setup_build_menu(_build_mode.building_types)
+	_hud.building_type_selected.connect(_build_mode.start_placement)
+	_hud.rotate_pressed.connect(_build_mode.rotate_placement)
+	_hud.place_pressed.connect(_build_mode.confirm_placement)
+	_hud.cancel_pressed.connect(_build_mode.cancel_placement)
+	_build_mode.placement_changed.connect(_hud.set_placement_state)
 	_set_view(View.MANAGER)
 
 
@@ -35,6 +41,7 @@ func _set_view(view: View) -> void:
 	_manager.input_enabled = not building
 	_hud.joystick.enabled = not building
 	_build_mode.active = building
+	_hud.set_build_view_open(building)
 	# Build view: adding a second finger turns a pan into a pinch.
 	# Manager view: a second finger must never interrupt the joystick.
 	TouchGestures.pinch_cancels_drag = building

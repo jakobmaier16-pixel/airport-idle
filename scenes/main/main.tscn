@@ -7,6 +7,7 @@
 [ext_resource type="PackedScene" path="res://scenes/camera/build_camera.tscn" id="5_build_camera"]
 [ext_resource type="PackedScene" path="res://scenes/build/build_mode.tscn" id="6_build_mode"]
 [ext_resource type="Script" path="res://scenes/main/main.gd" id="7_main"]
+[ext_resource type="Script" path="res://scenes/buildings/building_layer.gd" id="8_building_layer"]
 
 [sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_sky"]
 
@@ -30,6 +31,9 @@ transform = Transform3D(0.81915206, -0.46984634, 0.32898995, 0, 0.57357645, 0.81
 shadow_enabled = true
 
 [node name="Ground" parent="." instance=ExtResource("1_ground")]
+
+[node name="Buildings" type="Node3D" parent="."]
+script = ExtResource("8_building_layer")
 
 [node name="Manager" parent="." node_paths=PackedStringArray("joystick") instance=ExtResource("2_manager")]
 joystick = NodePath("../HUD/SafeArea/TouchJoystick")

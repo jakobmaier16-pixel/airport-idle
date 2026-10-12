@@ -4,6 +4,10 @@
 [ext_resource type="Script" path="res://scenes/ui/safe_area_container.gd" id="2_safe_area"]
 [ext_resource type="PackedScene" path="res://scenes/ui/touch_joystick.tscn" id="3_joystick"]
 
+[sub_resource type="Theme" id="Theme_hud"]
+default_font_size = 28
+BoxContainer/constants/separation = 16
+
 [node name="HUD" type="CanvasLayer"]
 script = ExtResource("1_hud")
 
@@ -14,6 +18,7 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
+theme = SubResource("Theme_hud")
 script = ExtResource("2_safe_area")
 
 [node name="TouchJoystick" parent="SafeArea" instance=ExtResource("3_joystick")]
@@ -25,5 +30,34 @@ layout_mode = 2
 size_flags_horizontal = 8
 size_flags_vertical = 0
 focus_mode = 0
-theme_override_font_sizes/font_size = 28
 text = "Build"
+
+[node name="BuildMenu" type="HBoxContainer" parent="SafeArea"]
+layout_mode = 2
+size_flags_horizontal = 0
+size_flags_vertical = 8
+mouse_filter = 2
+
+[node name="PlacementBar" type="HBoxContainer" parent="SafeArea"]
+layout_mode = 2
+size_flags_horizontal = 8
+size_flags_vertical = 8
+mouse_filter = 2
+
+[node name="RotateButton" type="Button" parent="SafeArea/PlacementBar"]
+custom_minimum_size = Vector2(160, 72)
+layout_mode = 2
+focus_mode = 0
+text = "Rotate"
+
+[node name="CancelButton" type="Button" parent="SafeArea/PlacementBar"]
+custom_minimum_size = Vector2(160, 72)
+layout_mode = 2
+focus_mode = 0
+text = "Cancel"
+
+[node name="PlaceButton" type="Button" parent="SafeArea/PlacementBar"]
+custom_minimum_size = Vector2(160, 72)
+layout_mode = 2
+focus_mode = 0
+text = "Place"
