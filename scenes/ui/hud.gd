@@ -15,6 +15,8 @@ signal reset_confirmed
 ## The player confirmed loading the showcase airport (test builds only).
 signal showcase_confirmed
 signal upgrade_pressed(building: Building)
+signal hire_pressed(building: Building)
+signal dismiss_pressed(building: Building)
 
 const MONEY_COLOR: Color = Color(1.0, 1.0, 1.0)
 const DEBT_COLOR: Color = Color(1.0, 0.4, 0.35)
@@ -63,6 +65,9 @@ var _tool: BuildMode.Tool = BuildMode.Tool.NONE
 @onready var _station_title: Label = $SafeArea/StationPanel/Content/TitleLabel
 @onready var _station_info: Label = $SafeArea/StationPanel/Content/InfoLabel
 @onready var _upgrade_button: Button = $SafeArea/StationPanel/Content/UpgradeButton
+@onready var _staff_buttons: Control = $SafeArea/StationPanel/Content/StaffButtons
+@onready var _hire_button: Button = $SafeArea/StationPanel/Content/StaffButtons/HireButton
+@onready var _dismiss_button: Button = $SafeArea/StationPanel/Content/StaffButtons/DismissButton
 
 
 func _ready() -> void:
@@ -85,6 +90,8 @@ func _ready() -> void:
 	_reset_button.pressed.connect(_on_confirm_button_pressed.bind(_reset_button, "Reset", reset_confirmed))
 	_demo_button.pressed.connect(_on_confirm_button_pressed.bind(_demo_button, "Demo", showcase_confirmed))
 	_upgrade_button.pressed.connect(func() -> void: upgrade_pressed.emit(shown_station))
+	_hire_button.pressed.connect(func() -> void: hire_pressed.emit(shown_station))
+	_dismiss_button.pressed.connect(func() -> void: dismiss_pressed.emit(shown_station))
 	$SafeArea/StationPanel/Content/CloseButton.pressed.connect(hide_station)
 	_stats_button.pressed.connect(func() -> void: hide_stats() if _stats_panel.visible else show_stats())
 	$SafeArea/StatsPanel/Content/CloseButton.pressed.connect(hide_stats)
@@ -294,11 +301,32 @@ func _update_station_panel() -> void:
 	elif role == BuildingType.Role.SHOP and station != null:
 		lines.append("Customers inside: %d / %d" % [station.waiting.size(), building.type.customer_capacity])
 		lines.append("Airport income (5 min): %s" % Economy.format(station.income_in_window(Airport.passenger_flow.time)))
-	lines.append("Running cost: %s/min" % Economy.format(building.running_cost_per_minute()))
+	var staffed := Airport.needs_staff(building)
+	if staffed:
+		var working := Airport.staff_at(building)
+		var salaries := 0.0
+		for employee in working:
+			salaries += employee.salary_per_minute
+		lines.append("Running cost: %s/min + staff %s/min" % [Economy.format(building.running_cost_per_minute()), Economy.format(salaries)])
+		var unit := "counters" if role == BuildingType.Role.CHECK_IN else "lanes"
+		lines.append("Staff: %d / %d %s" % [working.size(), building.service_slots(), unit])
+		for employee in working.slice(0, 5):
+			lines.append("   %s · %s" % [employee.name, employee.level_name()])
+		if working.size() > 5:
+			lines.append("   … and %d more" % (working.size() - 5))
+	else:
+		lines.append("Running cost: %s/min" % Economy.format(building.running_cost_per_minute()))
 	if building.is_upgrading():
 		var seconds := ceili(building.upgrade_seconds_left)
 		lines.append("Upgrading: %s · %d:%02d left" % [building.next_upgrade().title, seconds / 60, seconds % 60])
 	_station_info.text = "\n".join(lines)
+
+	_staff_buttons.visible = staffed
+	if staffed:
+		var hire_problem := Airport.hire_problem(building)
+		_hire_button.disabled = not hire_problem.is_empty()
+		_hire_button.text = "Hire · %s/min" % Economy.format(Airport.SALARIES[role]) if hire_problem.is_empty() else hire_problem
+		_dismiss_button.disabled = Airport.staff_at(building).is_empty()
 
 	var upgrade := building.next_upgrade()
 	var problem := Airport.upgrade_problem(building)

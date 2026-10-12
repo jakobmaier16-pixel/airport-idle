@@ -30,7 +30,8 @@ func test_passengers_flow_and_depart() -> void:
 					off_walkway += 1
 				if passenger.goal == BuildingType.Role.GATE and Airport.grid.get_zone(cell) != AirportGrid.Zone.AIRSIDE:
 					landside_after_security += 1
-	check(flow.departed_count > 40, "passengers departed in 8 minutes: %d" % flow.departed_count)
+	# Three flights depart within 8 minutes (4:30, 5:15, 7:30), at least 12 passengers each.
+	check(flow.departed_count > 30, "passengers departed in 8 minutes: %d" % flow.departed_count)
 	check(flow.missed_count <= 2, "the showcase airport handles its flights: %d missed" % flow.missed_count)
 	check_eq(off_walkway, 0, "walking passengers stay on walkways")
 	check_eq(landside_after_security, 0, "airside only through security")

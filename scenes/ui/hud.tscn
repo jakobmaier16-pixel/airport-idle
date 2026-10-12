@@ -171,6 +171,25 @@ theme_override_font_sizes/font_size = 30
 layout_mode = 2
 theme_override_font_sizes/font_size = 22
 
+[node name="StaffButtons" type="HBoxContainer" parent="SafeArea/StationPanel/Content"]
+layout_mode = 2
+
+[node name="HireButton" type="Button" parent="SafeArea/StationPanel/Content/StaffButtons"]
+custom_minimum_size = Vector2(0, 64)
+layout_mode = 2
+size_flags_horizontal = 3
+focus_mode = 0
+theme_override_font_sizes/font_size = 22
+text = "Hire"
+
+[node name="DismissButton" type="Button" parent="SafeArea/StationPanel/Content/StaffButtons"]
+custom_minimum_size = Vector2(0, 64)
+layout_mode = 2
+size_flags_horizontal = 3
+focus_mode = 0
+theme_override_font_sizes/font_size = 22
+text = "Dismiss"
+
 [node name="UpgradeButton" type="Button" parent="SafeArea/StationPanel/Content"]
 custom_minimum_size = Vector2(0, 72)
 layout_mode = 2

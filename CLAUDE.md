@@ -89,7 +89,7 @@ scripts/autoload/     global singletons:
                         TouchGestures -> touch / mouse / trackpad -> drag, tap, pinch signals
 scripts/simulation/   pure simulation data classes (no nodes, no visuals): AirportGrid, Building,
                       PassengerFlow, Passenger, Station, WalkwayNetwork, FlightSchedule, Flight,
-                      Economy. Advance everything with `Airport.step(delta)`.
+                      Economy, Employee. Advance everything with `Airport.step(delta)`.
 scripts/resources/    custom Resource classes (data definitions), e.g. BuildingType
 data/buildings/       one BuildingType .tres per building (edit footprint, name, look in the Inspector)
 tests/                automated walkthrough tests (excluded from the app export):

@@ -29,6 +29,8 @@ func _ready() -> void:
 	_hud.reset_confirmed.connect(_on_reset_confirmed)
 	_hud.showcase_confirmed.connect(_on_showcase_confirmed)
 	_hud.upgrade_pressed.connect(func(building: Building) -> void: Airport.start_upgrade(building))
+	_hud.hire_pressed.connect(func(building: Building) -> void: Airport.hire(building))
+	_hud.dismiss_pressed.connect(func(building: Building) -> void: Airport.dismiss(building))
 	TouchGestures.tapped.connect(_on_tapped)
 	_set_view(View.MANAGER)
 

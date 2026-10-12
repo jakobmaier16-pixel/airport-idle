@@ -42,6 +42,12 @@ static func build(warm_up_seconds: float = 180.0) -> void:
 	# Station upgrades (design doc §7.8): security already at level 2.
 	Airport.start_upgrade(_first(BuildingType.Role.SECURITY))
 
+	# Staff for every counter and lane, with a mix of new and experienced employees (§9.1).
+	for building in Airport.buildings:
+		Airport.staff_fully(building)
+	for employee in Airport.staff:
+		employee.served[employee.workplace.type.role] = randi() % 200
+
 	# The showcase is a test fixture: start with fresh money, as if it had been there all along.
 	Airport.economy = Economy.new()
 	for i in int(warm_up_seconds / Airport.SIM_STEP):

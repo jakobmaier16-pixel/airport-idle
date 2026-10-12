@@ -67,10 +67,12 @@ func test_walkway_too_expensive_paints_nothing() -> void:
 func test_running_costs() -> void:
 	Airport.place_building(type_of(&"check_in"), Vector2i(10, 10), 0)
 	var after_building := Airport.economy.balance
-	check_eq(Airport.running_cost_per_minute(), 30.0, "one check-in costs €30 per minute")
+	check_eq(Airport.running_cost_per_minute(), 6.0, "one check-in building costs €6 per minute")
+	Airport.hire(Airport.buildings[0])
+	check_eq(Airport.running_cost_per_minute(), 14.0, "plus €8 salary for one agent")
 	sim_seconds(60)
-	check(is_equal_approx(Airport.economy.balance, after_building - 30.0), "one minute later €30 less: %s" % Airport.economy.balance)
-	check(is_equal_approx(Airport.economy.profit_per_minute(), -30.0), "profit per minute -€30: %s" % Airport.economy.profit_per_minute())
+	check(is_equal_approx(Airport.economy.balance, after_building - 14.0), "one minute later €14 less: %s" % Airport.economy.balance)
+	check(is_equal_approx(Airport.economy.profit_per_minute(), -14.0), "profit per minute -€14: %s" % Airport.economy.profit_per_minute())
 
 
 func test_flights_earn_money() -> void:

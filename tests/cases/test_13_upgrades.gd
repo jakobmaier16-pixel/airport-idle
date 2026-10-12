@@ -17,7 +17,7 @@ func test_small_upgrade_is_instant() -> void:
 	check_eq(check_in.level, 2, "level 2 at once")
 	check_eq(check_in.service_slots(), 4, "4 counters")
 	check_eq(Airport.economy.balance, balance - 2500.0, "paid €2,500")
-	check_eq(Airport.running_cost_per_minute(), 40.0, "running cost +€10/min")
+	check_eq(Airport.running_cost_per_minute(), 8.0, "running cost +€2/min (staff are paid separately)")
 
 
 func test_big_upgrade_takes_time() -> void:

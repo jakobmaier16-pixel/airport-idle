@@ -7,6 +7,8 @@ extends Node
 signal building_placed(building: Building)
 ## An upgrade started or finished (design doc §7.8).
 signal building_upgraded(building: Building)
+## Someone was hired or dismissed at `building` (design doc §9.1).
+signal staff_changed(building: Building)
 signal zones_changed
 signal walkways_changed
 ## Anything about the layout changed (buildings, zones, walkways). Used for saving and connection hints.
@@ -19,6 +21,16 @@ const CELL_SIZE: float = 2.0
 const MAP_SIZE_CELLS: Vector2i = Vector2i(64, 64)
 ## Every building type in the game.
 const CATALOG: BuildingCatalog = preload("res://data/buildings/catalog.tres")
+## Salary per minute for the stations that need staff (design doc §9.1).
+const SALARIES: Dictionary = {
+	BuildingType.Role.CHECK_IN: 8.0,
+	BuildingType.Role.SECURITY: 10.0,
+}
+## Fictional names for new employees.
+const FIRST_NAMES: Array[String] = [
+	"Anna", "Luca", "Mia", "Noah", "Lea", "Elias", "Sara", "Jonas", "Emma", "Felix", "Nina", "Paul",
+	"Lena", "David", "Clara", "Tim", "Sofia", "Ben", "Ida", "Max", "Yara", "Omar", "Leni", "Malik",
+]
 ## The simulation advances in fixed steps of this many seconds (10 per second): cheap and
 ## independent of the frame rate. Visuals move smoothly between steps using `sim_alpha`.
 const SIM_STEP: float = 0.1
@@ -29,6 +41,8 @@ var grid: AirportGrid = AirportGrid.new(MAP_SIZE_CELLS, CELL_SIZE)
 var buildings: Array[Building] = []
 var passenger_flow: PassengerFlow = PassengerFlow.new()
 var economy: Economy = Economy.new()
+## Everyone working at the airport (design doc §9.1).
+var staff: Array[Employee] = []
 ## How far the current frame is between the last and the next simulation step (0..1).
 var sim_alpha: float = 0.0
 
@@ -104,9 +118,65 @@ func _finish_upgrade(building: Building) -> void:
 	building_upgraded.emit(building)
 
 
-## Running costs of everything built, in euros per minute.
+## Running costs of everything built plus salaries, in euros per minute.
 func running_cost_per_minute() -> float:
 	return _running_cost_per_minute
+
+
+# --- Staff (design doc §9.1) ---
+
+## True for stations that need one employee per counter / lane.
+func needs_staff(building: Building) -> bool:
+	return SALARIES.has(building.type.role)
+
+
+## Employees working at `building`, in the order they were hired (employee i runs counter i).
+func staff_at(building: Building) -> Array[Employee]:
+	var result: Array[Employee] = []
+	for employee in staff:
+		if employee.workplace == building:
+			result.append(employee)
+	return result
+
+
+## Why nobody can be hired for `building` right now, or "" if someone can.
+func hire_problem(building: Building) -> String:
+	if not needs_staff(building):
+		return "No staff needed here"
+	if staff_at(building).size() >= building.service_slots():
+		return "Every counter is staffed"
+	return ""
+
+
+## Hires a new employee for `building`. Returns them, or null if nobody can be hired there.
+func hire(building: Building) -> Employee:
+	if not hire_problem(building).is_empty():
+		return null
+	var employee := Employee.new()
+	employee.name = "%s %s." % [FIRST_NAMES[randi() % FIRST_NAMES.size()], char(65 + randi() % 26)]
+	employee.workplace = building
+	employee.salary_per_minute = SALARIES[building.type.role]
+	staff.append(employee)
+	_update_running_cost()
+	staff_changed.emit(building)
+	return employee
+
+
+## Dismisses the most recently hired employee at `building`. Returns false if nobody works there.
+func dismiss(building: Building) -> bool:
+	var working := staff_at(building)
+	if working.is_empty():
+		return false
+	staff.erase(working[-1])
+	_update_running_cost()
+	staff_changed.emit(building)
+	return true
+
+
+## Hires staff until every counter / lane of `building` is staffed.
+func staff_fully(building: Building) -> void:
+	while hire(building) != null:
+		pass
 
 
 ## Why a building can't go here, as a short hint for the player, or "" if it can.
@@ -212,6 +282,7 @@ func reset() -> void:
 	grid = AirportGrid.new(MAP_SIZE_CELLS, CELL_SIZE)
 	buildings.clear()
 	_zone_locks.clear()
+	staff.clear()
 	passenger_flow = PassengerFlow.new()
 	economy = Economy.new()
 	_on_layout_changed()
@@ -228,7 +299,15 @@ func save_state() -> Dictionary:
 			"level": building.level,
 			"upgrade_left": building.upgrade_seconds_left,
 		})
+	var saved_staff: Array[Dictionary] = []
+	for employee in staff:
+		saved_staff.append({
+			"name": employee.name,
+			"building": buildings.find(employee.workplace),
+			"served": employee.served,
+		})
 	return {
+		"staff": saved_staff,
 		"map_size": [grid.size.x, grid.size.y],
 		"zones": Marshalls.raw_to_base64(grid.get_zone_data()),
 		"walkways": Marshalls.raw_to_base64(grid.get_walkway_data()),
@@ -249,17 +328,39 @@ func load_state(data: Dictionary) -> int:
 		grid.set_walkway_data(Marshalls.base64_to_raw(data.get("walkways", "")))
 	var skipped := 0
 	_loading = true
+	# Saved building index -> loaded building (null if it was skipped).
+	var by_saved_index: Array[Building] = []
 	for entry: Dictionary in data.get("buildings", []):
 		var type := CATALOG.find(StringName(entry.get("type", "")))
 		var cell: Array = entry.get("cell", [0, 0])
 		var origin := Vector2i(int(cell[0]), int(cell[1]))
 		var building := place_building(type, origin, int(entry.get("rotation", 0)), false) if type != null else null
+		by_saved_index.append(building)
 		if building == null:
 			skipped += 1
 			continue
 		building.level = clampi(int(entry.get("level", 1)), 1, type.upgrades.size() + 1)
 		building.upgrade_seconds_left = float(entry.get("upgrade_left", 0.0)) if building.next_upgrade() != null else 0.0
 	_loading = false
+	if data.has("staff"):
+		for entry: Dictionary in data["staff"]:
+			var index := int(entry.get("building", -1))
+			var workplace: Building = by_saved_index[index] if index >= 0 and index < by_saved_index.size() else null
+			if workplace == null or not needs_staff(workplace):
+				continue
+			var employee := Employee.new()
+			employee.name = str(entry.get("name", "Employee"))
+			employee.workplace = workplace
+			employee.salary_per_minute = SALARIES[workplace.type.role]
+			var served: Dictionary = entry.get("served", {})
+			for role in served:
+				employee.served[int(role)] = int(served[role])
+			staff.append(employee)
+	else:
+		# Saves from before staff existed: every counter gets an employee, so nothing stops working.
+		for building in buildings:
+			if needs_staff(building):
+				staff_fully(building)
 	economy.balance = float(data.get("money", Economy.STARTING_MONEY))
 	zones_changed.emit()
 	walkways_changed.emit()
@@ -284,6 +385,8 @@ func _update_running_cost() -> void:
 	var cost := 0.0
 	for building in buildings:
 		cost += building.running_cost_per_minute()
+	for employee in staff:
+		cost += employee.salary_per_minute
 	var walkway_cells := 0
 	for value in grid.get_walkway_data():
 		walkway_cells += value

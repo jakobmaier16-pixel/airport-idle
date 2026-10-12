@@ -24,10 +24,33 @@ func test_build_airport_by_touch_and_fly_passengers() -> void:
 	check(await place("Baggage claim", Vector2i(37, 27)), "baggage claim on the border")
 
 	check_eq(Airport.buildings.size(), 9, "all buildings placed")
+	await frames(1)
 	var layer := main.get_node("Buildings")
-	var unconnected: Array = layer._hints.values().filter(func(l: Label3D) -> bool: return l.visible)
+	var unconnected: Array = layer._hints.values().filter(func(l: Label3D) -> bool: return l.visible and l.text != "Needs staff")
 	check_eq(unconnected.size(), 0, "every building connected")
 	check(Airport.passenger_flow.route_problem.is_empty(), "complete route: %s" % Airport.passenger_flow.route_problem)
+
+	# Staff the counters like a manager: walk over, tap the station, press Hire until it's full.
+	await close_build_view()
+	for building in Airport.buildings:
+		if not Airport.needs_staff(building):
+			continue
+		var size := Building.rotated_size(building.type.footprint, building.rotation_steps)
+		var center := Airport.grid.block_center(building.origin_cell, size)
+		manager().global_position = center + Vector3(0.0, 0.0, 8.0)
+		manager_camera().snap_to_target()
+		await physics_frames(2)
+		tap(manager_camera().unproject_position(center + Vector3(0.0, 1.5, 0.0)))
+		await frames(1)
+		check(hud().shown_station == building, "%s panel opened by tap" % building.type.display_name)
+		var hire := ui("StationPanel/Content/StaffButtons/HireButton") as Button
+		for i in 6:
+			if hire.disabled:
+				break
+			await press(hire)
+			await frames(1)
+		check_eq(Airport.staff_at(building).size(), building.service_slots(), "%s fully staffed" % building.type.display_name)
+	await open_build_view()
 
 	# Two flights depart within 6 minutes (at 4:30 and 5:15).
 	sim_seconds(360)

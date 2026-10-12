@@ -62,11 +62,15 @@ func _process(_delta: float) -> void:
 		if not problem.is_empty():
 			hint.text = problem
 			hint.modulate = HINT_COLOR
+		elif Airport.needs_staff(building) and Airport.staff_at(building).is_empty():
+			hint.text = "Needs staff"
+			hint.modulate = HINT_COLOR
 		elif building.is_upgrading():
 			var seconds := ceili(building.upgrade_seconds_left)
 			hint.text = "Upgrading… %d:%02d" % [seconds / 60, seconds % 60]
 			hint.modulate = UPGRADE_COLOR
-		hint.visible = not problem.is_empty() or building.is_upgrading()
+		hint.visible = not problem.is_empty() or building.is_upgrading() \
+			or (Airport.needs_staff(building) and Airport.staff_at(building).is_empty())
 
 
 func _update_hints() -> void:

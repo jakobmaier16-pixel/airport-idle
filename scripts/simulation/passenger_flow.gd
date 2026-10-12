@@ -400,6 +400,8 @@ func _tick_station(station: Station, delta: float) -> void:
 		return
 
 	station.sync_slots()
+	# One employee per counter (design doc §9.1): counter i is open only if employee i exists.
+	var working := Airport.staff_at(station.building)
 	for i in station.serving.size():
 		var served := station.serving[i]
 		if served != null:
@@ -408,14 +410,19 @@ func _tick_station(station: Station, delta: float) -> void:
 			var blocked := station.role() == Role.SECURITY and station.exit_cells.is_empty()
 			if station.service_left[i] <= 0.0 and not blocked:
 				station.serving[i] = null
+				if i < working.size():
+					# Experience grows per station type (design doc §9).
+					var role := station.role()
+					working[i].served[role] = working[i].served.get(role, 0) + 1
 				_finish_service(station, served)
-		if station.serving[i] == null and not station.queue.is_empty():
+		if station.serving[i] == null and not station.queue.is_empty() and i < working.size():
 			var next: Passenger = station.queue.pop_front()
 			next.state = Passenger.State.IN_SERVICE
 			station.serving[i] = next
 			station.record_wait(time, time - next.queued_since)
-			# Some passengers are quicker than others.
-			station.service_left[i] = station.building.service_time() * _type_factor(next, station) * _rng.randf_range(0.75, 1.25)
+			# Some passengers are quicker than others; experienced staff are faster.
+			station.service_left[i] = station.building.service_time() * _type_factor(next, station) \
+				* working[i].time_factor() * _rng.randf_range(0.75, 1.25)
 
 	for k in station.queue.size():
 		_move_towards(station.queue[k], _queue_spot(station, k), delta)
