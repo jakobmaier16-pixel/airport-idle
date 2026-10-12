@@ -1,6 +1,6 @@
 # Game Design — Airport Manager (working title)
 
-> Status: Draft v0.13 · Last updated: 2026-10-12
+> Status: Draft v0.14 · Last updated: 2026-10-12
 > This document is the source of truth for *what* we are building. Code follows the design, not the other way round.
 > Decisions marked **(open)** are not final — see [Open Questions](#19-open-questions).
 
@@ -123,6 +123,8 @@ Inspirations: *Builderment*, *Idle Train Empire*, *Airplane Inc.*, *TheoTown*.
 | Security | 5 × 3 | 10 × 6 | border: front faces landside, back faces airside |
 | Gate | 5 × 5 | 10 × 10 | airside (waiting area included) |
 | Aircraft stand | 12 × 12 | 24 × 24 | airside (scaled down, see §7.1); flat, can be walked on |
+| Shop (duty free / retail) | 3 × 3 | 6 × 6 | airside |
+| Café | 4 × 3 | 8 × 6 | landside or airside |
 
 ### 7.1b Walkways (corridors and halls)
 - Corridors and halls are drawn as **walkway floor**: pick *Walkway* and drag a rectangle (or tap a cell); *Remove* erases walkway.
@@ -137,6 +139,7 @@ Inspirations: *Builderment*, *Idle Train Empire*, *Airplane Inc.*, *TheoTown*.
 | Check-in | front (queue area) |
 | Security | front (landside) and back (airside) |
 | Gate | front (walkway) and back (aircraft stand) |
+| Shop, café | front (walkway) |
 | Aircraft stand | reached through a gate |
 
 - A building is **connected** when each access side touches at least one free walkway cell (the gate's back: an aircraft stand). Unconnected buildings can still be placed (build first, connect after) and show a hint such as "Needs a walkway in front".
@@ -236,6 +239,17 @@ Placeholder schedule until airlines and deals exist (§10). All numbers are tuna
 - **Fictional** airline code "AX" and flight numbers (§18).
 - If a gate stops being usable (e.g. its walkway is removed), its flight is **cancelled** and its passengers leave.
 - A **departures board** shows the next flights: number, gate, status (scheduled, plane arriving, at stand, boarding) and time to departure.
+
+
+### 8.6 Shops and cafés (first version)
+Placeholder numbers, tunable per building type.
+- After security, a passenger with **enough time** (at least 1 minute to spare before boarding opens) visits a shop or café with **70 % probability** — the nearest one with free space.
+- **Capacity:** a shop holds 8 customers, a café 12. Full places are skipped.
+- **Time inside:** shop 20–40 s, café 30–60 s. When boarding is about to open, customers leave early (**final call**) — shopping must not make passengers miss flights.
+- **Spending:** shop €20–40, café €8–16 per customer. The airport earns a **30 % concession share** (§11.1: shops, restaurants, duty free).
+- Customers inside are not drawn (like passengers waiting inside a gate).
+- Station panel and statistics show customers inside and the airport's income from each place over the last 5 minutes.
+- Costs: Shop €3,500 build · €20/min running. Café €3,000 · €25/min.
 
 ---
 
