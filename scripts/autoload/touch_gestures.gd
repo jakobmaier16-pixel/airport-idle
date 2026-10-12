@@ -29,10 +29,16 @@ enum State {
 	WAITING, ## A pinch ended; ignore everything until all fingers are lifted.
 }
 
-## How far (in UI pixels) a finger must move before it counts as a drag instead of a tap.
-const DRAG_THRESHOLD: float = 10.0
-## Longest press that still counts as a tap, in seconds.
-const TAP_MAX_DURATION: float = 0.4
+## How far a finger may wobble during a tap, in screen points (Apple's controls allow ~10-15 pt).
+## Moving further turns the touch into a drag. Measured in points, not UI pixels, so it is the
+## same physical size on every device (on an iPhone, 10 UI pixels are only ~5 pt: too strict).
+const TAP_SLOP_POINTS: float = 12.0
+## Limits for the slop in UI pixels. Platforms report window sizes in pixels or in points, so the
+## conversion can be off by the screen scale; the limits keep it sensible either way.
+const MIN_TAP_SLOP: float = 10.0
+const MAX_TAP_SLOP: float = 30.0
+## Longest press that still counts as a tap, in seconds (iOS uses 0.5 s for long presses).
+const TAP_MAX_DURATION: float = 0.5
 const WHEEL_ZOOM_STEP: float = 1.1
 const TRACKPAD_SCROLL_ZOOM_SPEED: float = 0.05
 
@@ -40,6 +46,9 @@ const TRACKPAD_SCROLL_ZOOM_SPEED: float = 0.05
 ## If false, an active drag is never interrupted (manager view: the joystick keeps working
 ## while the other thumb taps the right half of the screen).
 var pinch_cancels_drag: bool = false
+
+## Current tap slop in UI pixels (see TAP_SLOP_POINTS); updated when the window size changes.
+var tap_slop: float = MIN_TAP_SLOP
 
 var _state: State = State.IDLE
 var _primary_index: int = -1
@@ -51,6 +60,22 @@ var _positions: Dictionary[int, Vector2] = {}
 var _start_positions: Dictionary[int, Vector2] = {}
 var _start_times: Dictionary[int, float] = {}
 var _moved: Dictionary[int, bool] = {}
+
+
+func _ready() -> void:
+	get_viewport().size_changed.connect(_update_tap_slop)
+	_update_tap_slop()
+
+
+# Converts the slop from screen points to UI pixels for this device.
+func _update_tap_slop() -> void:
+	var window_pixels_per_ui_pixel := get_viewport().get_screen_transform().get_scale().x
+	# No real window (headless tests): use the minimum, so tests behave the same everywhere.
+	if DisplayServer.window_get_size() == Vector2i.ZERO or window_pixels_per_ui_pixel <= 0.0:
+		tap_slop = MIN_TAP_SLOP
+		return
+	var window_pixels := TAP_SLOP_POINTS * DisplayServer.screen_get_scale()
+	tap_slop = clampf(window_pixels / window_pixels_per_ui_pixel, MIN_TAP_SLOP, MAX_TAP_SLOP)
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -110,7 +135,7 @@ func _on_finger_moved(index: int, position: Vector2) -> void:
 		return
 	var relative := position - _positions[index]
 	_positions[index] = position
-	if position.distance_to(_start_positions[index]) > DRAG_THRESHOLD:
+	if position.distance_to(_start_positions[index]) > tap_slop:
 		_moved[index] = true
 
 	match _state:

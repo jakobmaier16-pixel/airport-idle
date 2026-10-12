@@ -85,7 +85,11 @@ func test_tap_station_opens_panel_and_upgrades() -> void:
 	manager_camera().snap_to_target()
 	await physics_frames(2)
 	var center := Airport.grid.block_center(security.origin_cell, Vector2i(5, 3)) + Vector3(0.0, 1.5, 0.0)
-	tap(manager_camera().unproject_position(center))
+	# Like a real finger: the tap wobbles a little before it is lifted.
+	var at := manager_camera().unproject_position(center)
+	touch(0, true, at)
+	move(0, at + Vector2(TouchGestures.tap_slop * 0.7, 3.0))
+	touch(0, false, at + Vector2(TouchGestures.tap_slop * 0.7, 3.0))
 	await frames(1)
 	check(ui("StationPanel").visible, "tapping security opens its panel")
 	check(hud().shown_station == security, "panel shows security")

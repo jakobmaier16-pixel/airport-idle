@@ -87,3 +87,29 @@ func test_manager_stays_on_map() -> void:
 		await physics_frames(30)
 	Input.action_release(&"move_right")
 	check(manager().global_position.x <= Airport.grid.get_world_rect().end.x + 0.01, "manager stops at the map edge")
+
+
+func test_wobbly_finger_still_taps() -> void:
+	await start_game()
+	var taps := [0]
+	var on_tap := func(_p: Vector2) -> void: taps[0] += 1
+	TouchGestures.tapped.connect(on_tap)
+	var slop := TouchGestures.tap_slop
+	check(slop >= TouchGestures.MIN_TAP_SLOP, "tap slop is at least %.0f UI pixels: %.1f" % [TouchGestures.MIN_TAP_SLOP, slop])
+	# A real finger wobbles a little during a tap.
+	touch(0, true, Vector2(900, 400))
+	move(0, Vector2(900 + slop * 0.8, 400 + 2))
+	touch(0, false, Vector2(900 + slop * 0.8, 400 + 2))
+	check_eq(taps[0], 1, "a tap that wobbles less than the slop counts")
+	touch(0, true, Vector2(900, 400))
+	move(0, Vector2(900 + slop * 2.0, 400))
+	touch(0, false, Vector2(900 + slop * 2.0, 400))
+	check_eq(taps[0], 1, "moving further is a drag, not a tap")
+	TouchGestures.tapped.disconnect(on_tap)
+
+
+func test_tap_slop_is_measured_in_screen_points() -> void:
+	# On an iPhone (3x screen, 2556 px window for 1560 UI pixels) 12 pt must be about 22 UI pixels.
+	var window_pixels_per_ui_pixel := 2556.0 / 1560.0
+	var expected := TouchGestures.TAP_SLOP_POINTS * 3.0 / window_pixels_per_ui_pixel
+	check(expected > 20.0 and expected < 24.0, "iPhone slop in UI pixels: %.1f" % expected)
