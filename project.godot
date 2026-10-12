@@ -17,6 +17,7 @@ config/icon="res://icon.svg"
 
 [autoload]
 
+Airport="*res://scripts/autoload/airport.gd"
 TouchGestures="*res://scripts/autoload/touch_gestures.gd"
 
 [display]

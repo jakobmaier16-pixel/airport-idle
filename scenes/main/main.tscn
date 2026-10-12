@@ -1,6 +1,6 @@
 [gd_scene format=3]
 
-[ext_resource type="Material" path="res://assets/materials/ground_grid.tres" id="1_ground"]
+[ext_resource type="PackedScene" path="res://scenes/ground/ground.tscn" id="1_ground"]
 [ext_resource type="PackedScene" path="res://scenes/manager/manager.tscn" id="2_manager"]
 [ext_resource type="PackedScene" path="res://scenes/camera/manager_camera.tscn" id="3_camera"]
 [ext_resource type="PackedScene" path="res://scenes/ui/hud.tscn" id="4_hud"]
@@ -16,13 +16,6 @@ sky = SubResource("Sky_main")
 ambient_light_source = 3
 tonemap_mode = 2
 
-[sub_resource type="PlaneMesh" id="PlaneMesh_ground"]
-material = ExtResource("1_ground")
-size = Vector2(100, 100)
-
-[sub_resource type="BoxShape3D" id="BoxShape3D_ground"]
-size = Vector3(100, 1, 100)
-
 [node name="Main" type="Node3D"]
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="."]
@@ -32,14 +25,7 @@ environment = SubResource("Environment_main")
 transform = Transform3D(0.81915206, -0.46984634, 0.32898995, 0, 0.57357645, 0.81915206, -0.57357645, -0.6710101, 0.46984634, 0, 10, 0)
 shadow_enabled = true
 
-[node name="Ground" type="StaticBody3D" parent="."]
-
-[node name="MeshInstance3D" type="MeshInstance3D" parent="Ground"]
-mesh = SubResource("PlaneMesh_ground")
-
-[node name="CollisionShape3D" type="CollisionShape3D" parent="Ground"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.5, 0)
-shape = SubResource("BoxShape3D_ground")
+[node name="Ground" parent="." instance=ExtResource("1_ground")]
 
 [node name="Manager" parent="." node_paths=PackedStringArray("joystick") instance=ExtResource("2_manager")]
 joystick = NodePath("../HUD/SafeArea/TouchJoystick")

@@ -1,0 +1,31 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scenes/ground/ground.gd" id="1_ground"]
+[ext_resource type="Material" path="res://assets/materials/ground_grid.tres" id="2_grid"]
+
+[sub_resource type="PlaneMesh" id="PlaneMesh_map"]
+material = ExtResource("2_grid")
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_map"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_surroundings"]
+albedo_color = Color(0.3, 0.4, 0.27, 1)
+roughness = 1.0
+
+[sub_resource type="PlaneMesh" id="PlaneMesh_surroundings"]
+material = SubResource("StandardMaterial3D_surroundings")
+size = Vector2(2000, 2000)
+
+[node name="Ground" type="StaticBody3D"]
+script = ExtResource("1_ground")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="."]
+mesh = SubResource("PlaneMesh_map")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.5, 0)
+shape = SubResource("BoxShape3D_map")
+
+[node name="Surroundings" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.02, 0)
+mesh = SubResource("PlaneMesh_surroundings")

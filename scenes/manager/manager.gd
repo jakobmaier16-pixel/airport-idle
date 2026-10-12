@@ -29,11 +29,19 @@ func _physics_process(delta: float) -> void:
 		velocity += get_gravity() * delta
 
 	move_and_slide()
+	_stay_inside_map()
 
 	if direction.length_squared() > 0.01:
 		# Godot's "forward" is -Z, hence the negated arguments.
 		var target_yaw := atan2(-direction.x, -direction.z)
 		rotation.y = lerp_angle(rotation.y, target_yaw, 1.0 - exp(-turn_speed * delta))
+
+
+# The map has no walls yet, so keep the manager from walking off the edge.
+func _stay_inside_map() -> void:
+	var rect := Airport.grid.get_world_rect()
+	global_position.x = clampf(global_position.x, rect.position.x, rect.end.x)
+	global_position.z = clampf(global_position.z, rect.position.y, rect.end.y)
 
 
 ## Combined keyboard + joystick input. Length is 0..1; y is negative when pushing "up".
