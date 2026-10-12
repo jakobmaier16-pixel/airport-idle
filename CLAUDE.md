@@ -14,22 +14,43 @@ When a decision is made, update the design doc.
 
 - **Platforms:** iOS / iPadOS only, distributed via the App Store. No Android, no desktop release.
   The Mac is used only for development and testing.
+- **Devices:** iPad is the primary device and gets the best experience; iPhone must stay fully playable.
+- **Orientation:** landscape only, in both views.
 - **Language:** English only.
 - **Monetization:** none. No ads, no in-app purchases.
-- **Realism first:** the airport must work like a real one (zones, flows, staff, schedules).
+- **Realism first:** the airport must *work* like a real one (zones, flows, staff, schedules).
 - **Building:** grid-based, freeform layout with predesigned, rotatable buildings.
-- **Two camera views:**
+- **Grid scale:** compressed, not 1:1. Terminal and landside stay near-realistic (cell = 2 m to start);
+  airside (runways, taxiways, aprons) is scaled down so the whole airport fits on a playable map.
+  The cell size must stay a single, easy-to-change value.
+- **Two camera views** (a HUD button switches between them):
   - *Manager view:* fixed tilted camera that follows the manager and **never rotates**
-    (like League of Legends). Do not add camera rotation.
-  - *Build view:* top-down / bird's-eye, used for all building and planning.
+    (like League of Legends). Do not add camera rotation. The game must be fully playable here.
+    Small pinch zoom (scroll wheel on the Mac): only the distance changes, within tight limits.
+  - *Build view:* top-down / bird's-eye, used for all building and planning. One-finger drag pans,
+    pinch zooms; zoom is limited and the camera stays inside the map.
+- **Simulation keeps running in the build view.** No pause for now.
+- **Input (manager view):** the floating joystick only appears when one finger touches the **left half**
+  of the screen. The right half stays free for tapping things. A two-finger pinch anywhere zooms and
+  must never trigger the joystick. WASD / arrow keys also work for testing on the Mac.
 - **Offline income:** minimal. Nothing for breaks under 36 h; after 36 h+ away, 4 h of income once.
 - **Fictional world:** all airlines and airports are fictional. No real names or logos.
-- **Art:** simple low-poly models. Performance on older iPhones matters (instancing, LOD, few lights).
-- **Orientation:** portrait only.
-- **Input (manager view):** a floating on-screen joystick that appears wherever the player touches
-  the screen (one-thumb play). WASD and the arrow keys also work for testing on the Mac.
-- **Safe areas:** all UI must stay inside the iPhone safe area (notch, Dynamic Island, home indicator).
+- **Art:** simple low-poly models.
+- **Safe areas:** all UI must stay inside the safe area (notch, Dynamic Island, home indicator).
   Use `scenes/ui/safe_area_container.gd` as the root for HUD elements.
+
+## Performance architecture (rule for every feature)
+
+Target: smooth on older iPhones. Plan this in from the start (design doc §18).
+
+1. **Simulation and visuals are strictly separate.** The simulation (passengers, stations, money,
+   queues) is pure data for the whole airport and runs at all times. Simulation code must not use
+   nodes, meshes or anything visual, and must never depend on what is on screen.
+2. **Visuals only exist where the camera can see them.** In the manager view, only passengers and
+   objects near the camera get 3D figures and animations; everything else is data only.
+3. **Use Godot's built-in tools:** frustum culling, visibility ranges (`visibility_range_*`) and LOD
+   for buildings and objects; MultiMesh / instancing for crowds.
+4. **Build view:** zoom is limited; when zoomed out, crowds are simplified (fewer figures, simple shapes).
 
 ## Tools
 

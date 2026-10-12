@@ -1,6 +1,6 @@
 # Game Design — Airport Manager (working title)
 
-> Status: Draft v0.3 · Last updated: 2026-10-12
+> Status: Draft v0.4 · Last updated: 2026-10-12
 > This document is the source of truth for *what* we are building. Code follows the design, not the other way round.
 > Decisions marked **(open)** are not final — see [Open Questions](#19-open-questions).
 
@@ -34,6 +34,8 @@ Inspirations: *Builderment*, *Idle Train Empire*, *Airplane Inc.*, *TheoTown*.
 | Item | Decision |
 |---|---|
 | Platform | iOS / iPadOS (Apple App Store) |
+| Devices | **iPad is the primary device** and should give the best experience. iPhone must stay fully playable. |
+| Orientation | **Landscape only**, in both views |
 | Engine | Godot |
 | Tools | VS Code (code written with Claude Code), Xcode (iOS export), Blender (3D models) |
 | Language | English only (for now) |
@@ -73,7 +75,7 @@ Inspirations: *Builderment*, *Idle Train Empire*, *Airplane Inc.*, *TheoTown*.
 
 ## 5. Time & Offline Rules
 
-- **While playing:** full simulation, all income.
+- **While playing:** full simulation, all income. The simulation **keeps running in the build view** — there is no pause (for now).
 - **Offline:** no income for breaks under 36 hours. After **36 hours or more** away, the player receives **4 hours' worth of income** once. (Similar in spirit to Clash of Clans — a small welcome back, not a reason to stay away.)
 - **Upgrades:** small upgrades are instant. Big upgrades take **1–10 minutes** with **visible construction on site**.
 
@@ -92,6 +94,9 @@ Inspirations: *Builderment*, *Idle Train Empire*, *Airplane Inc.*, *TheoTown*.
 
 ### 7.1 Grid and buildings
 - The map is built on a **grid**.
+- **Compressed scale, not 1:1.** Realism means things *work* like a real airport, not that they are life-size.
+  - **Terminal and landside** stay close to realistic proportions, because that is where the manager walks around in the manager view. One grid cell = **2 m** to start; the cell size must stay easy to change.
+  - **Airside** (runways, taxiways, aprons, stands) is **scaled down** so the whole airport fits on a playable map.
 - The player places **predesigned buildings / modules**: check-in, information desk, shops, restaurants, security, passport control, gates, baggage systems, etc.
 - Buildings can be **rotated** freely (in grid steps).
 - Buildings are connected by **corridors** and **waiting areas** (holding rooms, gate lounges) that the player draws on the grid.
@@ -243,9 +248,19 @@ This is a core tool, not an extra: the player's thinking happens here.
 ## 15. Camera, Look & Feel
 
 ### Camera
-- **Manager view:** fixed tilted camera, like *League of Legends*. It follows the manager from a fixed angle and **never rotates**. The player walks around and manages the airport in this view.
+A button switches between the two views.
+
+- **Manager view:** fixed tilted camera, like *League of Legends*. It follows the manager from a fixed angle and **never rotates**. The player walks around and manages the airport in this view. **The game must be fully playable in this view.**
+  - **Zoom:** a small zoom range — pinch with two fingers (scroll wheel on the Mac). Only the distance changes, within tight limits so it always stays playable. The angle stays fixed.
 - **Build view:** top-down / bird's-eye. Used for **all** building and planning.
+  - Drag with one finger to move, pinch to zoom. Zoom is limited so the game stays playable; the camera cannot leave the map.
+  - When zoomed out, crowds are shown simplified (fewer figures, simple shapes). See §18.
 - What walking as the manager does in gameplay: **(open)**.
+
+### Controls (manager view, landscape)
+- **Left half of the screen:** one finger shows a floating joystick under the thumb to walk.
+- **Right half of the screen:** stays free for tapping things (stations, staff, passengers — later).
+- **Two-finger pinch anywhere** zooms and **never** triggers the joystick.
 
 ### Art style
 - Start with **simple, realistic low-poly** models (achievable without 3D experience).
@@ -283,9 +298,17 @@ After that, features grow with play time and milestones: shops, staff, passenger
 ## 18. Risks & Notes
 
 - **Scope is large.** Freeform building + realistic simulation + 3D on mobile is ambitious. We build in small, playable steps (MVP first).
-- **Performance:** hundreds of walking passengers on older iPhones. Keep models simple; plan for instancing and crowd simplification.
+- **Performance:** hundreds of walking passengers on older iPhones. Keep models simple; plan for instancing and crowd simplification. See the performance architecture below.
 - **Touch controls:** freeform building with multiple floors must be easy with a finger on an iPhone screen. Test early.
 - **Legal:** all airlines and airports are fictional — no real names or logos.
+
+### Performance architecture (rule for all features)
+**Target: smooth on older iPhones.** This is planned in from the start, not optimized later.
+
+1. **Simulation and visuals are strictly separate.** The simulation (passengers, stations, money, queues) runs as **pure data** for the whole airport at all times. It never depends on what is on screen.
+2. **Visuals only exist where the camera can see them.** In the manager view, only passengers and objects near the camera get 3D figures and animations; everything else is simulated as data only.
+3. **Use Godot's built-in tools:** frustum culling, visibility ranges and level of detail (LOD) for buildings and objects.
+4. **Build view:** zoom is limited so the game stays playable. When zoomed out, crowds are simplified (fewer figures, simple shapes).
 
 ---
 
@@ -310,6 +333,7 @@ After that, features grow with play time and milestones: shops, staff, passenger
 10. What does walking around as the manager actually do in gameplay?
 11. Who is the target player (casual vs. strategy fan)? This affects difficulty and UI depth.
 12. Working title / final game name.
+13. The manager view must be fully playable, but all building happens in the build view. Does "fully playable" mean everything *except* building and planning, or should some building also be possible from the manager view?
 
 ### Glossary
 - **Gänge** → corridors / walkways
