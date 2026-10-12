@@ -4,9 +4,10 @@ extends Camera3D
 ## One-finger drag pans, pinch / scroll wheel zooms, WASD pans on the Mac.
 ## Zoom is limited and the view never leaves the map.
 
-## Height above the ground in meters. With an orthographic camera this doesn't affect the
-## zoom; it only has to be above everything we build.
-const HEIGHT_ABOVE_GROUND: float = 100.0
+## Height above the ground in meters. With an orthographic camera this doesn't affect the zoom;
+## it only has to be above everything we build. Keep it well inside the sun's shadow range
+## (directional_shadow_max_distance on the Sun node), or shadows get blurry and unstable.
+const HEIGHT_ABOVE_GROUND: float = 40.0
 
 ## How many meters of the map are visible vertically when the build view first opens.
 @export var view_height: float = 50.0

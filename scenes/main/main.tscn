@@ -29,6 +29,9 @@ environment = SubResource("Environment_main")
 [node name="Sun" type="DirectionalLight3D" parent="."]
 transform = Transform3D(0.81915206, -0.46984634, 0.32898995, 0, 0.57357645, 0.81915206, -0.57357645, -0.6710101, 0.46984634, 0, 10, 0)
 shadow_enabled = true
+directional_shadow_mode = 1
+directional_shadow_blend_splits = true
+directional_shadow_max_distance = 50.0
 
 [node name="Ground" parent="." instance=ExtResource("1_ground")]
 
