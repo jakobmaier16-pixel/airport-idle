@@ -1,6 +1,6 @@
 [gd_scene format=3]
 
-[ext_resource type="Script" path="res://scenes/player/player.gd" id="1_player"]
+[ext_resource type="Script" path="res://scenes/manager/manager.gd" id="1_manager"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_body"]
 radius = 0.4
@@ -21,8 +21,8 @@ albedo_color = Color(1, 0.8, 0.2, 1)
 material = SubResource("StandardMaterial3D_nose")
 size = Vector3(0.3, 0.15, 0.3)
 
-[node name="Player" type="CharacterBody3D"]
-script = ExtResource("1_player")
+[node name="Manager" type="CharacterBody3D"]
+script = ExtResource("1_manager")
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0)

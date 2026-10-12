@@ -1,8 +1,8 @@
-class_name FollowCamera
+class_name ManagerCamera
 extends Camera3D
 ## Follows a target from a fixed, tilted angle (like League of Legends). The camera never rotates.
 
-## The node to follow, usually the player.
+## The node to follow, usually the manager.
 @export var target: Node3D
 ## How steeply the camera looks down at the ground, in degrees (90 = straight down).
 @export_range(10.0, 90.0) var pitch_degrees: float = 55.0
@@ -20,7 +20,7 @@ func _ready() -> void:
 		reset_physics_interpolation()
 
 
-# Runs in the physics step, in sync with the player. Physics interpolation (enabled in
+# Runs in the physics step, in sync with the manager. Physics interpolation (enabled in
 # Project Settings) smooths the motion between steps on 120 Hz screens.
 func _physics_process(delta: float) -> void:
 	if not target:

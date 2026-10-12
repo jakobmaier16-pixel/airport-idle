@@ -1,6 +1,6 @@
-class_name Player
+class_name Manager
 extends CharacterBody3D
-## The player character. Walks on the ground using keyboard (WASD / arrows) or the on-screen joystick.
+## The manager (the player character). Walks on the ground using keyboard (WASD / arrows) or the on-screen joystick.
 
 ## Top walking speed in meters per second.
 @export var move_speed: float = 6.0

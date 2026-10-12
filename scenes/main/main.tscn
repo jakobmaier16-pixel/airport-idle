@@ -1,8 +1,8 @@
 [gd_scene format=3]
 
 [ext_resource type="Material" path="res://assets/materials/ground_grid.tres" id="1_ground"]
-[ext_resource type="PackedScene" path="res://scenes/player/player.tscn" id="2_player"]
-[ext_resource type="PackedScene" path="res://scenes/camera/follow_camera.tscn" id="3_camera"]
+[ext_resource type="PackedScene" path="res://scenes/manager/manager.tscn" id="2_manager"]
+[ext_resource type="PackedScene" path="res://scenes/camera/manager_camera.tscn" id="3_camera"]
 [ext_resource type="PackedScene" path="res://scenes/ui/hud.tscn" id="4_hud"]
 
 [sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_sky"]
@@ -41,10 +41,10 @@ mesh = SubResource("PlaneMesh_ground")
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.5, 0)
 shape = SubResource("BoxShape3D_ground")
 
-[node name="Player" parent="." node_paths=PackedStringArray("joystick") instance=ExtResource("2_player")]
+[node name="Manager" parent="." node_paths=PackedStringArray("joystick") instance=ExtResource("2_manager")]
 joystick = NodePath("../HUD/SafeArea/TouchJoystick")
 
-[node name="FollowCamera" parent="." node_paths=PackedStringArray("target") instance=ExtResource("3_camera")]
-target = NodePath("../Player")
+[node name="ManagerCamera" parent="." node_paths=PackedStringArray("target") instance=ExtResource("3_camera")]
+target = NodePath("../Manager")
 
 [node name="HUD" parent="." instance=ExtResource("4_hud")]
