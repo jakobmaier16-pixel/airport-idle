@@ -116,6 +116,25 @@ UI controls (buttons) consume their touches first, so taps on buttons never reac
 - Do not commit the `.godot/` folder or export builds. **Do** commit the `*.uid` files next to
   scripts and shaders; Godot uses them to keep references stable.
 
+## iOS export
+
+- Export templates for 4.7.2 live in `~/Library/Application Support/Godot/export_templates/4.7.2.stable/`.
+  They must match the Godot version exactly; reinstall when Godot is updated.
+- Preset "iOS" in `export_presets.cfg` (committed). It exports an **Xcode project only**
+  (`application/export_project_only=true`); signing and installing happen in Xcode.
+- Export (into `build/ios/`, ignored by Git):
+  ```
+  mkdir -p build/ios
+  /Applications/Godot.app/Contents/MacOS/Godot --headless --path . --export-debug "iOS" build/ios/AirportIdle.ipa
+  ```
+  Then open `build/ios/AirportIdle.xcodeproj` and press Run. Re-exporting overwrites the Xcode project.
+- Signing: free Apple ID (Personal Team), automatic signing, bundle id `com.jakobmaier.airportidle`.
+  Free-account builds expire after 7 days; re-run from Xcode to renew.
+- `application/app_store_team_id` must not be empty (Godot refuses to export). `PLACEHOLDR` means
+  the real Personal Team ID hasn't been filled in yet; then the team must be picked in Xcode after every export.
+- iOS needs `rendering/textures/vram_compression/import_etc2_astc=true` (already set).
+- Minimum hardware: A12 chip (Godot requirement), iOS 15.
+
 ## Gotchas
 
 - When writing `.tscn` files by hand, a node that sets a Node-typed `@export` (e.g. `target`)
