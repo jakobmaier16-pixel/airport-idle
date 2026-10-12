@@ -8,11 +8,8 @@ extends Node3D
 const MAX_VISIBLE: int = 400
 const FIGURE_HEIGHT: float = 1.65
 const FIGURE_RADIUS: float = 0.22
-## Clothing colors (Passenger.color_index picks one).
-const COLORS: Array[Color] = [
-	Color(0.85, 0.3, 0.3), Color(0.25, 0.45, 0.8), Color(0.95, 0.75, 0.25),
-	Color(0.3, 0.65, 0.4), Color(0.55, 0.35, 0.65), Color(0.9, 0.9, 0.9),
-]
+## Used for passengers without a type.
+const DEFAULT_COLOR: Color = Color(0.8, 0.8, 0.8)
 
 ## Manager view: figures are drawn within this distance (meters) of the point the camera looks at.
 @export var manager_view_radius: float = 45.0
@@ -66,11 +63,18 @@ func _process(_delta: float) -> void:
 		if Vector2(figure_position.x, figure_position.z).distance_squared_to(center) > radius_squared:
 			continue
 		_multimesh.set_instance_transform(count, Transform3D(Basis.IDENTITY, figure_position + lift))
-		_multimesh.set_instance_color(count, COLORS[passenger.color_index])
+		_multimesh.set_instance_color(count, color_of(passenger))
 		count += 1
 		if count == MAX_VISIBLE:
 			break
 	_multimesh.visible_instance_count = count
+
+
+## Figure color: one of the passenger type's colors (design doc §8.7).
+static func color_of(passenger: Passenger) -> Color:
+	if passenger.type == null or passenger.type.colors.is_empty():
+		return DEFAULT_COLOR
+	return passenger.type.colors[passenger.color_index % passenger.type.colors.size()]
 
 
 # Ground area worth drawing: (center x, center z, radius) around what the camera shows.

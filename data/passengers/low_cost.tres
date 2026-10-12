@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="PassengerType" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/passenger_type.gd" id="1_type"]
+
+[resource]
+script = ExtResource("1_type")
+id = &"low_cost"
+display_name = "Low-cost"
+colors = Array[Color]([Color(0.25, 0.55, 0.9, 1), Color(0.2, 0.75, 0.75, 1), Color(0.45, 0.7, 0.95, 1)])
+walk_speed = 1.3
+arrives_from = 240.0
+arrives_until = 150.0
+skip_check_in_chance = 0.6
+check_in_time_factor = 1.0
+security_time_factor = 1.0
+shop_chance = 0.4
+spend_factor = 0.6

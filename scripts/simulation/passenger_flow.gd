@@ -4,7 +4,7 @@ extends RefCounted
 ## service and boarding. Pure data: Airport calls tick() at a fixed rate and on_layout_changed()
 ## after layout changes. The flights themselves are planned by `schedule`.
 
-## Walking speed in meters per second (realistic: about 1.3).
+## Walking speed in meters per second when a passenger has no type (realistic: about 1.3).
 const WALK_SPEED: float = 1.3
 ## Largest personal sideways offset in meters (must stay below half a cell).
 const MAX_OFFSET: float = 0.6
@@ -15,9 +15,8 @@ const RETRY_INTERVAL: float = 1.0
 ## Shops and cafés (design doc §8.6): passengers go only with at least this much time to spare
 ## before boarding opens, and then with this probability.
 const SHOPPING_MIN_SPARE: float = 45.0
-const SHOPPING_CHANCE: float = 0.7
-## Before security, only passengers with plenty of time visit a landside café, less often.
-const LANDSIDE_CAFE_CHANCE: float = 0.3
+## Before security, passengers are less likely to sit in a landside café (share of their shop chance).
+const LANDSIDE_CAFE_FACTOR: float = 0.4
 ## Time kept free for getting through security after a landside café.
 const SECURITY_ALLOWANCE: float = 60.0
 ## Customers leave a shop this long before boarding opens at the latest ("final call").
@@ -66,8 +65,8 @@ func departures_text(max_lines: int = 4) -> String:
 	var lines: PackedStringArray = []
 	for flight in schedule.upcoming().slice(0, max_lines):
 		var seconds := maxi(ceili(flight.departure_time - time), 0)
-		lines.append("%s   Gate %d   %s   %d:%02d" % [
-			flight.number, gate_number(flight.gate), phase_names[flight.phase], seconds / 60, seconds % 60])
+		lines.append("%s   Gate %d   %s   %s   %d:%02d" % [
+			flight.number, gate_number(flight.gate), flight.route, phase_names[flight.phase], seconds / 60, seconds % 60])
 	return "\n".join(lines)
 
 
@@ -171,8 +170,8 @@ func tick(delta: float) -> void:
 
 # --- Arrivals and departures (called by the schedule) ---
 
-## A passenger for `flight` arrives at an entrance. Returns false if nobody can arrive right now.
-func spawn_passenger(flight: Flight) -> bool:
+## A passenger of `type` for `flight` arrives at an entrance. Returns false if nobody can arrive.
+func spawn_passenger(flight: Flight, type: PassengerType) -> bool:
 	if not route_problem.is_empty() or _route_entrances.is_empty() or passengers.size() >= MAX_PASSENGERS:
 		return false
 	var entrance := _route_entrances[_rng.randi() % _route_entrances.size()]
@@ -181,14 +180,25 @@ func spawn_passenger(flight: Flight) -> bool:
 		return false
 	var passenger := Passenger.new()
 	passenger.flight = flight
+	passenger.type = type
 	passenger.offset = Vector3(_rng.randf_range(-MAX_OFFSET, MAX_OFFSET), 0.0, _rng.randf_range(-MAX_OFFSET, MAX_OFFSET))
 	passenger.color_index = _rng.randi() % COLOR_COUNT
 	passenger.position = _cell_point(cells[_rng.randi() % cells.size()], passenger)
 	passenger.previous_position = passenger.position
-	passenger.goal = Role.CHECK_IN
+	# Online check-in with hand luggage only: straight to security.
+	passenger.goal = Role.SECURITY if _rng.randf() < type.skip_check_in_chance else Role.CHECK_IN
 	passengers.append(passenger)
 	_plan(passenger)
 	return true
+
+
+## How many passengers of each type are in the airport right now ("Families" -> 12).
+func count_by_type() -> Dictionary:
+	var counts := {}
+	for passenger in passengers:
+		var name := passenger.type.display_name if passenger.type != null else "Other"
+		counts[name] = counts.get(name, 0) + 1
+	return counts
 
 
 ## Lets up to `max_count` passengers of `flight` walk from the gate onto the plane.
@@ -295,7 +305,7 @@ func _plan(passenger: Passenger) -> void:
 
 
 func _walk(passenger: Passenger, delta: float) -> void:
-	var step := WALK_SPEED * delta
+	var step := _speed(passenger) * delta
 	while step > 0.0 and passenger.path_index < passenger.path.size():
 		var to_target := passenger.path[passenger.path_index] - passenger.position
 		var distance := to_target.length()
@@ -357,7 +367,7 @@ func _tick_station(station: Station, delta: float) -> void:
 			station.serving[i] = next
 			station.record_wait(time, time - next.queued_since)
 			# Some passengers are quicker than others.
-			station.service_left[i] = station.building.service_time() * _rng.randf_range(0.75, 1.25)
+			station.service_left[i] = station.building.service_time() * _type_factor(next, station) * _rng.randf_range(0.75, 1.25)
 
 	for k in station.queue.size():
 		_move_towards(station.queue[k], _queue_spot(station, k), delta)
@@ -370,11 +380,11 @@ func _finish_service(station: Station, passenger: Passenger) -> void:
 	match station.role():
 		Role.CHECK_IN:
 			passenger.goal = Role.SECURITY
-			_maybe_shop(passenger, Role.SECURITY, SECURITY_ALLOWANCE, LANDSIDE_CAFE_CHANCE)
+			_maybe_shop(passenger, Role.SECURITY, SECURITY_ALLOWANCE, _shop_chance(passenger) * LANDSIDE_CAFE_FACTOR)
 			_plan(passenger)
 		Role.SECURITY:
 			passenger.goal = Role.GATE
-			_maybe_shop(passenger, Role.GATE, 0.0, SHOPPING_CHANCE)
+			_maybe_shop(passenger, Role.GATE, 0.0, _shop_chance(passenger))
 			# Through the security lane to the airside: appear behind the building.
 			var exit: Vector2i = _closest_cell_in_area(station.exit_cells, Airport.grid.world_to_cell(passenger.position), -1)
 			passenger.position = _cell_point(exit, passenger)
@@ -414,7 +424,8 @@ func _tick_shop(station: Station, delta: float) -> void:
 	for customer in leaving:
 		station.waiting.erase(customer)
 		var type := station.building.type
-		var income := _rng.randf_range(type.spend_min, type.spend_max) * Economy.CONCESSION_SHARE
+		var spend_factor := customer.type.spend_factor if customer.type != null else 1.0
+		var income := _rng.randf_range(type.spend_min, type.spend_max) * spend_factor * Economy.CONCESSION_SHARE
 		Airport.economy.earn(income)
 		station.record_income(time, income)
 		# Out of the front door and on to the gate.
@@ -452,11 +463,33 @@ func _lane_base(station: Station, lane: int) -> Vector3:
 
 func _move_towards(passenger: Passenger, target: Vector3, delta: float) -> void:
 	var to_target := target - passenger.position
-	var step := WALK_SPEED * delta
+	var step := _speed(passenger) * delta
 	if to_target.length() <= step:
 		passenger.position = target
 	else:
 		passenger.position += to_target.normalized() * step
+
+
+# --- Passenger types (design doc §8.7) ---
+
+func _speed(passenger: Passenger) -> float:
+	return passenger.type.walk_speed if passenger.type != null else WALK_SPEED
+
+
+func _shop_chance(passenger: Passenger) -> float:
+	return passenger.type.shop_chance if passenger.type != null else 0.6
+
+
+# Families need longer at check-in (bags, children), business travellers are quicker.
+func _type_factor(passenger: Passenger, station: Station) -> float:
+	if passenger.type == null:
+		return 1.0
+	match station.role():
+		Role.CHECK_IN:
+			return passenger.type.check_in_time_factor
+		Role.SECURITY:
+			return passenger.type.security_time_factor
+	return 1.0
 
 
 # --- Layout helpers ---

@@ -206,6 +206,10 @@ theme_override_constants/h_separation = 36
 theme_override_constants/v_separation = 8
 columns = 5
 
+[node name="TypesLabel" type="Label" parent="SafeArea/StatsPanel/Content"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 22
+
 [node name="BottleneckLabel" type="Label" parent="SafeArea/StatsPanel/Content"]
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 0.7, 0.3, 1)

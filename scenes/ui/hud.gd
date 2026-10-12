@@ -41,6 +41,7 @@ var _tool: BuildMode.Tool = BuildMode.Tool.NONE
 @onready var _stats_panel: Control = $SafeArea/StatsPanel
 @onready var _stats_table: GridContainer = $SafeArea/StatsPanel/Content/Table
 @onready var _bottleneck_label: Label = $SafeArea/StatsPanel/Content/BottleneckLabel
+@onready var _types_label: Label = $SafeArea/StatsPanel/Content/TypesLabel
 @onready var _build_menu: Control = $SafeArea/BuildMenu
 @onready var _building_buttons: HBoxContainer = $SafeArea/BuildMenu/BuildingButtons
 @onready var _tool_panel: Control = $SafeArea/ToolPanel
@@ -219,6 +220,11 @@ func _update_stats_panel() -> void:
 		_add_stats_cell(str(station.longest_queue()), color)
 		_add_stats_cell("–" if wait < 0.0 else "%d s" % roundi(wait), color)
 		_add_stats_cell("%d %%" % roundi(station.busy_share() * 100.0), color)
+	var counts := flow.count_by_type()
+	var parts: PackedStringArray = []
+	for type_name in ["Families", "Low-cost", "Business"]:
+		parts.append("%d %s" % [counts.get(type_name, 0), type_name])
+	_types_label.text = "In the airport: " + "  ·  ".join(parts)
 	if bottleneck != null:
 		_bottleneck_label.text = "Bottleneck: %s · avg wait %d s" % [
 			flow.station_label(bottleneck.building), roundi(bottleneck.average_wait(flow.time))]

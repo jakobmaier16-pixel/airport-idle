@@ -14,6 +14,8 @@ enum State {
 var state: State = State.WALKING
 ## The flight this passenger is booked on (decides the gate and the deadline).
 var flight: Flight = null
+## Families, low-cost or business (design doc §8.7): speed, processing times, shopping.
+var type: PassengerType = null
 ## The kind of station the passenger is heading for next.
 var goal: BuildingType.Role = BuildingType.Role.CHECK_IN
 ## The building of the station the passenger is heading for or standing at.

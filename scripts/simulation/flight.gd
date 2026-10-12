@@ -14,12 +14,18 @@ enum Phase {
 }
 
 var number: String
+## Route type, e.g. "Holiday" (sets the passenger mix, design doc §8.7).
+var route: String = ""
 var gate: Building
 var stand: Building
 ## Simulation time (PassengerFlow.time) when the doors close.
 var departure_time: float
 var seats: int
 var booked: int
+## When each booked passenger arrives at the entrance (simulation time, ascending) and their type.
+var arrival_times: PackedFloat32Array = PackedFloat32Array()
+var arrival_types: Array[PassengerType] = []
+## How many of them have arrived so far.
 var spawned: int = 0
 var boarded: int = 0
 var missed: int = 0

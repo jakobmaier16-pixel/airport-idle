@@ -10,10 +10,9 @@ const INTERVAL: float = 180.0
 const FIRST_DEPARTURE_DELAY: float = 270.0
 ## Gates that become usable at the same moment are spread out by this much.
 const GATE_STAGGER: float = 45.0
-## Passengers for a flight arrive at the entrance between these times before departure,
-## early enough that most have time left for a shop or café after security (design doc §8.6).
+## The earliest any passenger type arrives before departure (see data/passengers/); the next
+## flight at a gate is planned this long before it departs.
 const ARRIVALS_START: float = 260.0
-const ARRIVALS_END: float = 140.0
 ## The plane starts taxiing onto the stand this long before departure.
 const PLANE_ARRIVES: float = 130.0
 ## Seconds to taxi onto the stand, and to push back after departure.
@@ -26,6 +25,16 @@ const BOOKED_MIN: int = 12
 const BOOKED_MAX: int = 20
 ## Fictional airline code (design doc §18: no real airlines).
 const AIRLINE_CODE: String = "AX"
+## Passenger types (design doc §8.7).
+const FAMILY: PassengerType = preload("res://data/passengers/family.tres")
+const LOW_COST: PassengerType = preload("res://data/passengers/low_cost.tres")
+const BUSINESS: PassengerType = preload("res://data/passengers/business.tres")
+## Route types and their passenger mix: [families, low-cost, business] shares.
+const ROUTES: Dictionary = {
+	"Holiday": [0.7, 0.2, 0.1],
+	"Low-cost": [0.15, 0.8, 0.05],
+	"Business": [0.1, 0.3, 0.6],
+}
 
 ## Every flight that hasn't departed yet. A gate can have two: the one at the stand and the
 ## next one, whose passengers are already arriving (like at a real airport).
@@ -81,17 +90,34 @@ func _schedule(gate: Building, departure_time: float) -> void:
 	flight.seats = SEATS
 	flight.booked = _rng.randi_range(BOOKED_MIN, BOOKED_MAX)
 	flight.departure_time = departure_time
+	# Random route for now; later airlines and deals decide (design doc §10).
+	flight.route = ROUTES.keys()[_rng.randi() % ROUTES.size()]
+	_plan_arrivals(flight)
 	_last_planned[gate] = departure_time
 	flights.append(flight)
+
+
+# Decides type and arrival time of every booked passenger, from the route's mix.
+func _plan_arrivals(flight: Flight) -> void:
+	var mix: Array = ROUTES[flight.route]
+	var types: Array[PassengerType] = [FAMILY, LOW_COST, BUSINESS]
+	var arrivals: Array = []
+	for i in flight.booked:
+		var type := types[_rng.rand_weighted(PackedFloat32Array(mix))]
+		var before := _rng.randf_range(type.arrives_until, type.arrives_from)
+		arrivals.append([flight.departure_time - before, type])
+	arrivals.sort_custom(func(a: Array, b: Array) -> bool: return a[0] < b[0])
+	for arrival: Array in arrivals:
+		flight.arrival_times.append(arrival[0])
+		flight.arrival_types.append(arrival[1])
 
 
 func _advance(flight: Flight, now: float, delta: float, flow: PassengerFlow) -> void:
 	var time_left := flight.departure_time - now
 
-	# Passengers arrive at the entrance spread over the arrival window.
-	var arrived_share := clampf((ARRIVALS_START - time_left) / (ARRIVALS_START - ARRIVALS_END), 0.0, 1.0)
-	while flight.spawned < roundi(flight.booked * arrived_share):
-		if not flow.spawn_passenger(flight):
+	# Passengers arrive at the entrance at their planned times.
+	while flight.spawned < flight.booked and flight.arrival_times[flight.spawned] <= now:
+		if not flow.spawn_passenger(flight, flight.arrival_types[flight.spawned]):
 			break
 		flight.spawned += 1
 
