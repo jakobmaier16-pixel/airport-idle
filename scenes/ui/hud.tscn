@@ -52,23 +52,35 @@ size_flags_horizontal = 0
 size_flags_vertical = 8
 mouse_filter = 2
 
-[node name="ZoneButtons" type="HBoxContainer" parent="SafeArea/BuildMenu"]
+[node name="PaintButtons" type="HBoxContainer" parent="SafeArea/BuildMenu"]
 layout_mode = 2
 mouse_filter = 2
 
-[node name="AirsideButton" type="Button" parent="SafeArea/BuildMenu/ZoneButtons"]
+[node name="AirsideButton" type="Button" parent="SafeArea/BuildMenu/PaintButtons"]
 custom_minimum_size = Vector2(120, 72)
 layout_mode = 2
 focus_mode = 0
 text = "Airside"
 
-[node name="LandsideButton" type="Button" parent="SafeArea/BuildMenu/ZoneButtons"]
+[node name="LandsideButton" type="Button" parent="SafeArea/BuildMenu/PaintButtons"]
 custom_minimum_size = Vector2(120, 72)
 layout_mode = 2
 focus_mode = 0
 text = "Landside"
 
-[node name="ResetButton" type="Button" parent="SafeArea/BuildMenu/ZoneButtons"]
+[node name="WalkwayButton" type="Button" parent="SafeArea/BuildMenu/PaintButtons"]
+custom_minimum_size = Vector2(120, 72)
+layout_mode = 2
+focus_mode = 0
+text = "Walkway"
+
+[node name="RemoveButton" type="Button" parent="SafeArea/BuildMenu/PaintButtons"]
+custom_minimum_size = Vector2(120, 72)
+layout_mode = 2
+focus_mode = 0
+text = "Remove"
+
+[node name="ResetButton" type="Button" parent="SafeArea/BuildMenu/PaintButtons"]
 custom_minimum_size = Vector2(120, 72)
 layout_mode = 2
 focus_mode = 0

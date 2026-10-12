@@ -3,10 +3,12 @@ extends Node3D
 ## Build view logic with two tools:
 ## - PLACE (design doc §7.1a): move the preview by dragging it (snaps cell by cell) or by tapping
 ##   the map, rotate it, then place or cancel.
-## - PAINT (design doc §7.2): drag a rectangle (or tap a cell) to paint landside / airside.
+## - PAINT (design doc §7.1b, §7.2): drag a rectangle (or tap a cell) to paint landside / airside,
+##   lay walkway floor or remove it.
 ## With no tool active, tapping a cell highlights it.
 
 enum Tool { NONE, PLACE, PAINT }
+enum PaintKind { AIRSIDE, LANDSIDE, WALKWAY, REMOVE_WALKWAY }
 
 ## Emitted whenever the tool, its validity or its hint changes (so the HUD can update).
 ## can_confirm: PLACE = the spot is allowed; PAINT = always true.
@@ -18,6 +20,8 @@ signal tool_changed(tool: Tool, can_confirm: bool, hint: String)
 @export var invalid_color: Color = Color(0.95, 0.3, 0.25, 0.55)
 @export var airside_paint_color: Color = Color(0.25, 0.35, 0.6, 0.45)
 @export var landside_paint_color: Color = Color(0.35, 0.8, 0.35, 0.45)
+@export var walkway_paint_color: Color = Color(0.95, 0.9, 0.7, 0.55)
+@export var remove_paint_color: Color = Color(0.95, 0.3, 0.25, 0.45)
 ## A drag that starts this many cells around the preview still grabs it (fingers are wide).
 @export var grab_margin_cells: int = 1
 
@@ -47,7 +51,7 @@ var _preview_material: StandardMaterial3D
 var _preview_front_material: StandardMaterial3D
 
 # PAINT tool
-var _paint_zone: AirportGrid.Zone = AirportGrid.Zone.AIRSIDE
+var _paint_kind: PaintKind = PaintKind.AIRSIDE
 var _painting_drag: bool = false
 var _paint_start_cell: Vector2i = Vector2i.ZERO
 var _paint_rect: Rect2i = Rect2i()
@@ -102,11 +106,12 @@ func start_placement(type: BuildingType) -> void:
 	_update_highlight()
 
 
-func start_zone_painting(zone: AirportGrid.Zone) -> void:
+func start_painting(kind: PaintKind) -> void:
 	cancel_tool()
 	_tool = Tool.PAINT
-	_paint_zone = zone
-	_paint_material.albedo_color = airside_paint_color if zone == AirportGrid.Zone.AIRSIDE else landside_paint_color
+	_paint_kind = kind
+	var colors: Array[Color] = [airside_paint_color, landside_paint_color, walkway_paint_color, remove_paint_color]
+	_paint_material.albedo_color = colors[kind]
 	_update_highlight()
 	_emit_paint_hint(0)
 
@@ -156,7 +161,7 @@ func _on_tapped(screen_position: Vector2) -> void:
 				_center_preview_on(cell)
 		Tool.PAINT:
 			var single: Array[Vector2i] = [cell]
-			_emit_paint_hint(Airport.paint_zone(single, _paint_zone))
+			_emit_paint_hint(_apply_paint(single))
 
 
 func _on_drag_started(start_position: Vector2, touch_position: Vector2) -> void:
@@ -192,7 +197,7 @@ func _on_drag_ended(_touch_position: Vector2) -> void:
 			for x in range(_paint_rect.position.x, _paint_rect.end.x):
 				cells.append(Vector2i(x, y))
 		_stop_painting_drag()
-		_emit_paint_hint(Airport.paint_zone(cells, _paint_zone))
+		_emit_paint_hint(_apply_paint(cells))
 
 
 # A second finger turned the drag into a pinch: keep the preview where it is, drop the rectangle.
@@ -244,7 +249,12 @@ func _set_preview_origin(origin_cell: Vector2i) -> void:
 	var problem := Airport.check_placement(_placing_type, _placing_origin, _placing_rotation)
 	var can_place := problem.is_empty()
 	_preview_material.albedo_color = valid_color if can_place else invalid_color
-	tool_changed.emit(Tool.PLACE, can_place, "Drag the building to move it" if can_place else problem)
+	var hint := problem
+	if can_place:
+		# Unconnected is allowed (connect it later), but say what's missing.
+		var missing := Airport.connection_problem(_placing_type, _placing_origin, _placing_rotation)
+		hint = "Drag the building to move it" if missing.is_empty() else missing + " (can be added later)"
+	tool_changed.emit(Tool.PLACE, can_place, hint)
 
 
 func _current_size() -> Vector2i:
@@ -283,9 +293,23 @@ func _stop_painting_drag() -> void:
 		camera.pan_enabled = true
 
 
+# Applies the current paint kind; returns how many cells were blocked (zones only).
+func _apply_paint(cells: Array[Vector2i]) -> int:
+	match _paint_kind:
+		PaintKind.AIRSIDE:
+			return Airport.paint_zone(cells, AirportGrid.Zone.AIRSIDE)
+		PaintKind.LANDSIDE:
+			return Airport.paint_zone(cells, AirportGrid.Zone.LANDSIDE)
+		PaintKind.WALKWAY:
+			Airport.paint_walkway(cells, true)
+		PaintKind.REMOVE_WALKWAY:
+			Airport.paint_walkway(cells, false)
+	return 0
+
+
 func _emit_paint_hint(blocked_cells: int) -> void:
-	var zone_name := "airside" if _paint_zone == AirportGrid.Zone.AIRSIDE else "landside"
-	var hint := "Drag to paint %s. Two fingers: move and zoom." % zone_name
+	var actions: Array[String] = ["paint airside", "paint landside", "lay walkway", "remove walkway"]
+	var hint := "Drag to %s. Two fingers: move and zoom." % actions[_paint_kind]
 	if blocked_cells > 0:
 		hint = "%d cells kept: a building needs their zone." % blocked_cells
 	tool_changed.emit(Tool.PAINT, true, hint)

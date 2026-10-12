@@ -1,4 +1,5 @@
-// Ground with grid lines that match the airport grid, tinted by zone (landside / airside).
+// Ground with grid lines that match the airport grid, tinted by zone (landside / airside)
+// and showing walkway floor.
 // Cell size, origin, map size and the zone map are set by ground.gd.
 shader_type spatial;
 
@@ -6,13 +7,17 @@ uniform vec4 base_color : source_color = vec4(0.42, 0.55, 0.36, 1.0);
 uniform vec4 line_color : source_color = vec4(0.34, 0.45, 0.29, 1.0);
 uniform vec4 airside_color : source_color = vec4(0.5, 0.53, 0.57, 1.0);
 uniform vec4 airside_line_color : source_color = vec4(0.42, 0.45, 0.49, 1.0);
+uniform vec4 landside_floor_color : source_color = vec4(0.84, 0.81, 0.74, 1.0);
+uniform vec4 airside_floor_color : source_color = vec4(0.78, 0.8, 0.83, 1.0);
+uniform vec4 floor_line_color : source_color = vec4(0.68, 0.66, 0.62, 1.0);
 // Size of one grid cell in meters.
 uniform float cell_size = 2.0;
 // World XZ position of the map corner where cell (0, 0) starts.
 uniform vec2 grid_origin = vec2(0.0);
 // Map size in meters.
 uniform vec2 map_size = vec2(128.0);
-// One pixel per cell: red = 1.0 means airside. "filter_nearest" keeps cell edges sharp.
+// One pixel per cell: red = 1.0 means airside, green = 1.0 means walkway.
+// "filter_nearest" keeps cell edges sharp.
 uniform sampler2D zone_map : filter_nearest, repeat_disable;
 
 varying vec3 world_position;
@@ -23,7 +28,9 @@ void vertex() {
 
 void fragment() {
 	vec2 local = world_position.xz - grid_origin;
-	float airside = texture(zone_map, local / map_size).r;
+	vec2 cell_data = texture(zone_map, local / map_size).rg;
+	float airside = cell_data.r;
+	float walkway = cell_data.g;
 
 	vec2 cell = local / cell_size;
 	// Distance to the nearest grid line, measured in screen pixels (anti-aliased, constant width).
@@ -32,6 +39,8 @@ void fragment() {
 
 	vec3 ground = mix(base_color.rgb, airside_color.rgb, airside);
 	vec3 lines = mix(line_color.rgb, airside_line_color.rgb, airside);
+	ground = mix(ground, mix(landside_floor_color.rgb, airside_floor_color.rgb, airside), walkway);
+	lines = mix(lines, floor_line_color.rgb, walkway);
 	ALBEDO = mix(ground, lines, line);
 	ROUGHNESS = 1.0;
 }

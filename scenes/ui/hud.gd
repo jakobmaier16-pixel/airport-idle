@@ -5,7 +5,7 @@ extends CanvasLayer
 
 signal view_toggle_pressed
 signal building_type_selected(type: BuildingType)
-signal zone_tool_selected(zone: AirportGrid.Zone)
+signal paint_tool_selected(kind: BuildMode.PaintKind)
 signal rotate_pressed
 signal place_pressed
 signal cancel_pressed
@@ -34,15 +34,19 @@ var _tool: BuildMode.Tool = BuildMode.Tool.NONE
 @onready var _place_button: Button = $SafeArea/ToolPanel/ToolBar/PlaceButton
 @onready var _done_button: Button = $SafeArea/ToolPanel/ToolBar/DoneButton
 @onready var _build_label: Label = $SafeArea/BuildLabel
-@onready var _reset_button: Button = $SafeArea/BuildMenu/ZoneButtons/ResetButton
+@onready var _reset_button: Button = $SafeArea/BuildMenu/PaintButtons/ResetButton
 
 
 func _ready() -> void:
 	_view_button.pressed.connect(view_toggle_pressed.emit)
-	$SafeArea/BuildMenu/ZoneButtons/AirsideButton.pressed.connect(
-		zone_tool_selected.emit.bind(AirportGrid.Zone.AIRSIDE))
-	$SafeArea/BuildMenu/ZoneButtons/LandsideButton.pressed.connect(
-		zone_tool_selected.emit.bind(AirportGrid.Zone.LANDSIDE))
+	var paint_buttons := {
+		^"SafeArea/BuildMenu/PaintButtons/AirsideButton": BuildMode.PaintKind.AIRSIDE,
+		^"SafeArea/BuildMenu/PaintButtons/LandsideButton": BuildMode.PaintKind.LANDSIDE,
+		^"SafeArea/BuildMenu/PaintButtons/WalkwayButton": BuildMode.PaintKind.WALKWAY,
+		^"SafeArea/BuildMenu/PaintButtons/RemoveButton": BuildMode.PaintKind.REMOVE_WALKWAY,
+	}
+	for path: NodePath in paint_buttons:
+		(get_node(path) as Button).pressed.connect(paint_tool_selected.emit.bind(paint_buttons[path]))
 	_rotate_button.pressed.connect(rotate_pressed.emit)
 	_cancel_button.pressed.connect(cancel_pressed.emit)
 	_place_button.pressed.connect(place_pressed.emit)

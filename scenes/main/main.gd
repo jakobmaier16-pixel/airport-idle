@@ -17,7 +17,7 @@ func _ready() -> void:
 	_hud.view_toggle_pressed.connect(_on_view_toggle_pressed)
 	_hud.setup_build_menu(Airport.CATALOG.types)
 	_hud.building_type_selected.connect(_build_mode.start_placement)
-	_hud.zone_tool_selected.connect(_build_mode.start_zone_painting)
+	_hud.paint_tool_selected.connect(_build_mode.start_painting)
 	_hud.rotate_pressed.connect(_build_mode.rotate_placement)
 	_hud.place_pressed.connect(_build_mode.confirm_placement)
 	_hud.cancel_pressed.connect(_build_mode.cancel_tool)
