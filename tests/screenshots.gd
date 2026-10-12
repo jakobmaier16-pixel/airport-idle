@@ -44,6 +44,13 @@ func _ready() -> void:
 	await pick_building("Security")  # Security, in an invalid spot
 	build_mode()._set_preview_origin(Vector2i(44, 24))
 	await _shot("placing_invalid")
+	await press(ui("ToolPanel/ToolBar/CancelButton"))
+
+	# Demolish tool with the shop selected.
+	await press(ui("BuildMenu/PaintButtons/DemolishToolButton"))
+	var shop: Building = Airport.buildings.filter(func(b: Building) -> bool: return b.type.role == BuildingType.Role.SHOP)[0]
+	tap(screen_of_cell(shop.origin_cell + Vector2i(1, 1)))
+	await _shot("demolish_selected")
 	get_tree().quit()
 
 

@@ -25,6 +25,11 @@ func _ready() -> void:
 	_hud.place_pressed.connect(_build_mode.confirm_placement)
 	_hud.cancel_pressed.connect(_build_mode.cancel_tool)
 	_hud.done_pressed.connect(_build_mode.cancel_tool)
+	_hud.demolish_tool_selected.connect(_build_mode.start_demolish)
+	_hud.demolish_pressed.connect(_build_mode.confirm_demolish)
+	Airport.building_removed.connect(func(building: Building) -> void:
+		if _hud.shown_station == building:
+			_hud.hide_station())
 	_build_mode.tool_changed.connect(_hud.set_tool_state)
 	_hud.reset_confirmed.connect(_on_reset_confirmed)
 	_hud.showcase_confirmed.connect(_on_showcase_confirmed)
@@ -55,10 +60,9 @@ func _process(_delta: float) -> void:
 
 # Manager view: tapping a building opens its station panel; tapping elsewhere closes it.
 func _on_tapped(screen_position: Vector2) -> void:
-	var where := "Tap (%d, %d)" % [roundi(screen_position.x), roundi(screen_position.y)]
 	if current_view != View.MANAGER:
-		_hud.report_tap(where + " in build view: stations open in the manager view")
-		return
+		return  # build view taps belong to the build tools
+	var where := "Tap (%d, %d)" % [roundi(screen_position.x), roundi(screen_position.y)]
 	var building := building_at(screen_position)
 	if building != null and building.type.role != BuildingType.Role.NONE:
 		_hud.show_station(building)

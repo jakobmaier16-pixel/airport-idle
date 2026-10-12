@@ -150,6 +150,7 @@ func test_tap_report_line() -> void:
 	await frames(1)
 	var feedback := hud().get_node("TapFeedback") as TapFeedback
 	check(feedback.report_text.contains("→ Security"), "report names the station: '%s'" % feedback.report_text)
+	var report := feedback.report_text
 	await open_build_view()
 	tap(screen_size() * 0.5)
-	check(feedback.report_text.contains("build view"), "build view taps explain where stations open: '%s'" % feedback.report_text)
+	check_eq(feedback.report_text, report, "build view taps belong to the build tools and aren't reported")

@@ -5,13 +5,14 @@ extends Node3D
 ##   the map, rotate it, then place or cancel.
 ## - PAINT (design doc §7.1b, §7.2): drag a rectangle (or tap a cell) to paint landside / airside,
 ##   lay walkway floor or remove it.
+## - DEMOLISH (design doc §7.6): tap a building to select it, confirm to demolish it.
 ## With no tool active, tapping a cell highlights it.
 
-enum Tool { NONE, PLACE, PAINT }
+enum Tool { NONE, PLACE, PAINT, DEMOLISH }
 enum PaintKind { AIRSIDE, LANDSIDE, WALKWAY, REMOVE_WALKWAY }
 
 ## Emitted whenever the tool, its validity or its hint changes (so the HUD can update).
-## can_confirm: PLACE = the spot is allowed; PAINT = always true.
+## can_confirm: PLACE = the spot is allowed; PAINT = always true; DEMOLISH = a building is selected.
 signal tool_changed(tool: Tool, can_confirm: bool, hint: String)
 
 ## The camera used to find which cell was tapped.
@@ -22,6 +23,7 @@ signal tool_changed(tool: Tool, can_confirm: bool, hint: String)
 @export var landside_paint_color: Color = Color(0.35, 0.8, 0.35, 0.45)
 @export var walkway_paint_color: Color = Color(0.95, 0.9, 0.7, 0.55)
 @export var remove_paint_color: Color = Color(0.95, 0.3, 0.25, 0.45)
+@export var demolish_color: Color = Color(0.95, 0.2, 0.15, 0.5)
 ## A drag that starts this many cells around the preview still grabs it (fingers are wide).
 @export var grab_margin_cells: int = 1
 
@@ -57,6 +59,9 @@ var _paint_start_cell: Vector2i = Vector2i.ZERO
 var _paint_rect: Rect2i = Rect2i()
 var _paint_preview: MeshInstance3D
 var _paint_material: StandardMaterial3D
+
+# DEMOLISH tool: the selected building, shown with the paint preview box in red.
+var _demolish_target: Building = null
 
 @onready var _highlight: MeshInstance3D = $CellHighlight
 
@@ -116,6 +121,27 @@ func start_painting(kind: PaintKind) -> void:
 	_emit_paint_hint("")
 
 
+func start_demolish() -> void:
+	cancel_tool()
+	_tool = Tool.DEMOLISH
+	_demolish_target = null
+	_paint_material.albedo_color = demolish_color
+	_update_highlight()
+	tool_changed.emit(Tool.DEMOLISH, false, "Tap a building to demolish it (50 % refund)")
+
+
+## Demolishes the selected building; the tool stays open for the next one.
+func confirm_demolish() -> void:
+	if _tool != Tool.DEMOLISH or _demolish_target == null:
+		return
+	var type_name := _demolish_target.type.display_name
+	var refund := Airport.demolish_refund(_demolish_target)
+	Airport.demolish(_demolish_target)
+	_demolish_target = null
+	_paint_preview.visible = false
+	tool_changed.emit(Tool.DEMOLISH, false, "%s demolished · %s refunded" % [type_name, Economy.format(refund)])
+
+
 func rotate_placement() -> void:
 	if not is_placing():
 		return
@@ -162,6 +188,8 @@ func _on_tapped(screen_position: Vector2) -> void:
 		Tool.PAINT:
 			var single: Array[Vector2i] = [cell]
 			_emit_paint_hint(_apply_paint(single))
+		Tool.DEMOLISH:
+			_select_for_demolish(cell)
 
 
 func _on_drag_started(start_position: Vector2, touch_position: Vector2) -> void:
@@ -272,6 +300,25 @@ func _origin_corner_world() -> Vector3:
 	return grid.origin + Vector3(_placing_origin.x * grid.cell_size, 0.0, _placing_origin.y * grid.cell_size)
 
 
+# --- DEMOLISH tool helpers ---
+
+func _select_for_demolish(cell: Vector2i) -> void:
+	var grid := Airport.grid
+	if grid.is_empty(cell):
+		_demolish_target = null
+		_paint_preview.visible = false
+		tool_changed.emit(Tool.DEMOLISH, false, "Tap a building to demolish it (50 % refund)")
+		return
+	_demolish_target = grid.get_content(cell) as Building
+	var size := Building.rotated_size(_demolish_target.type.footprint, _demolish_target.rotation_steps)
+	# Cover the whole building with the red box (a little above its roof).
+	_paint_preview.position = grid.block_center(_demolish_target.origin_cell, size) + Vector3(0.0, _demolish_target.type.height + 0.1, 0.0)
+	_paint_preview.scale = Vector3(size.x * grid.cell_size, 1.0, size.y * grid.cell_size)
+	_paint_preview.visible = true
+	tool_changed.emit(Tool.DEMOLISH, true, "Demolish %s · refund %s" % [
+		_demolish_target.type.display_name, Economy.format(Airport.demolish_refund(_demolish_target))])
+
+
 # --- PAINT tool helpers ---
 
 func _update_paint_rect(screen_position: Vector2) -> void:
@@ -325,6 +372,9 @@ func _emit_paint_hint(problem: String) -> void:
 func _end_tool() -> void:
 	_stop_dragging_preview()
 	_stop_painting_drag()
+	_demolish_target = null
+	if _paint_preview != null:
+		_paint_preview.visible = false
 	_tool = Tool.NONE
 	_placing_type = null
 	if _preview:

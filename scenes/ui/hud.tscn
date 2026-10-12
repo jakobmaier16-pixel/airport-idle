@@ -135,6 +135,12 @@ layout_mode = 2
 focus_mode = 0
 text = "Remove"
 
+[node name="DemolishToolButton" type="Button" parent="SafeArea/BuildMenu/PaintButtons"]
+custom_minimum_size = Vector2(120, 72)
+layout_mode = 2
+focus_mode = 0
+text = "Demolish"
+
 [node name="ResetButton" type="Button" parent="SafeArea/BuildMenu/PaintButtons"]
 custom_minimum_size = Vector2(120, 72)
 layout_mode = 2
@@ -274,6 +280,13 @@ custom_minimum_size = Vector2(160, 72)
 layout_mode = 2
 focus_mode = 0
 text = "Place"
+
+[node name="DemolishButton" type="Button" parent="SafeArea/ToolPanel/ToolBar"]
+custom_minimum_size = Vector2(160, 72)
+layout_mode = 2
+focus_mode = 0
+theme_override_colors/font_color = Color(1, 0.55, 0.5, 1)
+text = "Demolish"
 
 [node name="DoneButton" type="Button" parent="SafeArea/ToolPanel/ToolBar"]
 custom_minimum_size = Vector2(160, 72)

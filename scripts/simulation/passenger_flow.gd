@@ -249,6 +249,36 @@ func deplane_passenger(flight: Flight, type: PassengerType) -> bool:
 	return true
 
 
+## A building was demolished (design doc §7.6): its passengers look for another station of the
+## same kind; shop customers carry on. Flights at a demolished gate or stand are cancelled by the
+## schedule on its next step (the gate is no longer usable).
+func remove_building(building: Building) -> void:
+	var station := _stations.get(building) as Station
+	if station == null:
+		return
+	_stations.erase(building)
+	var displaced: Array[Passenger] = []
+	displaced.append_array(station.queue)
+	displaced.append_array(station.waiting)
+	for passenger in station.serving:
+		if passenger != null:
+			displaced.append(passenger)
+	for passenger in displaced:
+		if passenger.state == Passenger.State.IN_SHOP:
+			passenger.goal = passenger.after_shop
+		passenger.state = Passenger.State.WALKING
+		# Step out of the building onto the nearest walkway before looking for a new way.
+		if not station.entry_cells.is_empty():
+			var door: Vector2i = _closest_cell_in_area(station.entry_cells, Airport.grid.world_to_cell(passenger.position), -1)
+			passenger.position = _cell_point(door, passenger)
+			passenger.previous_position = passenger.position
+	# Everyone on their way to it, or just displaced, finds a new way after the layout update.
+	for passenger in passengers:
+		if passenger.target == building:
+			passenger.target = null
+			passenger.state = Passenger.State.WALKING
+
+
 ## Removes every departing passenger of `flight` still in the airport (doors closed or flight
 ## cancelled). Arriving passengers of that plane are already on their way out and stay.
 ## Missed passengers are counted. Returns how many were removed.

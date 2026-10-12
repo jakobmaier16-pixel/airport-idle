@@ -45,6 +45,11 @@ func pay_construction(amount: float) -> void:
 	balance -= amount
 
 
+## Money back for demolishing (a one-off, like construction; not part of profit per minute).
+func refund(amount: float) -> void:
+	balance += amount
+
+
 ## Charges running costs for `delta` seconds and moves the one-minute window along.
 func tick(delta: float, running_cost_per_minute: float) -> void:
 	var cost := running_cost_per_minute / 60.0 * delta

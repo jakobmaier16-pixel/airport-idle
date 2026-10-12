@@ -9,6 +9,8 @@ signal building_placed(building: Building)
 signal building_upgraded(building: Building)
 ## Someone was hired or dismissed at `building` (design doc §9.1).
 signal staff_changed(building: Building)
+## A building was demolished (design doc §7.6). Sent before layout_changed.
+signal building_removed(building: Building)
 signal zones_changed
 signal walkways_changed
 ## Anything about the layout changed (buildings, zones, walkways). Used for saving and connection hints.
@@ -218,6 +220,37 @@ func place_building(type: BuildingType, origin_cell: Vector2i, rotation_steps: i
 	if not _loading:
 		layout_changed.emit()
 	return building
+
+
+## Share of the build price refunded when demolishing (design doc §7.6).
+const DEMOLISH_REFUND_SHARE: float = 0.5
+
+
+## What demolishing `building` would refund.
+func demolish_refund(building: Building) -> float:
+	return building.type.build_cost * DEMOLISH_REFUND_SHARE
+
+
+## Demolishes `building`, also during operation (design doc §7.6): refunds half the build price,
+## dismisses its staff, sends its passengers elsewhere and frees the cells it needed.
+func demolish(building: Building) -> bool:
+	if not buildings.has(building):
+		return false
+	economy.refund(demolish_refund(building))
+	staff = staff.filter(func(e: Employee) -> bool: return e.workplace != building)
+	for cell in building.get_cells():
+		grid.set_content(cell, null)
+	buildings.erase(building)
+	# Rebuild the zone locks from the buildings that are left.
+	_zone_locks.clear()
+	for remaining in buildings:
+		var requirements := Building.zone_requirements(remaining.type, remaining.origin_cell, remaining.rotation_steps)
+		for cell in requirements:
+			_zone_locks[cell] = requirements[cell]
+	passenger_flow.remove_building(building)
+	building_removed.emit(building)
+	layout_changed.emit()
+	return true
 
 
 ## Paints `cells` with `zone`. Cells a building depends on keep their zone.

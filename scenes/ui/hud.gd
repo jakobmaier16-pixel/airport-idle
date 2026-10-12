@@ -10,6 +10,8 @@ signal rotate_pressed
 signal place_pressed
 signal cancel_pressed
 signal done_pressed
+signal demolish_tool_selected
+signal demolish_pressed
 ## The player confirmed resetting the map (test builds only).
 signal reset_confirmed
 ## The player confirmed loading the showcase airport (test builds only).
@@ -55,6 +57,7 @@ var _tool: BuildMode.Tool = BuildMode.Tool.NONE
 @onready var _cancel_button: Button = $SafeArea/ToolPanel/ToolBar/CancelButton
 @onready var _place_button: Button = $SafeArea/ToolPanel/ToolBar/PlaceButton
 @onready var _done_button: Button = $SafeArea/ToolPanel/ToolBar/DoneButton
+@onready var _demolish_button: Button = $SafeArea/ToolPanel/ToolBar/DemolishButton
 @onready var _build_label: Label = $SafeArea/BuildLabel
 @onready var _money_label: Label = $SafeArea/InfoPanel/MoneyLabel
 @onready var _status_label: Label = $SafeArea/InfoPanel/StatusLabel
@@ -84,6 +87,8 @@ func _ready() -> void:
 	_cancel_button.pressed.connect(cancel_pressed.emit)
 	_place_button.pressed.connect(place_pressed.emit)
 	_done_button.pressed.connect(done_pressed.emit)
+	_demolish_button.pressed.connect(demolish_pressed.emit)
+	$SafeArea/BuildMenu/PaintButtons/DemolishToolButton.pressed.connect(demolish_tool_selected.emit)
 	# Reset and Demo are testing aids, so they only exist in debug builds (including device test builds).
 	_reset_button.visible = OS.is_debug_build()
 	_demo_button.visible = OS.is_debug_build()
@@ -212,19 +217,22 @@ func set_build_view_open(open: bool) -> void:
 func set_tool_state(tool: BuildMode.Tool, can_confirm: bool, hint: String) -> void:
 	_tool = tool
 	_place_button.disabled = not can_confirm
+	_demolish_button.disabled = not can_confirm
 	_hint_label.text = hint
 	_update_visibility()
 
 
 func _update_visibility() -> void:
 	var placing := _tool == BuildMode.Tool.PLACE
-	var painting := _tool == BuildMode.Tool.PAINT
+	var demolishing := _tool == BuildMode.Tool.DEMOLISH
+	var painting := _tool == BuildMode.Tool.PAINT or demolishing
 	_build_menu.visible = _build_view_open and _tool == BuildMode.Tool.NONE
 	_tool_panel.visible = _build_view_open and _tool != BuildMode.Tool.NONE
 	_rotate_button.visible = placing
 	_cancel_button.visible = placing
 	_place_button.visible = placing
 	_done_button.visible = painting
+	_demolish_button.visible = demolishing
 	_stats_button.visible = not _build_view_open
 
 

@@ -47,7 +47,8 @@ func _draw() -> void:
 	if not report_text.is_empty():
 		var font := ThemeDB.fallback_font
 		var width := font.get_string_size(report_text, HORIZONTAL_ALIGNMENT_LEFT, -1, REPORT_FONT_SIZE).x
-		var at := Vector2((size.x - width) * 0.5, size.y - 110.0)
+		# Top center, under the build stamp, clear of the buttons at the bottom.
+		var at := Vector2((size.x - width) * 0.5, 64.0)
 		draw_string_outline(font, at, report_text, HORIZONTAL_ALIGNMENT_LEFT, -1, REPORT_FONT_SIZE, 6, Color(0, 0, 0, 0.7))
 		draw_string(font, at, report_text, HORIZONTAL_ALIGNMENT_LEFT, -1, REPORT_FONT_SIZE, Color(1, 1, 0.6))
 	for i in _ages.size():

@@ -17,6 +17,7 @@ const HINT_HEIGHT: float = 1.5
 var _materials: Dictionary[BuildingType, StandardMaterial3D] = {}
 var _front_material: StandardMaterial3D
 var _hints: Dictionary[Building, Label3D] = {}
+var _visuals: Dictionary[Building, BuildingVisual] = {}
 # Connection problem per building, recalculated when the layout changes.
 var _problems: Dictionary[Building, String] = {}
 
@@ -27,6 +28,7 @@ func _ready() -> void:
 	for building in Airport.buildings:
 		_add_visual(building)
 	Airport.building_placed.connect(_add_visual)
+	Airport.building_removed.connect(_remove_visual)
 	Airport.layout_changed.connect(_update_hints)
 	_update_hints()
 
@@ -39,6 +41,7 @@ func _add_visual(building: Building) -> void:
 	if building.type.is_solid:
 		visual.add_collision(building.type, cell_size).set_meta(BUILDING_META, building)
 	add_child(visual)
+	_visuals[building] = visual
 
 	var hint := Label3D.new()
 	hint.billboard = BaseMaterial3D.BILLBOARD_ENABLED
@@ -52,6 +55,19 @@ func _add_visual(building: Building) -> void:
 	hint.visible = false
 	visual.add_child(hint)
 	_hints[building] = hint
+
+
+func _remove_visual(building: Building) -> void:
+	if _visuals.has(building):
+		_visuals[building].queue_free()
+		_visuals.erase(building)
+	_hints.erase(building)
+	_problems.erase(building)
+
+
+## How many buildings are drawn (used by tests).
+func visual_count() -> int:
+	return _visuals.size()
 
 
 func _process(_delta: float) -> void:
