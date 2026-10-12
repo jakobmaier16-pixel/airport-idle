@@ -6,6 +6,9 @@ extends Node
 
 signal building_placed(building: Building)
 signal zones_changed
+signal walkways_changed
+## Anything about the layout changed (buildings, zones, walkways). Used for saving and connection hints.
+signal layout_changed
 
 ## Grid cell size in meters. Terminal and landside are near-realistic at this scale; airside is
 ## scaled down (design doc §7.1). Change it only here: the ground and all tools derive from it.
@@ -53,6 +56,7 @@ func place_building(type: BuildingType, origin_cell: Vector2i, rotation_steps: i
 		_zone_locks[cell] = requirements[cell]
 	buildings.append(building)
 	building_placed.emit(building)
+	layout_changed.emit()
 	return building
 
 
@@ -71,7 +75,36 @@ func paint_zone(cells: Array[Vector2i], zone: AirportGrid.Zone) -> int:
 		changed = true
 	if changed:
 		zones_changed.emit()
+		layout_changed.emit()
 	return blocked
+
+
+## Adds (or removes) walkway floor on `cells`. Works under buildings too (desks inside a hall).
+func paint_walkway(cells: Array[Vector2i], walkway: bool) -> void:
+	var changed := false
+	for cell in cells:
+		if grid.is_inside(cell) and grid.is_walkway(cell) != walkway:
+			grid.set_walkway(cell, walkway)
+			changed = true
+	if changed:
+		walkways_changed.emit()
+		layout_changed.emit()
+
+
+## What a building at this spot still needs to be connected, as a short hint, or "" if nothing.
+## Unconnected buildings are allowed (build first, connect after; design doc §7.1b).
+func connection_problem(type: BuildingType, origin_cell: Vector2i, rotation_steps: int) -> String:
+	for front in [true, false]:
+		var access: BuildingType.Access = type.front_access if front else type.back_access
+		if access == BuildingType.Access.NONE:
+			continue
+		var side := "in front" if front else "behind"
+		var row := Building.outside_row(type.footprint, origin_cell, rotation_steps, front)
+		if access == BuildingType.Access.WALKWAY and not row.any(grid.is_walkable):
+			return "Needs a walkway %s" % side
+		if access == BuildingType.Access.STAND and not row.any(_is_aircraft_stand):
+			return "Needs an aircraft stand %s" % side
+	return ""
 
 
 ## Removes everything: buildings and zones. Visuals must be rebuilt afterwards (reload the scene).
@@ -93,6 +126,7 @@ func save_state() -> Dictionary:
 	return {
 		"map_size": [grid.size.x, grid.size.y],
 		"zones": Marshalls.raw_to_base64(grid.get_zone_data()),
+		"walkways": Marshalls.raw_to_base64(grid.get_walkway_data()),
 		"buildings": saved_buildings,
 	}
 
@@ -106,6 +140,7 @@ func load_state(data: Dictionary) -> int:
 	var saved_size: Array = data.get("map_size", [])
 	if saved_size.size() == 2 and Vector2i(int(saved_size[0]), int(saved_size[1])) == grid.size:
 		grid.set_zone_data(Marshalls.base64_to_raw(data.get("zones", "")))
+		grid.set_walkway_data(Marshalls.base64_to_raw(data.get("walkways", "")))
 	var skipped := 0
 	for entry: Dictionary in data.get("buildings", []):
 		var type := CATALOG.find(StringName(entry.get("type", "")))
@@ -114,7 +149,15 @@ func load_state(data: Dictionary) -> int:
 		if type == null or place_building(type, origin, int(entry.get("rotation", 0))) == null:
 			skipped += 1
 	zones_changed.emit()
+	walkways_changed.emit()
+	layout_changed.emit()
 	return skipped
+
+
+func _is_aircraft_stand(cell: Vector2i) -> bool:
+	if not grid.is_inside(cell) or grid.is_empty(cell):
+		return false
+	return (grid.get_content(cell) as Building).type.is_aircraft_stand
 
 
 func _zone_hint(type: BuildingType) -> String:

@@ -22,8 +22,7 @@ var _loading: bool = false
 func _ready() -> void:
 	enabled = not OS.get_cmdline_user_args().has(NO_SAVE_FLAG)
 	load_game()
-	Airport.building_placed.connect(_on_airport_changed.unbind(1))
-	Airport.zones_changed.connect(_on_airport_changed)
+	Airport.layout_changed.connect(_on_airport_changed)
 
 
 func _process(delta: float) -> void:

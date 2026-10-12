@@ -3,7 +3,7 @@ extends RefCounted
 ## The building grid as pure simulation data: no nodes, no visuals.
 ## Converts between world positions and grid cells, and stores what occupies each cell.
 ## Cell (0, 0) is the map corner at `origin`; cell x grows along world +X, cell y along world +Z.
-## Every cell also has a zone (design doc §7.2), landside by default.
+## Every cell also has a zone (design doc §7.2), landside by default, and may be walkway floor (§7.1b).
 
 enum Zone { LANDSIDE, AIRSIDE }
 
@@ -18,6 +18,8 @@ var origin: Vector3
 var _contents: Dictionary[Vector2i, Variant] = {}
 # One byte per cell (row by row), holding a Zone value. All zeros = all landside.
 var _zones: PackedByteArray = PackedByteArray()
+# One byte per cell (row by row): 1 = walkway floor.
+var _walkways: PackedByteArray = PackedByteArray()
 
 
 func _init(size_in_cells: Vector2i, cell_size_meters: float) -> void:
@@ -25,6 +27,7 @@ func _init(size_in_cells: Vector2i, cell_size_meters: float) -> void:
 	cell_size = cell_size_meters
 	origin = Vector3(-size.x * cell_size * 0.5, 0.0, -size.y * cell_size * 0.5)
 	_zones.resize(size.x * size.y)
+	_walkways.resize(size.x * size.y)
 
 
 ## The cell that contains `world_position`. May be outside the map; check with `is_inside()`.
@@ -96,3 +99,27 @@ func get_zone_data() -> PackedByteArray:
 func set_zone_data(data: PackedByteArray) -> void:
 	if data.size() == _zones.size():
 		_zones = data
+
+
+func is_walkway(cell: Vector2i) -> bool:
+	return _walkways[cell.y * size.x + cell.x] == 1
+
+
+func set_walkway(cell: Vector2i, walkway: bool) -> void:
+	assert(is_inside(cell), "Cell %s is outside the map" % cell)
+	_walkways[cell.y * size.x + cell.x] = 1 if walkway else 0
+
+
+## True if passengers can stand on `cell`: walkway floor without a building on it.
+func is_walkable(cell: Vector2i) -> bool:
+	return is_inside(cell) and is_walkway(cell) and is_empty(cell)
+
+
+## All walkway flags, one byte per cell, row by row (for the ground and save games).
+func get_walkway_data() -> PackedByteArray:
+	return _walkways
+
+
+func set_walkway_data(data: PackedByteArray) -> void:
+	if data.size() == _walkways.size():
+		_walkways = data

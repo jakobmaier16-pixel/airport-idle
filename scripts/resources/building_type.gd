@@ -11,6 +11,13 @@ enum ZoneRule {
 	BORDER, ## On the border: the row in front must be landside, the row behind airside (security).
 }
 
+## What a side of the building must touch for passengers to get in or out (design doc §7.1b).
+enum Access {
+	NONE, ## Passengers don't use this side.
+	WALKWAY, ## Needs at least one free walkway cell along this side.
+	STAND, ## Needs an aircraft stand along this side (gate to aircraft).
+}
+
 ## Stable internal name, used for save games. Never change it once players have saves.
 @export var id: StringName
 ## Name shown in the build menu.
@@ -21,6 +28,10 @@ enum ZoneRule {
 @export var zone_rule: ZoneRule = ZoneRule.LANDSIDE
 ## Solid buildings block the manager; flat ones (e.g. aircraft stands) can be walked on.
 @export var is_solid: bool = true
+@export var front_access: Access = Access.NONE
+@export var back_access: Access = Access.NONE
+## Aircraft park here; gates connect to it with their STAND side.
+@export var is_aircraft_stand: bool = false
 
 @export_group("Placeholder visuals")
 @export var color: Color = Color(0.7, 0.7, 0.75)
