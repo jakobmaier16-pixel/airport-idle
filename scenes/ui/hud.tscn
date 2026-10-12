@@ -13,6 +13,12 @@ font_size = 24
 outline_size = 6
 outline_color = Color(0, 0, 0, 0.6)
 
+[sub_resource type="LabelSettings" id="LabelSettings_departures"]
+font_size = 20
+font_color = Color(1, 0.88, 0.45, 1)
+outline_size = 6
+outline_color = Color(0, 0, 0, 0.6)
+
 [node name="HUD" type="CanvasLayer"]
 script = ExtResource("1_hud")
 
@@ -46,12 +52,22 @@ mouse_filter = 2
 theme_override_font_sizes/font_size = 18
 text = "build dev"
 
-[node name="StatusLabel" type="Label" parent="SafeArea"]
+[node name="InfoPanel" type="VBoxContainer" parent="SafeArea"]
 layout_mode = 2
 size_flags_horizontal = 0
 size_flags_vertical = 0
 mouse_filter = 2
+theme_override_constants/separation = 4
+
+[node name="StatusLabel" type="Label" parent="SafeArea/InfoPanel"]
+layout_mode = 2
+mouse_filter = 2
 label_settings = SubResource("LabelSettings_hint")
+
+[node name="DeparturesLabel" type="Label" parent="SafeArea/InfoPanel"]
+layout_mode = 2
+mouse_filter = 2
+label_settings = SubResource("LabelSettings_departures")
 
 [node name="BuildMenu" type="VBoxContainer" parent="SafeArea"]
 layout_mode = 2

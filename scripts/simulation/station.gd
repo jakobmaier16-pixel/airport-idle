@@ -14,9 +14,8 @@ var queue: Array[Passenger] = []
 ## One entry per counter / lane; null = free.
 var serving: Array[Passenger] = []
 var service_left: PackedFloat32Array = PackedFloat32Array()
-## Gates only: passengers waiting inside, and time since the last boarding.
+## Gates only: passengers waiting inside for their flight to board.
 var waiting: Array[Passenger] = []
-var boarding_timer: float = 0.0
 
 
 func _init(placed: Building) -> void:

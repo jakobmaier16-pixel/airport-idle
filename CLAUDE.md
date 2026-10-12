@@ -80,6 +80,7 @@ scenes/<feature>/     one folder per feature: <name>.tscn + <name>.gd side by si
   build/              build view logic: placing buildings (preview, rotate, place / cancel)
   buildings/          building visuals: BuildingLayer draws every simulated building
   passengers/         PassengerLayer: draws passengers near the camera (one MultiMesh)
+  planes/             PlaneLayer + PlaneVisual: planes taxiing in, parked, pushing back
   ground/             map ground, sized from the grid
   ui/                 HUD, view button, joystick, safe area container
 scripts/autoload/     global singletons:
@@ -87,7 +88,7 @@ scripts/autoload/     global singletons:
                         SaveGame      -> autosave / load of the airport (user://savegame.json)
                         TouchGestures -> touch / mouse / trackpad -> drag, tap, pinch signals
 scripts/simulation/   pure simulation data classes (no nodes, no visuals): AirportGrid, Building,
-                      PassengerFlow, Passenger, Station, WalkwayNetwork
+                      PassengerFlow, Passenger, Station, WalkwayNetwork, FlightSchedule, Flight
 scripts/resources/    custom Resource classes (data definitions), e.g. BuildingType
 data/buildings/       one BuildingType .tres per building (edit footprint, name, look in the Inspector)
 tests/                automated walkthrough tests (excluded from the app export):

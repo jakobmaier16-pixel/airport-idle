@@ -9,6 +9,7 @@
 [ext_resource type="Script" path="res://scenes/main/main.gd" id="7_main"]
 [ext_resource type="Script" path="res://scenes/buildings/building_layer.gd" id="8_building_layer"]
 [ext_resource type="Script" path="res://scenes/passengers/passenger_layer.gd" id="9_passenger_layer"]
+[ext_resource type="Script" path="res://scenes/planes/plane_layer.gd" id="10_plane_layer"]
 
 [sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_sky"]
 
@@ -41,6 +42,9 @@ script = ExtResource("8_building_layer")
 
 [node name="Passengers" type="Node3D" parent="."]
 script = ExtResource("9_passenger_layer")
+
+[node name="Planes" type="Node3D" parent="."]
+script = ExtResource("10_plane_layer")
 
 [node name="Manager" parent="." node_paths=PackedStringArray("joystick") instance=ExtResource("2_manager")]
 joystick = NodePath("../HUD/SafeArea/TouchJoystick")

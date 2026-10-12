@@ -34,7 +34,8 @@ var _tool: BuildMode.Tool = BuildMode.Tool.NONE
 @onready var _place_button: Button = $SafeArea/ToolPanel/ToolBar/PlaceButton
 @onready var _done_button: Button = $SafeArea/ToolPanel/ToolBar/DoneButton
 @onready var _build_label: Label = $SafeArea/BuildLabel
-@onready var _status_label: Label = $SafeArea/StatusLabel
+@onready var _status_label: Label = $SafeArea/InfoPanel/StatusLabel
+@onready var _departures_label: Label = $SafeArea/InfoPanel/DeparturesLabel
 @onready var _reset_button: Button = $SafeArea/BuildMenu/PaintButtons/ResetButton
 @onready var _demo_button: Button = $SafeArea/BuildMenu/PaintButtons/DemoButton
 
@@ -78,6 +79,11 @@ func setup_build_menu(types: Array[BuildingType]) -> void:
 ## Passenger status line in the top left (both views).
 func set_status(text: String) -> void:
 	_status_label.text = text
+
+
+## Departures board below the status line, one flight per line.
+func set_departures(text: String) -> void:
+	_departures_label.text = text
 
 
 func set_view_button_text(text: String) -> void:

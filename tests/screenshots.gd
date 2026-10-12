@@ -17,6 +17,12 @@ func _ready() -> void:
 	manager_camera().distance = manager_camera().max_distance
 	await _shot("manager_view_zoomed_out")
 
+	# South of gate 1's stand, looking across the plane to the gate, while it boards (first departure at 210 s, boarding from 120 s).
+	sim_seconds(60)
+	manager().global_position = Airport.grid.cell_to_world(Vector2i(16, 50))
+	manager_camera().snap_to_target()
+	await _shot("manager_at_gate_boarding")
+
 	await open_build_view()
 	build_camera().center_on(Airport.grid.cell_to_world(Vector2i(32, 30)))
 	await _shot("build_view")

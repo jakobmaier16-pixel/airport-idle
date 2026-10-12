@@ -187,6 +187,14 @@ func load_state(data: Dictionary) -> int:
 	return skipped
 
 
+## The aircraft stand behind a gate (its STAND side), or null.
+func stand_behind(gate: Building) -> Building:
+	for cell in Building.outside_row(gate.type.footprint, gate.origin_cell, gate.rotation_steps, false):
+		if _is_aircraft_stand(cell):
+			return grid.get_content(cell) as Building
+	return null
+
+
 func _on_layout_changed() -> void:
 	passenger_flow.on_layout_changed()
 

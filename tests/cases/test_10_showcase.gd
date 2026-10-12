@@ -30,6 +30,9 @@ func test_showcase_is_complete_and_busy() -> void:
 	ShowcaseAirport.build()
 	check(Airport.passenger_flow.route_problem.is_empty(), "complete route: %s" % Airport.passenger_flow.route_problem)
 	check(Airport.passenger_flow.passengers.size() > 5, "passengers already walking after the warm-up")
+	var plane_near_stand := Airport.passenger_flow.schedule.flights.any(func(f: Flight) -> bool:
+		return f.phase in [Flight.Phase.ARRIVING, Flight.Phase.AT_STAND, Flight.Phase.BOARDING])
+	check(plane_near_stand, "a plane is at or arriving at a stand right away")
 	for building in Airport.buildings:
 		var problem := Airport.connection_problem(building.type, building.origin_cell, building.rotation_steps)
 		check(problem.is_empty(), "%s connected: %s" % [building.type.display_name, problem])

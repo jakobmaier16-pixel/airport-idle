@@ -27,10 +27,12 @@ func test_build_airport_by_touch_and_fly_passengers() -> void:
 	check_eq(unconnected.size(), 0, "every building connected")
 	check(Airport.passenger_flow.route_problem.is_empty(), "complete route: %s" % Airport.passenger_flow.route_problem)
 
-	sim_seconds(180)
+	# Two flights depart within 5 minutes (at 3:30 and 4:15).
+	sim_seconds(300)
 	await frames(2)
-	check(Airport.passenger_flow.departed_count > 20, "passengers departed: %d" % Airport.passenger_flow.departed_count)
-	var status := (ui("StatusLabel") as Label).text
+	check(Airport.passenger_flow.departed_count > 15, "passengers departed: %d" % Airport.passenger_flow.departed_count)
+	check(main.get_node("Planes").plane_count() > 0, "the next planes are at their stands")
+	var status := (ui("InfoPanel/StatusLabel") as Label).text
 	check(status.begins_with("Passengers:"), "status shows passenger numbers: '%s'" % status)
 
 	await close_build_view()

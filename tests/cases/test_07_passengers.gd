@@ -21,7 +21,7 @@ func test_passengers_flow_and_depart() -> void:
 	check(flow.route_problem.is_empty(), "reference airport has a complete route: %s" % flow.route_problem)
 	var off_walkway := 0
 	var landside_after_security := 0
-	for step in 2400:  # 4 minutes
+	for step in 4800:  # 8 minutes: two departures per gate
 		flow.tick(Airport.SIM_STEP)
 		for passenger in flow.passengers:
 			var cell := Airport.grid.world_to_cell(passenger.position)
@@ -30,7 +30,8 @@ func test_passengers_flow_and_depart() -> void:
 					off_walkway += 1
 				if passenger.goal == BuildingType.Role.GATE and Airport.grid.get_zone(cell) != AirportGrid.Zone.AIRSIDE:
 					landside_after_security += 1
-	check(flow.departed_count > 30, "passengers departed in 4 minutes: %d" % flow.departed_count)
+	check(flow.departed_count > 40, "passengers departed in 8 minutes: %d" % flow.departed_count)
+	check(flow.missed_count <= 2, "the showcase airport handles its flights: %d missed" % flow.missed_count)
 	check_eq(off_walkway, 0, "walking passengers stay on walkways")
 	check_eq(landside_after_security, 0, "airside only through security")
 

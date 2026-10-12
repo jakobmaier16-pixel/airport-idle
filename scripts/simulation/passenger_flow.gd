@@ -1,16 +1,13 @@
 class_name PassengerFlow
 extends RefCounted
-## The passenger simulation (design doc §8.4): arrivals, walking, queues, service and boarding.
-## Pure data: Airport calls tick() at a fixed rate and on_layout_changed() after layout changes.
+## The passenger simulation (design doc §8.4, §8.5): arrivals for flights, walking, queues,
+## service and boarding. Pure data: Airport calls tick() at a fixed rate and on_layout_changed()
+## after layout changes. The flights themselves are planned by `schedule`.
 
-## Seconds between two arriving passengers (placeholder until flights exist).
-const ARRIVAL_INTERVAL: float = 3.0
 ## Walking speed in meters per second (realistic: about 1.3).
 const WALK_SPEED: float = 1.3
 ## Largest personal sideways offset in meters (must stay below half a cell).
 const MAX_OFFSET: float = 0.6
-## Placeholder until planes exist: a gate boards everyone waiting this often.
-const GATE_BOARDING_INTERVAL: float = 45.0
 ## Distance between passengers standing in a queue, in meters.
 const QUEUE_SPACING: float = 0.8
 ## Seconds between attempts of a stuck passenger to find a way.
@@ -23,21 +20,67 @@ const MAX_PASSENGERS: int = 600
 const Role := BuildingType.Role
 
 var passengers: Array[Passenger] = []
+var schedule: FlightSchedule = FlightSchedule.new()
+## Simulation clock in seconds since the airport started (flights are timed against it).
+var time: float = 0.0
+## Passengers whose plane has left, and passengers who were too late for their flight.
 var departed_count: int = 0
+var missed_count: int = 0
 ## What is missing for a complete route, or "" if passengers can flow.
 var route_problem: String = ""
 
 var _network: WalkwayNetwork = WalkwayNetwork.new()
 var _stations: Dictionary[Building, Station] = {}
 var _route_entrances: Array[Building] = []
-var _arrival_timer: float = 0.0
 var _rng: RandomNumberGenerator = RandomNumberGenerator.new()
+
+
+func _init() -> void:
+	_rng.randomize()
 
 
 func status_text() -> String:
 	if not route_problem.is_empty():
 		return "No passenger route yet: " + route_problem
-	return "Passengers: %d    Departed: %d" % [passengers.size(), departed_count]
+	return "Passengers: %d    Departed: %d    Missed: %d" % [passengers.size(), departed_count, missed_count]
+
+
+## The next departures, one line each: number, gate, status, time to departure.
+func departures_text(max_lines: int = 4) -> String:
+	var phase_names := {
+		Flight.Phase.SCHEDULED: "Scheduled", Flight.Phase.ARRIVING: "Plane arriving",
+		Flight.Phase.AT_STAND: "At stand", Flight.Phase.BOARDING: "Boarding",
+		Flight.Phase.DEPARTING: "Departed",
+	}
+	var lines: PackedStringArray = []
+	for flight in schedule.upcoming().slice(0, max_lines):
+		var seconds := maxi(ceili(flight.departure_time - time), 0)
+		lines.append("%s   Gate %d   %s   %d:%02d" % [
+			flight.number, gate_number(flight.gate), phase_names[flight.phase], seconds / 60, seconds % 60])
+	return "\n".join(lines)
+
+
+## Gates are numbered in the order they were built, starting at 1.
+func gate_number(gate: Building) -> int:
+	var number := 0
+	for building in Airport.buildings:
+		if building.type.role == Role.GATE:
+			number += 1
+			if building == gate:
+				return number
+	return 0
+
+
+## Gates that can have flights right now: a complete passenger route exists, and the gate has a
+## walkway in front and a stand behind.
+func usable_gates() -> Array[Building]:
+	var gates: Array[Building] = []
+	if not route_problem.is_empty():
+		return gates
+	for station: Station in _stations.values():
+		if station.role() == Role.GATE and _is_usable_gate(station):
+			gates.append(station.building)
+	return gates
 
 
 func on_layout_changed() -> void:
@@ -56,15 +99,12 @@ func on_layout_changed() -> void:
 
 
 func tick(delta: float) -> void:
+	time += delta
 	for passenger in passengers:
 		passenger.previous_position = passenger.position
-	_spawn(delta)
-
-	var boarded: Dictionary[Passenger, bool] = {}
+	schedule.tick(time, delta, self)
 	for station: Station in _stations.values():
-		_tick_station(station, delta, boarded)
-	if not boarded.is_empty():
-		passengers = passengers.filter(func(p: Passenger) -> bool: return not boarded.has(p))
+		_tick_station(station, delta)
 
 	for passenger in passengers:
 		match passenger.state:
@@ -76,19 +116,18 @@ func tick(delta: float) -> void:
 					_plan(passenger)
 
 
-# --- Arrivals ---
+# --- Arrivals and departures (called by the schedule) ---
 
-func _spawn(delta: float) -> void:
-	if not route_problem.is_empty() or passengers.size() >= MAX_PASSENGERS:
-		_arrival_timer = 0.0
-		return
-	_arrival_timer -= delta
-	if _arrival_timer > 0.0:
-		return
-	_arrival_timer += ARRIVAL_INTERVAL
+## A passenger for `flight` arrives at an entrance. Returns false if nobody can arrive right now.
+func spawn_passenger(flight: Flight) -> bool:
+	if not route_problem.is_empty() or _route_entrances.is_empty() or passengers.size() >= MAX_PASSENGERS:
+		return false
 	var entrance := _route_entrances[_rng.randi() % _route_entrances.size()]
 	var cells := _access_cells(entrance, false)
+	if cells.is_empty():
+		return false
 	var passenger := Passenger.new()
+	passenger.flight = flight
 	passenger.offset = Vector3(_rng.randf_range(-MAX_OFFSET, MAX_OFFSET), 0.0, _rng.randf_range(-MAX_OFFSET, MAX_OFFSET))
 	passenger.color_index = _rng.randi() % COLOR_COUNT
 	passenger.position = _cell_point(cells[_rng.randi() % cells.size()], passenger)
@@ -96,6 +135,49 @@ func _spawn(delta: float) -> void:
 	passenger.goal = Role.CHECK_IN
 	passengers.append(passenger)
 	_plan(passenger)
+	return true
+
+
+## Lets up to `max_count` passengers of `flight` walk from the gate onto the plane.
+## Returns how many boarded.
+func board(flight: Flight, max_count: int) -> int:
+	if max_count <= 0 or not _stations.has(flight.gate):
+		return 0
+	var station := _stations[flight.gate]
+	var boarding: Array[Passenger] = []
+	for passenger in station.waiting:
+		if passenger.flight == flight and boarding.size() < max_count:
+			boarding.append(passenger)
+	if boarding.is_empty():
+		return 0
+	_remove(boarding)
+	flight.boarded += boarding.size()
+	return boarding.size()
+
+
+## Removes every passenger of `flight` still in the airport (doors closed or flight cancelled).
+## Missed passengers are counted. Returns how many were removed.
+func remove_flight_passengers(flight: Flight, count_as_missed: bool) -> int:
+	var leaving := passengers.filter(func(p: Passenger) -> bool: return p.flight == flight)
+	_remove(leaving)
+	if count_as_missed:
+		missed_count += leaving.size()
+	return leaving.size()
+
+
+# Takes passengers out of the airport, including any queue, counter or gate they are at.
+func _remove(leaving: Array) -> void:
+	var gone: Dictionary[Passenger, bool] = {}
+	for passenger: Passenger in leaving:
+		gone[passenger] = true
+	var still_here := func(p: Passenger) -> bool: return not gone.has(p)
+	passengers = passengers.filter(still_here)
+	for station: Station in _stations.values():
+		station.queue = station.queue.filter(still_here)
+		station.waiting = station.waiting.filter(still_here)
+		for i in station.serving.size():
+			if gone.has(station.serving[i]):
+				station.serving[i] = null
 
 
 # --- Choosing a station and walking there ---
@@ -116,7 +198,7 @@ func _plan(passenger: Passenger) -> void:
 	for station: Station in _stations.values():
 		if station.role() != passenger.goal:
 			continue
-		if passenger.goal == Role.GATE and not _is_usable_gate(station):
+		if passenger.goal == Role.GATE and station.building != passenger.flight.gate:
 			continue
 		var entry: Variant = _closest_cell_in_area(station.entry_cells, cell, area)
 		if entry != null:
@@ -126,18 +208,15 @@ func _plan(passenger: Passenger) -> void:
 		_set_stuck(passenger)
 		return
 
+	# Short queue and short walk both count, like real passengers judging a hall.
+	# (For the gate there is only one candidate: the gate of their flight.)
 	var choice := 0
-	if passenger.goal == Role.GATE:
-		# Placeholder: later passengers go to the gate of their flight.
-		choice = _rng.randi() % candidates.size()
-	else:
-		# Short queue and short walk both count, like real passengers judging a hall.
-		var best_score := INF
-		for i in candidates.size():
-			var score := candidates[i].busyness() * 3.0 + Vector2(candidate_cells[i] - cell).length() / 4.0
-			if score < best_score:
-				best_score = score
-				choice = i
+	var best_score := INF
+	for i in candidates.size():
+		var score := candidates[i].busyness() * 3.0 + Vector2(candidate_cells[i] - cell).length() / 4.0
+		if score < best_score:
+			best_score = score
+			choice = i
 
 	var cells := _network.find_path(cell, candidate_cells[choice])
 	if cells.is_empty():
@@ -185,16 +264,9 @@ func _set_stuck(passenger: Passenger) -> void:
 
 # --- Stations ---
 
-func _tick_station(station: Station, delta: float, boarded: Dictionary[Passenger, bool]) -> void:
+func _tick_station(station: Station, delta: float) -> void:
 	if station.role() == Role.GATE:
-		station.boarding_timer += delta
-		if station.boarding_timer >= GATE_BOARDING_INTERVAL:
-			station.boarding_timer = 0.0
-			for passenger in station.waiting:
-				boarded[passenger] = true
-			departed_count += station.waiting.size()
-			station.waiting.clear()
-		return
+		return  # boarding is driven by the flight schedule
 
 	for i in station.serving.size():
 		var served := station.serving[i]

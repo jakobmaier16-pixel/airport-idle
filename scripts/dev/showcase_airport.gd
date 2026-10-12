@@ -5,9 +5,10 @@ extends RefCounted
 ## (see SaveGame); the tests and screenshots use the same layout.
 ## **When a feature is added, add it here too**, so the newest feature is visible after an update.
 
-## Builds the showcase into an empty airport. `warm_up_seconds` lets passengers flow for a while
-## first, so the airport is already busy when the player looks at it.
-static func build(warm_up_seconds: float = 60.0) -> void:
+## Builds the showcase into an empty airport. `warm_up_seconds` lets the airport run for a while
+## first, so it's already busy when the player looks at it: after the default 2 minutes the first
+## plane is at its stand and boarding is about to open, the second plane is taxiing in.
+static func build(warm_up_seconds: float = 120.0) -> void:
 	Airport.reset()
 	var catalog := Airport.CATALOG
 
@@ -18,7 +19,7 @@ static func build(warm_up_seconds: float = 60.0) -> void:
 	Airport.paint_walkway(_cells(Vector2i(18, 21), Vector2i(28, 7)), true)
 	Airport.paint_walkway(_cells(Vector2i(10, 31), Vector2i(44, 3)), true)
 
-	# Passenger route: Entrance -> Check-in -> Security -> Gate -> Stand.
+	# Passenger route: Entrance -> Check-in -> Security -> Gate -> Stand (flights use both gates).
 	Airport.place_building(catalog.find(&"entrance"), Vector2i(30, 19), 0)
 	Airport.place_building(catalog.find(&"check_in"), Vector2i(20, 22), 2)
 	Airport.place_building(catalog.find(&"check_in"), Vector2i(39, 22), 2)
