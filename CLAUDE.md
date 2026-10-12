@@ -53,4 +53,13 @@ assets/               models/, textures/, materials/, audio/, fonts/
   ```
   The output must contain no `ERROR` or `SCRIPT ERROR` lines.
 - Make small, focused commits with descriptive messages.
-- Do not commit the `.godot/` folder or export builds.
+- Do not commit the `.godot/` folder or export builds. **Do** commit the `*.uid` files next to
+  scripts and shaders; Godot uses them to keep references stable.
+
+## Gotchas
+
+- When writing `.tscn` files by hand, a node that sets a Node-typed `@export` (e.g. `target`)
+  must list it in its header: `node_paths=PackedStringArray("target")`. Otherwise the
+  reference silently stays `null`.
+- Godot 4.7 has a built-in `VirtualJoystick` class; our joystick is `TouchJoystick`.
+  Check new `class_name`s against built-in classes.

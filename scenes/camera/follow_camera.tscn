@@ -1,0 +1,9 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scenes/camera/follow_camera.gd" id="1_camera"]
+
+[node name="FollowCamera" type="Camera3D"]
+keep_aspect = 0
+current = true
+fov = 50.0
+script = ExtResource("1_camera")
