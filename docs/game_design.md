@@ -1,6 +1,6 @@
 # Game Design — Airport Manager (working title)
 
-> Status: Draft v0.16 · Last updated: 2026-10-12
+> Status: Draft v0.17 · Last updated: 2026-10-12
 > This document is the source of truth for *what* we are building. Code follows the design, not the other way round.
 > Decisions marked **(open)** are not final — see [Open Questions](#19-open-questions).
 
@@ -289,6 +289,15 @@ Placeholder numbers, tunable in `data/passengers/`. Transfer passengers come wit
 - **Experience grows per station:** someone who has worked check-in for a long time is faster there than a new hire.
 - Staff is assigned to stations; staff count and quality affect throughput.
 - Upgrading staff (training, promotion, pay, specialization): concrete mechanics **(open)**.
+
+
+### 9.1 First staff system
+Placeholder numbers, tunable.
+- **Every check-in counter and security lane needs one employee**; without staff it stays closed. Gates and baggage claim run without staff for now; shops are run by their tenants.
+- **Employees** are individuals with fictional names. Salary: check-in agent €8/min, security officer €10/min. Salaries replace most of the stations' running costs (check-in €6/min, security €10/min for the building itself).
+- **Experience per station type:** a new employee is 25 % slower than the standard time; every passenger served at that station type makes them faster, up to 15 % faster (expert) after 150 passengers. Levels: New · Trained · Experienced · Expert.
+- **Managing** happens in the station panel (manager view): staff list with levels, *Hire* and *Dismiss*. Unstaffed stations show "Needs staff".
+- Training, promotion, pay and specialization are still **(open)** (§19 Q6).
 
 ---
 
