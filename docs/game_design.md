@@ -1,6 +1,6 @@
 # Game Design — Airport Manager (working title)
 
-> Status: Draft v0.5 · Last updated: 2026-10-12
+> Status: Draft v0.6 · Last updated: 2026-10-12
 > This document is the source of truth for *what* we are building. Code follows the design, not the other way round.
 > Decisions marked **(open)** are not final — see [Open Questions](#19-open-questions).
 
@@ -102,6 +102,17 @@ Inspirations: *Builderment*, *Idle Train Empire*, *Airplane Inc.*, *TheoTown*.
 - The player places **predesigned buildings / modules**: check-in, information desk, shops, restaurants, security, passport control, gates, baggage systems, etc.
 - Buildings can be **rotated** freely (in grid steps).
 - Buildings are connected by **corridors** and **waiting areas** (holding rooms, gate lounges) that the player draws on the grid.
+
+### 7.1a Placing a building (build view)
+1. Pick a building from the **build menu**.
+2. A **preview** appears on the map. **Tap** the map to move it there.
+3. **Rotate** in 90° steps with a button.
+4. **Place** or **Cancel** with buttons. The preview is **green** when the spot is free and **red** when it isn't; Place only works on green.
+
+- Buildings cannot overlap each other or leave the map.
+- Each building has a **front side** (e.g. where passengers queue at check-in), shown on the model.
+- **Building is free for now.** Construction costs come with the economy (§16, item 6).
+- Footprint sizes are provisional. First building: **check-in, 3 × 2 cells** (6 × 4 m).
 
 ### 7.2 Zones (realism rule)
 - The airport has a **landside (public)** zone and an **airside (secure)** zone.
