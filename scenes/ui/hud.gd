@@ -12,13 +12,13 @@ signal cancel_pressed
 signal done_pressed
 ## The player confirmed resetting the map (test builds only).
 signal reset_confirmed
+## The player confirmed loading the showcase airport (test builds only).
+signal showcase_confirmed
 
 ## Smallest size for touch buttons, in UI pixels (Apple recommends at least 44 pt).
 const BUTTON_MIN_SIZE: Vector2 = Vector2(120, 72)
-## Written by tools/export_ios.sh; missing when running from the editor.
-const BUILD_INFO_PATH: String = "res://build_info.gd"
-## How long the Reset button waits for the confirming second tap.
-const RESET_CONFIRM_TIME: float = 3.0
+## How long Reset / Demo wait for the confirming second tap.
+const CONFIRM_TIME: float = 3.0
 
 var _build_view_open: bool = false
 var _tool: BuildMode.Tool = BuildMode.Tool.NONE
@@ -36,6 +36,7 @@ var _tool: BuildMode.Tool = BuildMode.Tool.NONE
 @onready var _build_label: Label = $SafeArea/BuildLabel
 @onready var _status_label: Label = $SafeArea/StatusLabel
 @onready var _reset_button: Button = $SafeArea/BuildMenu/PaintButtons/ResetButton
+@onready var _demo_button: Button = $SafeArea/BuildMenu/PaintButtons/DemoButton
 
 
 func _ready() -> void:
@@ -52,9 +53,11 @@ func _ready() -> void:
 	_cancel_button.pressed.connect(cancel_pressed.emit)
 	_place_button.pressed.connect(place_pressed.emit)
 	_done_button.pressed.connect(done_pressed.emit)
-	# Resetting is a testing aid, so it only exists in debug builds (including device test builds).
+	# Reset and Demo are testing aids, so they only exist in debug builds (including device test builds).
 	_reset_button.visible = OS.is_debug_build()
-	_reset_button.pressed.connect(_on_reset_pressed)
+	_demo_button.visible = OS.is_debug_build()
+	_reset_button.pressed.connect(_on_confirm_button_pressed.bind(_reset_button, "Reset", reset_confirmed))
+	_demo_button.pressed.connect(_on_confirm_button_pressed.bind(_demo_button, "Demo", showcase_confirmed))
 	_update_visibility()
 	_show_build_info()
 
@@ -104,24 +107,21 @@ func _update_visibility() -> void:
 	_done_button.visible = painting
 
 
-# First tap arms the button, a second tap within a few seconds resets. No dialog needed.
-func _on_reset_pressed() -> void:
-	if _reset_button.text == "Reset":
-		_reset_button.text = "Tap again"
-		# A signal connection (unlike await) is dropped automatically if the HUD is freed meanwhile.
-		get_tree().create_timer(RESET_CONFIRM_TIME).timeout.connect(_disarm_reset)
+# For buttons that replace the map: the first tap arms the button, a second tap within a few
+# seconds confirms. No dialog needed.
+func _on_confirm_button_pressed(button: Button, label: String, confirmed: Signal) -> void:
+	if button.text == label:
+		button.text = "Tap again"
+		# A connection to a method (unlike await) is dropped automatically if the HUD is freed meanwhile.
+		get_tree().create_timer(CONFIRM_TIME).timeout.connect(_disarm.bind(button, label))
 	else:
-		reset_confirmed.emit()
+		confirmed.emit()
 
 
-func _disarm_reset() -> void:
-	_reset_button.text = "Reset"
+func _disarm(button: Button, label: String) -> void:
+	button.text = label
 
 
 # Shows which export is running, so a stale build on the device is easy to spot.
 func _show_build_info() -> void:
-	var text := "dev"
-	if ResourceLoader.exists(BUILD_INFO_PATH):
-		var info := load(BUILD_INFO_PATH) as GDScript
-		text = info.get_script_constant_map().get("TEXT", text)
-	_build_label.text = "build " + text
+	_build_label.text = "build " + BuildStamp.text()

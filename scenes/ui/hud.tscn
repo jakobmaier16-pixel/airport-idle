@@ -93,6 +93,12 @@ layout_mode = 2
 focus_mode = 0
 text = "Reset"
 
+[node name="DemoButton" type="Button" parent="SafeArea/BuildMenu/PaintButtons"]
+custom_minimum_size = Vector2(120, 72)
+layout_mode = 2
+focus_mode = 0
+text = "Demo"
+
 [node name="BuildingButtons" type="HBoxContainer" parent="SafeArea/BuildMenu"]
 layout_mode = 2
 mouse_filter = 2

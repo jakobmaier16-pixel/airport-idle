@@ -218,16 +218,6 @@ func type_of(id: StringName) -> BuildingType:
 	return Airport.CATALOG.find(id)
 
 
-## The reference airport (same layout as tools/screenshots.sh), built directly in the simulation.
+## The showcase airport (scripts/dev/showcase_airport.gd), without passengers yet.
 func build_reference_airport() -> void:
-	Airport.paint_zone(cells(Vector2i(8, 31), Vector2i(49, 25)), AirportGrid.Zone.AIRSIDE)
-	Airport.paint_walkway(cells(Vector2i(18, 21), Vector2i(28, 7)), true)
-	Airport.paint_walkway(cells(Vector2i(10, 31), Vector2i(44, 3)), true)
-	Airport.place_building(type_of(&"entrance"), Vector2i(30, 19), 0)
-	Airport.place_building(type_of(&"check_in"), Vector2i(20, 22), 2)
-	Airport.place_building(type_of(&"check_in"), Vector2i(39, 22), 2)
-	Airport.place_building(type_of(&"security"), Vector2i(30, 28), 0)
-	Airport.place_building(type_of(&"gate"), Vector2i(14, 34), 0)
-	Airport.place_building(type_of(&"gate"), Vector2i(42, 34), 0)
-	Airport.place_building(type_of(&"aircraft_stand"), Vector2i(10, 39), 0)
-	Airport.place_building(type_of(&"aircraft_stand"), Vector2i(38, 39), 0)
+	ShowcaseAirport.build(0.0)

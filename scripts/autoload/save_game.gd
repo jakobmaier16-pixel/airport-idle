@@ -2,6 +2,8 @@ extends Node
 ## Saves and loads the airport automatically (design doc §5), registered as the autoload "SaveGame".
 ## Loads at startup; saves shortly after every change and right away when the app goes to the
 ## background or closes. There is no manual save.
+## Test builds: the first start after a new export loads the showcase airport instead
+## (see ShowcaseAirport), so the newest features are ready to try without building by hand.
 
 ## Bump when the save format changes in a way older code can't read.
 const FORMAT_VERSION: int = 1
@@ -14,6 +16,11 @@ const NO_SAVE_FLAG: String = "--no-save"
 var enabled: bool = true
 ## Where the game is saved. Tests point this at a separate file.
 var save_path: String = "user://savegame.json"
+## The running export (see BuildStamp), stored in the save to detect the first start after an update.
+var build_stamp: String = BuildStamp.DEV
+
+# Stamp of the export that wrote the loaded save.
+var _saved_build: String = ""
 
 var _dirty: bool = false
 var _time_until_save: float = 0.0
@@ -22,7 +29,10 @@ var _loading: bool = false
 
 func _ready() -> void:
 	enabled = not OS.get_cmdline_user_args().has(NO_SAVE_FLAG)
+	build_stamp = BuildStamp.text()
 	load_game()
+	if enabled and OS.is_debug_build():
+		load_showcase_if_new_build()
 	Airport.layout_changed.connect(_on_airport_changed)
 
 
@@ -47,6 +57,7 @@ func save_now() -> void:
 		return
 	var data := Airport.save_state()
 	data["version"] = FORMAT_VERSION
+	data["build"] = build_stamp
 	# Write to a temporary file first, then swap it in, so a crash mid-save can't corrupt the save.
 	var temp_path := save_path + ".tmp"
 	var file := FileAccess.open(temp_path, FileAccess.WRITE)
@@ -65,11 +76,31 @@ func load_game() -> void:
 	if not data is Dictionary or int(data.get("version", 0)) != FORMAT_VERSION:
 		push_warning("Save game is unreadable or from an incompatible version; starting fresh.")
 		return
+	_saved_build = str(data.get("build", ""))
 	_loading = true
 	var skipped := Airport.load_state(data)
 	_loading = false
 	if skipped > 0:
 		push_warning("%d saved buildings no longer fit and were skipped." % skipped)
+
+
+## On the first start of a new export (test builds only), replaces the map with the showcase
+## airport. Running from the editor ("dev") never does. Returns true if the showcase was loaded.
+func load_showcase_if_new_build() -> bool:
+	if build_stamp == BuildStamp.DEV or build_stamp == _saved_build:
+		return false
+	load_showcase()
+	return true
+
+
+## Replaces the map with the showcase airport and saves it. The caller reloads the scene
+## if the game is already running, to rebuild the visuals.
+func load_showcase() -> void:
+	_loading = true
+	ShowcaseAirport.build()
+	_loading = false
+	_saved_build = build_stamp
+	save_now()
 
 
 ## Deletes the save and clears the airport. The caller reloads the scene to rebuild the visuals.

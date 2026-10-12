@@ -93,6 +93,7 @@ data/buildings/       one BuildingType .tres per building (edit footprint, name,
 tests/                automated walkthrough tests (excluded from the app export):
   test_case.gd        base class with player helpers (tap, drag, pinch, place, paint, sim_seconds)
   cases/              test files, run in name order
+scripts/dev/          testing aids that ship in debug builds: ShowcaseAirport, BuildStamp
 tools/                run_tests.sh, screenshots.sh, export_ios.sh
 assets/               models/, textures/, materials/, audio/, fonts/
 ```
@@ -127,6 +128,10 @@ UI controls (buttons) consume their touches first, so taps on buttons never reac
   fast-forward the simulation with `sim_seconds()`. `test_09_walkthrough` builds a whole airport
   by touch; extend it when the core loop grows (e.g. planes, money).
 - **After visual changes** run `tools/screenshots.sh` and look at `build/screenshots/*.png`.
+- **Showcase airport** (`scripts/dev/showcase_airport.gd`): test builds open with it on the first
+  start after every new export, so the user never has to build by hand to try an update.
+  **Every new feature must be added to the showcase** (a test checks every building type is in it).
+  The tests and screenshots use the same layout. The "Demo" button (debug builds) reloads it.
 - Tests run with `-- --no-save` and never touch the real save game.
 - Make small, focused commits with descriptive messages.
 - Do not commit the `.godot/` folder or export builds. **Do** commit the `*.uid` files next to
