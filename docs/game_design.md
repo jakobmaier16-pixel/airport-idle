@@ -1,6 +1,6 @@
 # Game Design — Airport Manager (working title)
 
-> Status: Draft v0.2 · Last updated: 2026-10-12
+> Status: Draft v0.3 · Last updated: 2026-10-12
 > This document is the source of truth for *what* we are building. Code follows the design, not the other way round.
 > Decisions marked **(open)** are not final — see [Open Questions](#19-open-questions).
 
@@ -60,12 +60,12 @@ Inspirations: *Builderment*, *Idle Train Empire*, *Airplane Inc.*, *TheoTown*.
 ```
 
 **Moment to moment** the player:
-- builds and rearranges the airport (top-down build view)
+- builds, plans and rearranges the airport (**build view**, top-down)
+- walks around the airport as the manager and manages it (**manager view**, fixed tilted follow camera; what walking does in gameplay is still **(open)**)
 - watches passengers move and spots problems
 - opens statistics to find bottlenecks (security? boarding? marketing?)
 - hires, assigns and develops staff
 - negotiates deals with airlines (fees, slots, gates)
-- walks around as the manager (purpose still **(open)**)
 
 **What "idle" means here:** passengers flow and earn money automatically while the player manages. Progress happens while playing, not while away.
 
@@ -243,9 +243,9 @@ This is a core tool, not an extra: the player's thinking happens here.
 ## 15. Camera, Look & Feel
 
 ### Camera
-- **Manager view:** first person or over-the-shoulder, walking through the airport.
-- **Build view:** top-down / bird's-eye overview, always used for building.
-- What walking *does* in gameplay: **(open)**. For now the walking view stays in.
+- **Manager view:** fixed tilted camera, like *League of Legends*. It follows the manager from a fixed angle and **never rotates**. The player walks around and manages the airport in this view.
+- **Build view:** top-down / bird's-eye. Used for **all** building and planning.
+- What walking as the manager does in gameplay: **(open)**.
 
 ### Art style
 - Start with **simple, realistic low-poly** models (achievable without 3D experience).

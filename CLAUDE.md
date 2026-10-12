@@ -1,20 +1,48 @@
 # AirportIdle
 
-A 3D idle game about running an airport.
+A free, strategic airport management game with idle elements for iPhone and iPad.
+The player builds their own airport freeform on a grid and grows it from a regional field into a hub.
+
+## Design doc first
+
+Read `docs/game_design.md` before working on any feature. It is the source of truth for *what*
+we build. If a request conflicts with the design doc, point it out instead of silently deviating.
+Items marked **(open)** are undecided — ask before inventing an answer.
+When a decision is made, update the design doc.
 
 ## Key decisions
 
-- **Engine:** Godot 4.7, GDScript only, **Mobile** renderer, Jolt Physics.
-- **Platforms:** iPhone and iPad only, distributed via the App Store. No Android, no desktop release.
+- **Platforms:** iOS / iPadOS only, distributed via the App Store. No Android, no desktop release.
   The Mac is used only for development and testing.
+- **Language:** English only.
+- **Monetization:** none. No ads, no in-app purchases.
+- **Realism first:** the airport must work like a real one (zones, flows, staff, schedules).
+- **Building:** grid-based, freeform layout with predesigned, rotatable buildings.
+- **Two camera views:**
+  - *Manager view:* fixed tilted camera that follows the manager and **never rotates**
+    (like League of Legends). Do not add camera rotation.
+  - *Build view:* top-down / bird's-eye, used for all building and planning.
+- **Offline income:** minimal. Nothing for breaks under 36 h; after 36 h+ away, 4 h of income once.
+- **Fictional world:** all airlines and airports are fictional. No real names or logos.
+- **Art:** simple low-poly models. Performance on older iPhones matters (instancing, LOD, few lights).
 - **Orientation:** portrait only.
-- **Camera:** follows the player character from a fixed tilted angle and **never rotates**
-  (like League of Legends). Do not add camera rotation.
-- **Input:** a floating on-screen joystick that appears wherever the player touches the screen
-  (one-thumb play). WASD and the arrow keys also work for testing on the Mac.
+- **Input (manager view):** a floating on-screen joystick that appears wherever the player touches
+  the screen (one-thumb play). WASD and the arrow keys also work for testing on the Mac.
 - **Safe areas:** all UI must stay inside the iPhone safe area (notch, Dynamic Island, home indicator).
   Use `scenes/ui/safe_area_container.gd` as the root for HUD elements.
-- **Godot binary:** `/Applications/Godot.app/Contents/MacOS/Godot`
+
+## Tools
+
+- **Godot 4.7** (GDScript only, **Mobile** renderer, Jolt Physics).
+  Binary: `/Applications/Godot.app/Contents/MacOS/Godot`
+- **VS Code** with Claude Code for writing code
+- **Xcode** for the iOS export
+- **Blender** for 3D models
+
+## Working rules
+
+- Build in small, playable steps, starting with the MVP (design doc §16).
+- Update `docs/game_design.md` whenever a design decision is made.
 
 ## Folder structure
 
