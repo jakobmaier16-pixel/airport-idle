@@ -1,0 +1,41 @@
+extends Node3D
+## Entry point of the game. Owns the two camera views and switches between them.
+## The simulation (Airport autoload) keeps running in both views.
+
+enum View { MANAGER, BUILD }
+
+var current_view: View = View.MANAGER
+
+@onready var _manager: Manager = $Manager
+@onready var _manager_camera: ManagerCamera = $ManagerCamera
+@onready var _build_camera: BuildCamera = $BuildCamera
+@onready var _build_mode: BuildMode = $BuildMode
+@onready var _hud: Hud = $HUD
+
+
+func _ready() -> void:
+	_hud.view_toggle_pressed.connect(_on_view_toggle_pressed)
+	_set_view(View.MANAGER)
+
+
+func _on_view_toggle_pressed() -> void:
+	_set_view(View.BUILD if current_view == View.MANAGER else View.MANAGER)
+
+
+func _set_view(view: View) -> void:
+	current_view = view
+	var building := view == View.BUILD
+	if building:
+		# Open the build view above wherever the manager is standing.
+		_build_camera.center_on(_manager.global_position)
+		_build_camera.make_current()
+	else:
+		_manager_camera.make_current()
+
+	_manager.input_enabled = not building
+	_hud.joystick.enabled = not building
+	_build_mode.active = building
+	# Build view: adding a second finger turns a pan into a pinch.
+	# Manager view: a second finger must never interrupt the joystick.
+	TouchGestures.pinch_cancels_drag = building
+	_hud.set_view_button_text("Manager" if building else "Build")

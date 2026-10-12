@@ -4,6 +4,9 @@
 [ext_resource type="PackedScene" path="res://scenes/manager/manager.tscn" id="2_manager"]
 [ext_resource type="PackedScene" path="res://scenes/camera/manager_camera.tscn" id="3_camera"]
 [ext_resource type="PackedScene" path="res://scenes/ui/hud.tscn" id="4_hud"]
+[ext_resource type="PackedScene" path="res://scenes/camera/build_camera.tscn" id="5_build_camera"]
+[ext_resource type="PackedScene" path="res://scenes/build/build_mode.tscn" id="6_build_mode"]
+[ext_resource type="Script" path="res://scenes/main/main.gd" id="7_main"]
 
 [sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_sky"]
 
@@ -17,6 +20,7 @@ ambient_light_source = 3
 tonemap_mode = 2
 
 [node name="Main" type="Node3D"]
+script = ExtResource("7_main")
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="."]
 environment = SubResource("Environment_main")
@@ -32,5 +36,10 @@ joystick = NodePath("../HUD/SafeArea/TouchJoystick")
 
 [node name="ManagerCamera" parent="." node_paths=PackedStringArray("target") instance=ExtResource("3_camera")]
 target = NodePath("../Manager")
+
+[node name="BuildCamera" parent="." instance=ExtResource("5_build_camera")]
+
+[node name="BuildMode" parent="." node_paths=PackedStringArray("camera") instance=ExtResource("6_build_mode")]
+camera = NodePath("../BuildCamera")
 
 [node name="HUD" parent="." instance=ExtResource("4_hud")]

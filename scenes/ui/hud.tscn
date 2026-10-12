@@ -1,9 +1,11 @@
 [gd_scene format=3]
 
-[ext_resource type="Script" path="res://scenes/ui/safe_area_container.gd" id="1_safe_area"]
-[ext_resource type="PackedScene" path="res://scenes/ui/touch_joystick.tscn" id="2_joystick"]
+[ext_resource type="Script" path="res://scenes/ui/hud.gd" id="1_hud"]
+[ext_resource type="Script" path="res://scenes/ui/safe_area_container.gd" id="2_safe_area"]
+[ext_resource type="PackedScene" path="res://scenes/ui/touch_joystick.tscn" id="3_joystick"]
 
 [node name="HUD" type="CanvasLayer"]
+script = ExtResource("1_hud")
 
 [node name="SafeArea" type="MarginContainer" parent="."]
 anchors_preset = 15
@@ -12,7 +14,16 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
-script = ExtResource("1_safe_area")
+script = ExtResource("2_safe_area")
 
-[node name="TouchJoystick" parent="SafeArea" instance=ExtResource("2_joystick")]
+[node name="TouchJoystick" parent="SafeArea" instance=ExtResource("3_joystick")]
 layout_mode = 2
+
+[node name="ViewButton" type="Button" parent="SafeArea"]
+custom_minimum_size = Vector2(200, 72)
+layout_mode = 2
+size_flags_horizontal = 8
+size_flags_vertical = 0
+focus_mode = 0
+theme_override_font_sizes/font_size = 28
+text = "Build"

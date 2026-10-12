@@ -69,14 +69,24 @@ Target: smooth on older iPhones. Plan this in from the start (design doc §18).
 
 ```
 scenes/<feature>/     one folder per feature: <name>.tscn + <name>.gd side by side
-  main/               game world, entry point (main scene)
-  player/             player character
-  camera/             follow camera
-  ui/                 HUD, joystick, menus
-scripts/autoload/     global singletons (save game, economy, ...)
+  main/               entry point (main scene); switches between manager view and build view
+  manager/            the manager (player character)
+  camera/             manager_camera (tilted follow) and build_camera (top-down)
+  build/              build view logic (tap -> grid cell, later: placing buildings)
+  ground/             map ground, sized from the grid
+  ui/                 HUD, view button, joystick, safe area container
+scripts/autoload/     global singletons:
+                        Airport       -> simulation root, owns the grid (cell size lives here)
+                        TouchGestures -> touch / mouse / trackpad -> drag, tap, pinch signals
+scripts/simulation/   pure simulation data classes (no nodes, no visuals), e.g. AirportGrid
 scripts/resources/    custom Resource classes (data definitions)
 assets/               models/, textures/, materials/, audio/, fonts/
 ```
+
+## Input
+
+All touch input goes through the `TouchGestures` autoload; never read raw touch events elsewhere.
+UI controls (buttons) consume their touches first, so taps on buttons never reach the map.
 
 ## Coding rules
 
@@ -112,3 +122,5 @@ assets/               models/, textures/, materials/, audio/, fonts/
   reference silently stays `null`.
 - Godot 4.7 has a built-in `VirtualJoystick` class; our joystick is `TouchJoystick`.
   Check new `class_name`s against built-in classes.
+- Autoloads are not available to scripts run with `--script`. For headless tests, run a small
+  test *scene* instead: `Godot --headless --path . res://path/to/test.tscn`.
