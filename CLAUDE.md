@@ -146,7 +146,10 @@ UI controls (buttons) consume their touches first, so taps on buttons never reac
   (`application/export_project_only=true`); signing and installing happen in Xcode.
 - Export with `tools/export_ios.sh` (into `build/ios/`, ignored by Git). It also writes
   `build_info.gd` (ignored by Git), whose stamp (commit + time) the HUD shows at the top of the screen.
-- **After every export, press Run in Xcode.** Opening the app on the device runs the previous build.
+- **Before every export, remind the user to quit Xcode (Cmd+Q).** The export replaces the Xcode
+  project; if Xcode has it open, it shows a "workspace file has disappeared" warning.
+- **After every export, tell the user to reopen `build/ios/AirportIdle.xcodeproj` and press Run.**
+  Opening the app on the device runs the previous build.
   If the HUD stamp doesn't match the export, the device is running a stale build.
 - `build/.gdignore` keeps Godot from scanning (and packing) the previous export; without it the
   next export fails with "Can't open file from path 'res://build/ios/...'" errors.
