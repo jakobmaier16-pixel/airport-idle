@@ -1,6 +1,6 @@
 # Game Design — Airport Manager (working title)
 
-> Status: Draft v0.18 · Last updated: 2026-10-12
+> Status: Draft v0.19 · Last updated: 2026-10-12
 > This document is the source of truth for *what* we are building. Code follows the design, not the other way round.
 > Decisions marked **(open)** are not final — see [Open Questions](#19-open-questions).
 
@@ -126,6 +126,7 @@ Inspirations: *Builderment*, *Idle Train Empire*, *Airplane Inc.*, *TheoTown*.
 | Shop (duty free / retail) | 3 × 3 | 6 × 6 | airside |
 | Café | 4 × 3 | 8 × 6 | landside or airside |
 | Baggage claim | 6 × 4 | 12 × 8 | border: front faces landside, back faces airside (like security, used the other way) |
+| Transfer security | 4 × 3 | 8 × 6 | airside |
 
 ### 7.1b Walkways (corridors and halls)
 - Corridors and halls are drawn as **walkway floor**: pick *Walkway* and drag a rectangle (or tap a cell); *Remove* erases walkway.
@@ -142,6 +143,7 @@ Inspirations: *Builderment*, *Idle Train Empire*, *Airplane Inc.*, *TheoTown*.
 | Gate | front (walkway) and back (aircraft stand) |
 | Shop, café | front (walkway) |
 | Baggage claim | back (airside, from the gates) and front (landside, to the exit) |
+| Transfer security | front (in) and back (out), both airside walkway |
 | Aircraft stand | reached through a gate |
 
 - A building is **connected** when each access side touches at least one free walkway cell (the gate's back: an aircraft stand). Unconnected buildings can still be placed (build first, connect after) and show a hint such as "Needs a walkway in front".
@@ -282,6 +284,15 @@ Placeholder numbers, tunable in `data/passengers/`. Transfer passengers come wit
 - **Income:** €5 terminal fee per arriving passenger when they leave the airport.
 - **Required:** without a connected baggage claim, arriving passengers have no way out, so no flights operate; the status line says what is missing.
 - Status line: departed, arrived and missed passengers. Arrival and departure flows still share the same walkways; separating them (§7.2) comes later.
+
+
+### 8.9 Transfer passengers (first version)
+- Some arriving passengers **connect to another flight**: Business routes 25 %, Holiday 10 %, Low-cost 5 % (low-cost airlines rarely sell connections).
+- They deplane at the gate, **skip baggage claim** (bags are transferred), go through **transfer security**, may visit a shop if there is time, and board their **connecting flight** — one that departs at least 2½ minutes after they deplane.
+- Not on board when the doors close = **missed connection** (counted as missed).
+- **Transfer security** (airside, 4 × 3): in at the front, out at the back; 2 lanes, staffed like security (€10/min per officer). €4,000 · €8/min. Upgrade: +1 lane €3,000.
+- **Without a working transfer security the airport sells no connections:** all arriving passengers end their journey here.
+- Statistics show passengers transferring now and successful connections.
 
 ---
 
