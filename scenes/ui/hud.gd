@@ -10,11 +10,15 @@ signal rotate_pressed
 signal place_pressed
 signal cancel_pressed
 signal done_pressed
+## The player confirmed resetting the map (test builds only).
+signal reset_confirmed
 
 ## Smallest size for touch buttons, in UI pixels (Apple recommends at least 44 pt).
 const BUTTON_MIN_SIZE: Vector2 = Vector2(120, 72)
 ## Written by tools/export_ios.sh; missing when running from the editor.
 const BUILD_INFO_PATH: String = "res://build_info.gd"
+## How long the Reset button waits for the confirming second tap.
+const RESET_CONFIRM_TIME: float = 3.0
 
 var _build_view_open: bool = false
 var _tool: BuildMode.Tool = BuildMode.Tool.NONE
@@ -30,6 +34,7 @@ var _tool: BuildMode.Tool = BuildMode.Tool.NONE
 @onready var _place_button: Button = $SafeArea/ToolPanel/ToolBar/PlaceButton
 @onready var _done_button: Button = $SafeArea/ToolPanel/ToolBar/DoneButton
 @onready var _build_label: Label = $SafeArea/BuildLabel
+@onready var _reset_button: Button = $SafeArea/BuildMenu/ZoneButtons/ResetButton
 
 
 func _ready() -> void:
@@ -42,6 +47,9 @@ func _ready() -> void:
 	_cancel_button.pressed.connect(cancel_pressed.emit)
 	_place_button.pressed.connect(place_pressed.emit)
 	_done_button.pressed.connect(done_pressed.emit)
+	# Resetting is a testing aid, so it only exists in debug builds (including device test builds).
+	_reset_button.visible = OS.is_debug_build()
+	_reset_button.pressed.connect(_on_reset_pressed)
 	_update_visibility()
 	_show_build_info()
 
@@ -84,6 +92,20 @@ func _update_visibility() -> void:
 	_cancel_button.visible = placing
 	_place_button.visible = placing
 	_done_button.visible = painting
+
+
+# First tap arms the button, a second tap within a few seconds resets. No dialog needed.
+func _on_reset_pressed() -> void:
+	if _reset_button.text == "Reset":
+		_reset_button.text = "Tap again"
+		# A signal connection (unlike await) is dropped automatically if the HUD is freed meanwhile.
+		get_tree().create_timer(RESET_CONFIRM_TIME).timeout.connect(_disarm_reset)
+	else:
+		reset_confirmed.emit()
+
+
+func _disarm_reset() -> void:
+	_reset_button.text = "Reset"
 
 
 # Shows which export is running, so a stale build on the device is easy to spot.

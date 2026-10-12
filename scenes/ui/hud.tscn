@@ -68,6 +68,12 @@ layout_mode = 2
 focus_mode = 0
 text = "Landside"
 
+[node name="ResetButton" type="Button" parent="SafeArea/BuildMenu/ZoneButtons"]
+custom_minimum_size = Vector2(120, 72)
+layout_mode = 2
+focus_mode = 0
+text = "Reset"
+
 [node name="BuildingButtons" type="HBoxContainer" parent="SafeArea/BuildMenu"]
 layout_mode = 2
 mouse_filter = 2

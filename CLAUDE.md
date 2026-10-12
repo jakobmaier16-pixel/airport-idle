@@ -79,7 +79,8 @@ scenes/<feature>/     one folder per feature: <name>.tscn + <name>.gd side by si
   ground/             map ground, sized from the grid
   ui/                 HUD, view button, joystick, safe area container
 scripts/autoload/     global singletons:
-                        Airport       -> simulation root, owns the grid (cell size lives here)
+                        Airport       -> simulation root: grid, zones, buildings (cell size lives here)
+                        SaveGame      -> autosave / load of the airport (user://savegame.json)
                         TouchGestures -> touch / mouse / trackpad -> drag, tap, pinch signals
 scripts/simulation/   pure simulation data classes (no nodes, no visuals), e.g. AirportGrid
 scripts/resources/    custom Resource classes (data definitions), e.g. BuildingType
@@ -150,4 +151,9 @@ UI controls (buttons) consume their touches first, so taps on buttons never reac
 - Godot 4.7 has a built-in `VirtualJoystick` class; our joystick is `TouchJoystick`.
   Check new `class_name`s against built-in classes.
 - Autoloads are not available to scripts run with `--script`. For headless tests, run a small
-  test *scene* instead: `Godot --headless --path . res://path/to/test.tscn`.
+  test *scene* instead, and **always pass `-- --no-save`** so the test neither loads nor overwrites
+  the real save game: `Godot --headless --path . res://path/to/test.tscn -- --no-save`.
+- The Mac save game lives in `~/Library/Application Support/Godot/app_userdata/AirportIdle/`.
+  Test builds have a two-tap "Reset" button in the build menu.
+- Changing a building's size or zone rule can make old saves invalid: such buildings are skipped
+  on load (with a warning). Bump `SaveGame.FORMAT_VERSION` only if the file format itself changes.

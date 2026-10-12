@@ -74,6 +74,49 @@ func paint_zone(cells: Array[Vector2i], zone: AirportGrid.Zone) -> int:
 	return blocked
 
 
+## Removes everything: buildings and zones. Visuals must be rebuilt afterwards (reload the scene).
+func reset() -> void:
+	grid = AirportGrid.new(MAP_SIZE_CELLS, CELL_SIZE)
+	buildings.clear()
+	_zone_locks.clear()
+
+
+## The whole airport as plain data, for the save game.
+func save_state() -> Dictionary:
+	var saved_buildings: Array[Dictionary] = []
+	for building in buildings:
+		saved_buildings.append({
+			"type": String(building.type.id),
+			"cell": [building.origin_cell.x, building.origin_cell.y],
+			"rotation": building.rotation_steps,
+		})
+	return {
+		"map_size": [grid.size.x, grid.size.y],
+		"zones": Marshalls.raw_to_base64(grid.get_zone_data()),
+		"buildings": saved_buildings,
+	}
+
+
+## Restores an airport from save_state() data. Buildings go through the normal placement rules,
+## so a save from an older version (e.g. different sizes) can't create an invalid airport;
+## buildings that no longer fit are skipped. Returns how many were skipped.
+func load_state(data: Dictionary) -> int:
+	reset()
+	# JSON stores every number as a float, hence the explicit conversion.
+	var saved_size: Array = data.get("map_size", [])
+	if saved_size.size() == 2 and Vector2i(int(saved_size[0]), int(saved_size[1])) == grid.size:
+		grid.set_zone_data(Marshalls.base64_to_raw(data.get("zones", "")))
+	var skipped := 0
+	for entry: Dictionary in data.get("buildings", []):
+		var type := CATALOG.find(StringName(entry.get("type", "")))
+		var cell: Array = entry.get("cell", [0, 0])
+		var origin := Vector2i(int(cell[0]), int(cell[1]))
+		if type == null or place_building(type, origin, int(entry.get("rotation", 0))) == null:
+			skipped += 1
+	zones_changed.emit()
+	return skipped
+
+
 func _zone_hint(type: BuildingType) -> String:
 	match type.zone_rule:
 		BuildingType.ZoneRule.AIRSIDE:

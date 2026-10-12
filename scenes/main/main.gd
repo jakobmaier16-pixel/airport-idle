@@ -23,7 +23,14 @@ func _ready() -> void:
 	_hud.cancel_pressed.connect(_build_mode.cancel_tool)
 	_hud.done_pressed.connect(_build_mode.cancel_tool)
 	_build_mode.tool_changed.connect(_hud.set_tool_state)
+	_hud.reset_confirmed.connect(_on_reset_confirmed)
 	_set_view(View.MANAGER)
+
+
+# Clears the map and reloads the scene, so every visual is rebuilt from the (now empty) simulation.
+func _on_reset_confirmed() -> void:
+	SaveGame.reset_game()
+	get_tree().reload_current_scene()
 
 
 func _on_view_toggle_pressed() -> void:
