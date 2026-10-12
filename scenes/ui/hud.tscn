@@ -8,6 +8,11 @@
 default_font_size = 28
 BoxContainer/constants/separation = 16
 
+[sub_resource type="LabelSettings" id="LabelSettings_hint"]
+font_size = 24
+outline_size = 6
+outline_color = Color(0, 0, 0, 0.6)
+
 [node name="HUD" type="CanvasLayer"]
 script = ExtResource("1_hud")
 
@@ -41,32 +46,69 @@ mouse_filter = 2
 theme_override_font_sizes/font_size = 18
 text = "build dev"
 
-[node name="BuildMenu" type="HBoxContainer" parent="SafeArea"]
+[node name="BuildMenu" type="VBoxContainer" parent="SafeArea"]
 layout_mode = 2
 size_flags_horizontal = 0
 size_flags_vertical = 8
 mouse_filter = 2
 
-[node name="PlacementBar" type="HBoxContainer" parent="SafeArea"]
+[node name="ZoneButtons" type="HBoxContainer" parent="SafeArea/BuildMenu"]
+layout_mode = 2
+mouse_filter = 2
+
+[node name="AirsideButton" type="Button" parent="SafeArea/BuildMenu/ZoneButtons"]
+custom_minimum_size = Vector2(120, 72)
+layout_mode = 2
+focus_mode = 0
+text = "Airside"
+
+[node name="LandsideButton" type="Button" parent="SafeArea/BuildMenu/ZoneButtons"]
+custom_minimum_size = Vector2(120, 72)
+layout_mode = 2
+focus_mode = 0
+text = "Landside"
+
+[node name="BuildingButtons" type="HBoxContainer" parent="SafeArea/BuildMenu"]
+layout_mode = 2
+mouse_filter = 2
+
+[node name="ToolPanel" type="VBoxContainer" parent="SafeArea"]
 layout_mode = 2
 size_flags_horizontal = 8
 size_flags_vertical = 8
 mouse_filter = 2
 
-[node name="RotateButton" type="Button" parent="SafeArea/PlacementBar"]
+[node name="HintLabel" type="Label" parent="SafeArea/ToolPanel"]
+layout_mode = 2
+mouse_filter = 2
+label_settings = SubResource("LabelSettings_hint")
+horizontal_alignment = 2
+
+[node name="ToolBar" type="HBoxContainer" parent="SafeArea/ToolPanel"]
+layout_mode = 2
+size_flags_horizontal = 8
+mouse_filter = 2
+
+[node name="RotateButton" type="Button" parent="SafeArea/ToolPanel/ToolBar"]
 custom_minimum_size = Vector2(160, 72)
 layout_mode = 2
 focus_mode = 0
 text = "Rotate"
 
-[node name="CancelButton" type="Button" parent="SafeArea/PlacementBar"]
+[node name="CancelButton" type="Button" parent="SafeArea/ToolPanel/ToolBar"]
 custom_minimum_size = Vector2(160, 72)
 layout_mode = 2
 focus_mode = 0
 text = "Cancel"
 
-[node name="PlaceButton" type="Button" parent="SafeArea/PlacementBar"]
+[node name="PlaceButton" type="Button" parent="SafeArea/ToolPanel/ToolBar"]
 custom_minimum_size = Vector2(160, 72)
 layout_mode = 2
 focus_mode = 0
 text = "Place"
+
+[node name="DoneButton" type="Button" parent="SafeArea/ToolPanel/ToolBar"]
+custom_minimum_size = Vector2(160, 72)
+layout_mode = 2
+focus_mode = 0
+text = "Done"

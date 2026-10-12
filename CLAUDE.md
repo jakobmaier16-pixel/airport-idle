@@ -28,8 +28,9 @@ When a decision is made, update the design doc.
     (like League of Legends). Do not add camera rotation. Everything except building happens here
     (walking, passengers, staff, stations, statistics); the camera must always show enough to play.
     Small pinch zoom (scroll wheel on the Mac): only the distance changes, within tight limits.
-  - *Build view:* top-down / bird's-eye. All building and layout planning happens here, and only here. One-finger drag pans,
-    pinch zooms; zoom is limited and the camera stays inside the map.
+  - *Build view:* top-down / bird's-eye. All building and layout planning happens here, and only here. One-finger drag pans
+    (unless a tool uses it, e.g. dragging a building or painting zones), two fingers pan and zoom;
+    zoom is limited and the camera stays inside the map.
 - **Simulation keeps running in the build view.** No pause for now.
 - **Input (manager view):** the floating joystick only appears when one finger touches the **left half**
   of the screen. The right half stays free for tapping things. A two-finger pinch anywhere zooms and

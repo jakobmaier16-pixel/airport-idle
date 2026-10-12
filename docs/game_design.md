@@ -280,7 +280,7 @@ A button switches between the two views.
 - **Manager view:** fixed tilted camera, like *League of Legends*. It follows the manager from a fixed angle and **never rotates**. **Everything except building happens here:** walking, watching passengers, managing staff and stations, statistics. The camera must always show enough to play comfortably.
   - **Zoom:** a small zoom range — pinch with two fingers (scroll wheel on the Mac). Only the distance changes, within tight limits so it always stays playable. The angle stays fixed.
 - **Build view:** top-down / bird's-eye. **All** building and layout planning happens here, and only here.
-  - Drag with one finger to move, pinch to zoom. Zoom is limited so the game stays playable; the camera cannot leave the map.
+  - Drag with one finger to move, pinch to zoom; two fingers also move the view. While a tool uses one-finger drags (e.g. painting zones), only two fingers move the view. Zoom is limited so the game stays playable; the camera cannot leave the map.
   - When zoomed out, crowds are shown simplified (fewer figures, simple shapes). See §18.
 - What walking as the manager does in gameplay: **(open)**.
 

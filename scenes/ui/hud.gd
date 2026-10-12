@@ -5,38 +5,50 @@ extends CanvasLayer
 
 signal view_toggle_pressed
 signal building_type_selected(type: BuildingType)
+signal zone_tool_selected(zone: AirportGrid.Zone)
 signal rotate_pressed
 signal place_pressed
 signal cancel_pressed
+signal done_pressed
 
 ## Smallest size for touch buttons, in UI pixels (Apple recommends at least 44 pt).
-const BUTTON_MIN_SIZE: Vector2 = Vector2(160, 72)
+const BUTTON_MIN_SIZE: Vector2 = Vector2(120, 72)
 ## Written by tools/export_ios.sh; missing when running from the editor.
 const BUILD_INFO_PATH: String = "res://build_info.gd"
 
 var _build_view_open: bool = false
-var _is_placing: bool = false
+var _tool: BuildMode.Tool = BuildMode.Tool.NONE
 
 @onready var joystick: TouchJoystick = $SafeArea/TouchJoystick
 @onready var _view_button: Button = $SafeArea/ViewButton
-@onready var _build_menu: HBoxContainer = $SafeArea/BuildMenu
-@onready var _placement_bar: HBoxContainer = $SafeArea/PlacementBar
-@onready var _place_button: Button = $SafeArea/PlacementBar/PlaceButton
+@onready var _build_menu: Control = $SafeArea/BuildMenu
+@onready var _building_buttons: HBoxContainer = $SafeArea/BuildMenu/BuildingButtons
+@onready var _tool_panel: Control = $SafeArea/ToolPanel
+@onready var _hint_label: Label = $SafeArea/ToolPanel/HintLabel
+@onready var _rotate_button: Button = $SafeArea/ToolPanel/ToolBar/RotateButton
+@onready var _cancel_button: Button = $SafeArea/ToolPanel/ToolBar/CancelButton
+@onready var _place_button: Button = $SafeArea/ToolPanel/ToolBar/PlaceButton
+@onready var _done_button: Button = $SafeArea/ToolPanel/ToolBar/DoneButton
 @onready var _build_label: Label = $SafeArea/BuildLabel
 
 
 func _ready() -> void:
 	_view_button.pressed.connect(view_toggle_pressed.emit)
-	$SafeArea/PlacementBar/RotateButton.pressed.connect(rotate_pressed.emit)
+	$SafeArea/BuildMenu/ZoneButtons/AirsideButton.pressed.connect(
+		zone_tool_selected.emit.bind(AirportGrid.Zone.AIRSIDE))
+	$SafeArea/BuildMenu/ZoneButtons/LandsideButton.pressed.connect(
+		zone_tool_selected.emit.bind(AirportGrid.Zone.LANDSIDE))
+	_rotate_button.pressed.connect(rotate_pressed.emit)
+	_cancel_button.pressed.connect(cancel_pressed.emit)
 	_place_button.pressed.connect(place_pressed.emit)
-	$SafeArea/PlacementBar/CancelButton.pressed.connect(cancel_pressed.emit)
+	_done_button.pressed.connect(done_pressed.emit)
 	_update_visibility()
 	_show_build_info()
 
 
 ## Creates one build menu button per building type.
 func setup_build_menu(types: Array[BuildingType]) -> void:
-	for child in _build_menu.get_children():
+	for child in _building_buttons.get_children():
 		child.queue_free()
 	for type in types:
 		var button := Button.new()
@@ -44,7 +56,7 @@ func setup_build_menu(types: Array[BuildingType]) -> void:
 		button.custom_minimum_size = BUTTON_MIN_SIZE
 		button.focus_mode = Control.FOCUS_NONE
 		button.pressed.connect(building_type_selected.emit.bind(type))
-		_build_menu.add_child(button)
+		_building_buttons.add_child(button)
 
 
 func set_view_button_text(text: String) -> void:
@@ -56,15 +68,22 @@ func set_build_view_open(open: bool) -> void:
 	_update_visibility()
 
 
-func set_placement_state(is_placing: bool, can_place: bool) -> void:
-	_is_placing = is_placing
-	_place_button.disabled = not can_place
+func set_tool_state(tool: BuildMode.Tool, can_confirm: bool, hint: String) -> void:
+	_tool = tool
+	_place_button.disabled = not can_confirm
+	_hint_label.text = hint
 	_update_visibility()
 
 
 func _update_visibility() -> void:
-	_build_menu.visible = _build_view_open and not _is_placing
-	_placement_bar.visible = _build_view_open and _is_placing
+	var placing := _tool == BuildMode.Tool.PLACE
+	var painting := _tool == BuildMode.Tool.PAINT
+	_build_menu.visible = _build_view_open and _tool == BuildMode.Tool.NONE
+	_tool_panel.visible = _build_view_open and _tool != BuildMode.Tool.NONE
+	_rotate_button.visible = placing
+	_cancel_button.visible = placing
+	_place_button.visible = placing
+	_done_button.visible = painting
 
 
 # Shows which export is running, so a stale build on the device is easy to spot.

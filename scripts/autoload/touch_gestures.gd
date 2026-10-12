@@ -9,12 +9,17 @@ extends Node
 ## A one-finger drag began. `start_position` is where the finger first touched down.
 signal drag_started(start_position: Vector2, position: Vector2)
 signal dragged(position: Vector2, relative: Vector2)
-## Also emitted when a drag is cancelled because it turned into a pinch.
+## The finger was lifted at the end of a drag.
 signal drag_ended(position: Vector2)
+## A drag was interrupted (a second finger turned it into a pinch, or the app lost focus).
+## Unlike drag_ended, whatever the drag was doing should be undone, not completed.
+signal drag_cancelled
 ## A short touch without movement (any finger that is not part of a pinch).
 signal tapped(position: Vector2)
 ## Zoom gesture. factor > 1 means "zoom in" (fingers moved apart, wheel up, trackpad spread).
 signal pinched(factor: float)
+## The midpoint between the two pinching fingers moved (two-finger pan).
+signal pinch_moved(relative: Vector2)
 
 enum State {
 	IDLE, ## No finger down.
@@ -40,6 +45,7 @@ var _state: State = State.IDLE
 var _primary_index: int = -1
 var _pinch_indices: Array[int] = []
 var _pinch_distance: float = 0.0
+var _pinch_center: Vector2 = Vector2.ZERO
 # Per finger (keyed by touch index): current position, start position, start time, moved too far for a tap.
 var _positions: Dictionary[int, Vector2] = {}
 var _start_positions: Dictionary[int, Vector2] = {}
@@ -76,7 +82,7 @@ func _notification(what: int) -> void:
 	# Forget all fingers if the app goes to the background mid-gesture (e.g. a phone call).
 	if what == NOTIFICATION_APPLICATION_FOCUS_OUT:
 		if _state == State.DRAGGING:
-			drag_ended.emit(_positions.get(_primary_index, Vector2.ZERO))
+			drag_cancelled.emit()
 		_reset()
 
 
@@ -95,7 +101,7 @@ func _on_finger_down(index: int, position: Vector2) -> void:
 			_start_pinch(_primary_index, index)
 		State.DRAGGING:
 			if pinch_cancels_drag:
-				drag_ended.emit(_positions[_primary_index])
+				drag_cancelled.emit()
 				_start_pinch(_primary_index, index)
 
 
@@ -118,10 +124,15 @@ func _on_finger_moved(index: int, position: Vector2) -> void:
 				dragged.emit(position, relative)
 		State.PINCHING:
 			if index in _pinch_indices:
-				var distance := _positions[_pinch_indices[0]].distance_to(_positions[_pinch_indices[1]])
+				var first := _positions[_pinch_indices[0]]
+				var second := _positions[_pinch_indices[1]]
+				var distance := first.distance_to(second)
 				if _pinch_distance > 0.0 and distance > 0.0:
 					pinched.emit(distance / _pinch_distance)
 				_pinch_distance = distance
+				var center := (first + second) * 0.5
+				pinch_moved.emit(center - _pinch_center)
+				_pinch_center = center
 
 
 func _on_finger_up(index: int, position: Vector2) -> void:
@@ -158,6 +169,7 @@ func _start_pinch(first: int, second: int) -> void:
 	_state = State.PINCHING
 	_pinch_indices = [first, second]
 	_pinch_distance = _positions[first].distance_to(_positions[second])
+	_pinch_center = (_positions[first] + _positions[second]) * 0.5
 
 
 func _reset() -> void:

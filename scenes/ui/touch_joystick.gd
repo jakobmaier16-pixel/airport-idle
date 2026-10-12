@@ -38,6 +38,7 @@ func _ready() -> void:
 	TouchGestures.drag_started.connect(_on_drag_started)
 	TouchGestures.dragged.connect(_on_dragged)
 	TouchGestures.drag_ended.connect(_on_drag_ended)
+	TouchGestures.drag_cancelled.connect(_stop)
 
 
 func _draw() -> void:

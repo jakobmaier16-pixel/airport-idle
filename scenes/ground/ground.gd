@@ -1,10 +1,15 @@
 class_name Ground
 extends StaticBody3D
-## The flat ground of the map. Sizes itself to the airport grid, so the visuals always match
-## the simulation data, whatever the cell size or map size.
+## The flat ground of the map. Sizes itself to the airport grid and shows the zones as a tint,
+## so the visuals always match the simulation data.
 
 @onready var _mesh_instance: MeshInstance3D = $MeshInstance3D
 @onready var _collision_shape: CollisionShape3D = $CollisionShape3D
+
+var _material: ShaderMaterial
+# One pixel per cell; the shader reads it to tint airside cells.
+var _zone_image: Image
+var _zone_texture: ImageTexture
 
 
 func _ready() -> void:
@@ -17,6 +22,22 @@ func _ready() -> void:
 	var box := _collision_shape.shape as BoxShape3D
 	box.size = Vector3(rect.size.x, 1.0, rect.size.y)
 
-	var material := plane.material as ShaderMaterial
-	material.set_shader_parameter(&"cell_size", grid.cell_size)
-	material.set_shader_parameter(&"grid_origin", Vector2(grid.origin.x, grid.origin.z))
+	_material = plane.material as ShaderMaterial
+	_material.set_shader_parameter(&"cell_size", grid.cell_size)
+	_material.set_shader_parameter(&"grid_origin", Vector2(grid.origin.x, grid.origin.z))
+	_material.set_shader_parameter(&"map_size", rect.size)
+
+	_zone_image = Image.create(grid.size.x, grid.size.y, false, Image.FORMAT_L8)
+	_zone_texture = ImageTexture.create_from_image(_zone_image)
+	_material.set_shader_parameter(&"zone_map", _zone_texture)
+	_update_zones()
+	Airport.zones_changed.connect(_update_zones)
+
+
+func _update_zones() -> void:
+	# Zone values are 0 / 1; the texture needs 0 / 255 for "off" / "fully on".
+	var data := Airport.grid.get_zone_data().duplicate()
+	for i in data.size():
+		data[i] *= 255
+	_zone_image.set_data(_zone_image.get_width(), _zone_image.get_height(), false, Image.FORMAT_L8, data)
+	_zone_texture.update(_zone_image)

@@ -1,7 +1,8 @@
 class_name BuildCamera
 extends Camera3D
 ## Build view camera: looks straight down at the map (top-down) without perspective.
-## One-finger drag pans, pinch / scroll wheel zooms, WASD pans on the Mac.
+## One-finger drag pans (unless a tool uses it), two fingers pan and zoom, scroll wheel zooms,
+## WASD pans on the Mac.
 ## Zoom is limited and the view never leaves the map.
 
 ## Height above the ground in meters. With an orthographic camera this doesn't affect the zoom;
@@ -31,6 +32,7 @@ func _ready() -> void:
 	# smoothed by physics interpolation.
 	physics_interpolation_mode = PHYSICS_INTERPOLATION_MODE_OFF
 	TouchGestures.dragged.connect(_on_dragged)
+	TouchGestures.pinch_moved.connect(_on_pinch_moved)
 	TouchGestures.pinched.connect(_on_pinched)
 	_apply_limits()
 
@@ -54,12 +56,21 @@ func center_on(world_position: Vector3) -> void:
 
 
 func _on_dragged(_touch_position: Vector2, relative: Vector2) -> void:
-	if not current or not pan_enabled:
-		return
+	if current and pan_enabled:
+		_pan(relative)
+
+
+# Two fingers always pan, even while one-finger drags are used for a tool (e.g. painting zones).
+func _on_pinch_moved(relative: Vector2) -> void:
+	if current:
+		_pan(relative)
+
+
+func _pan(screen_relative: Vector2) -> void:
 	# Move the camera opposite to the finger, so the map sticks to the finger.
 	var meters_per_pixel := view_height / get_viewport().get_visible_rect().size.y
-	position.x -= relative.x * meters_per_pixel
-	position.z -= relative.y * meters_per_pixel
+	position.x -= screen_relative.x * meters_per_pixel
+	position.z -= screen_relative.y * meters_per_pixel
 	_apply_limits()
 
 
