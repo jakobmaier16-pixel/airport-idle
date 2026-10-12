@@ -123,6 +123,9 @@ UI controls (buttons) consume their touches first, so taps on buttons never reac
 
 - **Always run the walkthrough tests before every commit and every export:** `tools/run_tests.sh`.
   All tests must pass (exit code 0); engine errors and memory leaks count as failures.
+  Gate commits on the script's own exit code (`tools/run_tests.sh && git commit ...`), never on a
+  pipe like `run_tests.sh | tail`, which hides failures. Tests must not depend on luck: check
+  behaviour over a time span, not at a single random moment.
   `tools/export_ios.sh` runs them itself and refuses to export on a failure.
 - **Every new feature or bug fix gets tests** in `tests/cases/` (one file per area, `test_*` methods).
   Test like a player: tap / drag / pinch the real UI through the `TestCase` helpers, and

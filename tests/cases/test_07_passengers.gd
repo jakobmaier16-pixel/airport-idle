@@ -37,13 +37,18 @@ func test_passengers_flow_and_depart() -> void:
 
 
 func test_queues_form_at_busy_security() -> void:
+	# Passengers arrive in waves per flight, so watch security over time instead of one moment.
 	build_reference_airport()
-	sim_seconds(240)
-	var longest := 0
-	for station: Station in Airport.passenger_flow._stations.values():
-		if station.role() == BuildingType.Role.SECURITY:
-			longest = maxi(longest, station.queue.size() + station.serving.size() - station.serving.count(null))
-	check(longest > 0, "someone is at security after 4 minutes")
+	var busiest := 0
+	var longest_queue := 0
+	for step in 2400:  # 4 minutes
+		Airport.passenger_flow.tick(Airport.SIM_STEP)
+		for station: Station in Airport.passenger_flow._stations.values():
+			if station.role() == BuildingType.Role.SECURITY:
+				busiest = maxi(busiest, station.busyness())
+				longest_queue = maxi(longest_queue, station.queue.size())
+	check(busiest > 0, "passengers went through security")
+	check(longest_queue > 0, "a queue formed at security at some point")
 
 
 func test_recovers_after_walkway_cut() -> void:
