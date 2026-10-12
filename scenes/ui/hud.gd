@@ -15,6 +15,9 @@ signal reset_confirmed
 ## The player confirmed loading the showcase airport (test builds only).
 signal showcase_confirmed
 
+const MONEY_COLOR: Color = Color(1.0, 1.0, 1.0)
+const DEBT_COLOR: Color = Color(1.0, 0.4, 0.35)
+
 ## Smallest size for touch buttons, in UI pixels (Apple recommends at least 44 pt).
 const BUTTON_MIN_SIZE: Vector2 = Vector2(120, 72)
 ## How long Reset / Demo wait for the confirming second tap.
@@ -34,6 +37,7 @@ var _tool: BuildMode.Tool = BuildMode.Tool.NONE
 @onready var _place_button: Button = $SafeArea/ToolPanel/ToolBar/PlaceButton
 @onready var _done_button: Button = $SafeArea/ToolPanel/ToolBar/DoneButton
 @onready var _build_label: Label = $SafeArea/BuildLabel
+@onready var _money_label: Label = $SafeArea/InfoPanel/MoneyLabel
 @onready var _status_label: Label = $SafeArea/InfoPanel/StatusLabel
 @onready var _departures_label: Label = $SafeArea/InfoPanel/DeparturesLabel
 @onready var _reset_button: Button = $SafeArea/BuildMenu/PaintButtons/ResetButton
@@ -74,6 +78,13 @@ func setup_build_menu(types: Array[BuildingType]) -> void:
 		button.focus_mode = Control.FOCUS_NONE
 		button.pressed.connect(building_type_selected.emit.bind(type))
 		_building_buttons.add_child(button)
+
+
+## Balance and profit over the last minute, top left. Red while the balance is negative.
+func set_money(balance: float, profit_per_minute: float) -> void:
+	var plus := "+" if roundi(profit_per_minute) >= 0 else ""
+	_money_label.text = "%s   %s%s/min" % [Economy.format(balance), plus, Economy.format(profit_per_minute)]
+	_money_label.modulate = DEBT_COLOR if balance < 0.0 else MONEY_COLOR
 
 
 ## Passenger status line in the top left (both views).

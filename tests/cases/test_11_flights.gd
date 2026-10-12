@@ -5,7 +5,7 @@ extends TestCase
 func _flight_at(gate_number: int) -> Flight:
 	# Flights are planned on the schedule's first step.
 	if Airport.passenger_flow.schedule.flights.is_empty():
-		Airport.passenger_flow.tick(Airport.SIM_STEP)
+		Airport.step(Airport.SIM_STEP)
 	for flight in Airport.passenger_flow.schedule.upcoming():
 		if Airport.passenger_flow.gate_number(flight.gate) == gate_number:
 			return flight
@@ -27,7 +27,7 @@ func test_three_minutes_between_departures() -> void:
 	var departures: Dictionary[int, Array] = {}
 	var seen: Dictionary[Flight, bool] = {}
 	for i in 7000:  # ~12 minutes
-		Airport.passenger_flow.tick(Airport.SIM_STEP)
+		Airport.step(Airport.SIM_STEP)
 		for flight in Airport.passenger_flow.schedule.flights:
 			if not seen.has(flight):
 				seen[flight] = true

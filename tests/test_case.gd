@@ -83,7 +83,7 @@ func physics_frames(count: int) -> void:
 ## Fast-forwards the passenger simulation without waiting in real time.
 func sim_seconds(seconds: float) -> void:
 	for i in int(seconds / Airport.SIM_STEP):
-		Airport.passenger_flow.tick(Airport.SIM_STEP)
+		Airport.step(Airport.SIM_STEP)
 
 
 # --- Touch input, like a player's fingers ---

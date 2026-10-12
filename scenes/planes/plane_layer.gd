@@ -55,7 +55,9 @@ func _pose(flight: Flight, now: float) -> Variant:
 	var gate := flight.gate
 	var stand_center := grid.block_center(stand.origin_cell, Building.rotated_size(stand.type.footprint, stand.rotation_steps))
 	var gate_center := grid.block_center(gate.origin_cell, Building.rotated_size(gate.type.footprint, gate.rotation_steps))
-	var away := (stand_center - gate_center).normalized()
+	# Park straight along the stand's axis (like a real stand centerline), facing the gate's side.
+	var offset := stand_center - gate_center
+	var away := Vector3(signf(offset.x), 0.0, 0.0) if absf(offset.x) > absf(offset.z) else Vector3(0.0, 0.0, signf(offset.z))
 
 	# 0 = parked at the stand, 1 = TAXI_DISTANCE away from it.
 	var out := 0.0

@@ -26,12 +26,15 @@ const MAX_STEPS_PER_FRAME: int = 5
 var grid: AirportGrid = AirportGrid.new(MAP_SIZE_CELLS, CELL_SIZE)
 var buildings: Array[Building] = []
 var passenger_flow: PassengerFlow = PassengerFlow.new()
+var economy: Economy = Economy.new()
 ## How far the current frame is between the last and the next simulation step (0..1).
 var sim_alpha: float = 0.0
 
 var _sim_time: float = 0.0
 # While loading a save, layout_changed is sent once at the end instead of for every building.
 var _loading: bool = false
+# Running costs of everything built, in euros per minute (recalculated when the layout changes).
+var _running_cost_per_minute: float = 0.0
 
 # Cells whose zone a placed building depends on (cell -> required Zone). They can't be repainted.
 var _zone_locks: Dictionary[Vector2i, int] = {}
@@ -46,15 +49,27 @@ func _process(delta: float) -> void:
 	_sim_time += delta
 	var steps := 0
 	while _sim_time >= SIM_STEP and steps < MAX_STEPS_PER_FRAME:
-		passenger_flow.tick(SIM_STEP)
+		step(SIM_STEP)
 		_sim_time -= SIM_STEP
 		steps += 1
 	_sim_time = minf(_sim_time, SIM_STEP)
 	sim_alpha = _sim_time / SIM_STEP
 
 
+## Advances the whole simulation by one step: passengers, flights and money.
+func step(delta: float) -> void:
+	passenger_flow.tick(delta)
+	economy.tick(delta, _running_cost_per_minute)
+
+
+## Running costs of everything built, in euros per minute.
+func running_cost_per_minute() -> float:
+	return _running_cost_per_minute
+
+
 ## Why a building can't go here, as a short hint for the player, or "" if it can.
-func check_placement(type: BuildingType, origin_cell: Vector2i, rotation_steps: int) -> String:
+## `check_money` is false when restoring a save (the building was paid for back then).
+func check_placement(type: BuildingType, origin_cell: Vector2i, rotation_steps: int, check_money: bool = true) -> String:
 	for cell in Building.footprint_cells(type.footprint, origin_cell, rotation_steps):
 		if not grid.is_inside(cell):
 			return "Outside the map"
@@ -64,18 +79,22 @@ func check_placement(type: BuildingType, origin_cell: Vector2i, rotation_steps: 
 	for cell in requirements:
 		if not grid.is_inside(cell) or grid.get_zone(cell) != requirements[cell]:
 			return _zone_hint(type)
+	if check_money and not economy.can_afford(type.build_cost):
+		return "Not enough money (%s)" % Economy.format(type.build_cost)
 	return ""
 
 
-func can_place(type: BuildingType, origin_cell: Vector2i, rotation_steps: int) -> bool:
-	return check_placement(type, origin_cell, rotation_steps).is_empty()
+func can_place(type: BuildingType, origin_cell: Vector2i, rotation_steps: int, check_money: bool = true) -> bool:
+	return check_placement(type, origin_cell, rotation_steps, check_money).is_empty()
 
 
-## Places a building if the spot is allowed. Returns the new building, or null if it isn't.
-## Building is free for now; costs come with the economy (design doc §7.1a).
-func place_building(type: BuildingType, origin_cell: Vector2i, rotation_steps: int) -> Building:
-	if not can_place(type, origin_cell, rotation_steps):
+## Places a building if the spot is allowed and pays for it. Returns the new building, or null.
+## `pay` is false when restoring a save (the building was paid for back then).
+func place_building(type: BuildingType, origin_cell: Vector2i, rotation_steps: int, pay: bool = true) -> Building:
+	if not can_place(type, origin_cell, rotation_steps, pay):
 		return null
+	if pay:
+		economy.pay_construction(type.build_cost)
 	var building := Building.new(type, origin_cell, rotation_steps)
 	for cell in building.get_cells():
 		grid.set_content(cell, building)
@@ -109,15 +128,25 @@ func paint_zone(cells: Array[Vector2i], zone: AirportGrid.Zone) -> int:
 
 
 ## Adds (or removes) walkway floor on `cells`. Works under buildings too (desks inside a hall).
-func paint_walkway(cells: Array[Vector2i], walkway: bool) -> void:
-	var changed := false
+## New walkway costs money per cell; removing it is free (no refund, design doc §11.5).
+## Returns "" if it worked, or a hint why nothing was painted.
+func paint_walkway(cells: Array[Vector2i], walkway: bool) -> String:
+	var changing: Array[Vector2i] = []
 	for cell in cells:
 		if grid.is_inside(cell) and grid.is_walkway(cell) != walkway:
-			grid.set_walkway(cell, walkway)
-			changed = true
-	if changed:
-		walkways_changed.emit()
-		layout_changed.emit()
+			changing.append(cell)
+	if changing.is_empty():
+		return ""
+	if walkway:
+		var cost := changing.size() * Economy.WALKWAY_COST_PER_CELL
+		if not economy.can_afford(cost):
+			return "Not enough money (%s for %d cells)" % [Economy.format(cost), changing.size()]
+		economy.pay_construction(cost)
+	for cell in changing:
+		grid.set_walkway(cell, walkway)
+	walkways_changed.emit()
+	layout_changed.emit()
+	return ""
 
 
 ## What a building at this spot still needs to be connected, as a short hint, or "" if nothing.
@@ -142,6 +171,7 @@ func reset() -> void:
 	buildings.clear()
 	_zone_locks.clear()
 	passenger_flow = PassengerFlow.new()
+	economy = Economy.new()
 	_on_layout_changed()
 
 
@@ -158,6 +188,7 @@ func save_state() -> Dictionary:
 		"map_size": [grid.size.x, grid.size.y],
 		"zones": Marshalls.raw_to_base64(grid.get_zone_data()),
 		"walkways": Marshalls.raw_to_base64(grid.get_walkway_data()),
+		"money": economy.balance,
 		"buildings": saved_buildings,
 	}
 
@@ -178,9 +209,10 @@ func load_state(data: Dictionary) -> int:
 		var type := CATALOG.find(StringName(entry.get("type", "")))
 		var cell: Array = entry.get("cell", [0, 0])
 		var origin := Vector2i(int(cell[0]), int(cell[1]))
-		if type == null or place_building(type, origin, int(entry.get("rotation", 0))) == null:
+		if type == null or place_building(type, origin, int(entry.get("rotation", 0)), false) == null:
 			skipped += 1
 	_loading = false
+	economy.balance = float(data.get("money", Economy.STARTING_MONEY))
 	zones_changed.emit()
 	walkways_changed.emit()
 	layout_changed.emit()
@@ -197,6 +229,13 @@ func stand_behind(gate: Building) -> Building:
 
 func _on_layout_changed() -> void:
 	passenger_flow.on_layout_changed()
+	var cost := 0.0
+	for building in buildings:
+		cost += building.type.running_cost_per_minute
+	var walkway_cells := 0
+	for value in grid.get_walkway_data():
+		walkway_cells += value
+	_running_cost_per_minute = cost + walkway_cells * Economy.WALKWAY_RUNNING_COST_PER_CELL
 
 
 func _is_aircraft_stand(cell: Vector2i) -> bool:

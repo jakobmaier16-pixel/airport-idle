@@ -29,8 +29,10 @@ static func build(warm_up_seconds: float = 120.0) -> void:
 	Airport.place_building(catalog.find(&"aircraft_stand"), Vector2i(10, 39), 0)
 	Airport.place_building(catalog.find(&"aircraft_stand"), Vector2i(38, 39), 0)
 
+	# The showcase is a test fixture: start with fresh money, as if it had been there all along.
+	Airport.economy = Economy.new()
 	for i in int(warm_up_seconds / Airport.SIM_STEP):
-		Airport.passenger_flow.tick(Airport.SIM_STEP)
+		Airport.step(Airport.SIM_STEP)
 
 
 static func _cells(origin: Vector2i, size: Vector2i) -> Array[Vector2i]:

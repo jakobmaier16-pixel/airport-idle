@@ -22,7 +22,7 @@ func test_passengers_flow_and_depart() -> void:
 	var off_walkway := 0
 	var landside_after_security := 0
 	for step in 4800:  # 8 minutes: two departures per gate
-		flow.tick(Airport.SIM_STEP)
+		Airport.step(Airport.SIM_STEP)
 		for passenger in flow.passengers:
 			var cell := Airport.grid.world_to_cell(passenger.position)
 			if passenger.state == Passenger.State.WALKING:
@@ -42,7 +42,7 @@ func test_queues_form_at_busy_security() -> void:
 	var busiest := 0
 	var longest_queue := 0
 	for step in 2400:  # 4 minutes
-		Airport.passenger_flow.tick(Airport.SIM_STEP)
+		Airport.step(Airport.SIM_STEP)
 		for station: Station in Airport.passenger_flow._stations.values():
 			if station.role() == BuildingType.Role.SECURITY:
 				busiest = maxi(busiest, station.busyness())

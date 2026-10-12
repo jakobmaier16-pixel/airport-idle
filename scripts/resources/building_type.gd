@@ -35,6 +35,12 @@ enum Role { NONE, ENTRANCE, CHECK_IN, SECURITY, GATE, AIRCRAFT_STAND }
 @export var back_access: Access = Access.NONE
 @export var role: Role = Role.NONE
 
+@export_group("Economy")
+## One-off construction cost in euros (design doc §11.5).
+@export var build_cost: float = 0.0
+## Staff, maintenance and utilities in euros per minute.
+@export var running_cost_per_minute: float = 0.0
+
 @export_group("Passenger service")
 ## Passengers served at the same time (counters, lanes). 0 = no service.
 @export var service_slots: int = 0

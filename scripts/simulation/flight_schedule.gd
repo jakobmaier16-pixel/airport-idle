@@ -116,4 +116,6 @@ func _advance(flight: Flight, now: float, delta: float, flow: PassengerFlow) -> 
 		# Doors close: whoever isn't on board has missed the flight.
 		flight.missed = flow.remove_flight_passengers(flight, true)
 		flow.departed_count += flight.boarded
+		# The airline pays per passenger and per flight (design doc §11.5).
+		Airport.economy.earn(flight.boarded * Economy.PASSENGER_FEE + Economy.FLIGHT_FEE)
 	flight.phase = phase

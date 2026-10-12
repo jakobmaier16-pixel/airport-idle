@@ -113,7 +113,7 @@ func start_painting(kind: PaintKind) -> void:
 	var colors: Array[Color] = [airside_paint_color, landside_paint_color, walkway_paint_color, remove_paint_color]
 	_paint_material.albedo_color = colors[kind]
 	_update_highlight()
-	_emit_paint_hint(0)
+	_emit_paint_hint("")
 
 
 func rotate_placement() -> void:
@@ -254,6 +254,7 @@ func _set_preview_origin(origin_cell: Vector2i) -> void:
 		# Unconnected is allowed (connect it later), but say what's missing.
 		var missing := Airport.connection_problem(_placing_type, _placing_origin, _placing_rotation)
 		hint = "Drag the building to move it" if missing.is_empty() else missing + " (can be added later)"
+		hint += "  ·  " + Economy.format(_placing_type.build_cost)
 	tool_changed.emit(Tool.PLACE, can_place, hint)
 
 
@@ -293,25 +294,29 @@ func _stop_painting_drag() -> void:
 		camera.pan_enabled = true
 
 
-# Applies the current paint kind; returns how many cells were blocked (zones only).
-func _apply_paint(cells: Array[Vector2i]) -> int:
+# Applies the current paint kind. Returns "" if everything worked, or a hint for the player.
+func _apply_paint(cells: Array[Vector2i]) -> String:
+	var blocked := 0
 	match _paint_kind:
 		PaintKind.AIRSIDE:
-			return Airport.paint_zone(cells, AirportGrid.Zone.AIRSIDE)
+			blocked = Airport.paint_zone(cells, AirportGrid.Zone.AIRSIDE)
 		PaintKind.LANDSIDE:
-			return Airport.paint_zone(cells, AirportGrid.Zone.LANDSIDE)
+			blocked = Airport.paint_zone(cells, AirportGrid.Zone.LANDSIDE)
 		PaintKind.WALKWAY:
-			Airport.paint_walkway(cells, true)
+			return Airport.paint_walkway(cells, true)
 		PaintKind.REMOVE_WALKWAY:
-			Airport.paint_walkway(cells, false)
-	return 0
+			return Airport.paint_walkway(cells, false)
+	if blocked > 0:
+		return "%d cells kept: a building needs their zone." % blocked
+	return ""
 
 
-func _emit_paint_hint(blocked_cells: int) -> void:
-	var actions: Array[String] = ["paint airside", "paint landside", "lay walkway", "remove walkway"]
-	var hint := "Drag to %s. Two fingers: move and zoom." % actions[_paint_kind]
-	if blocked_cells > 0:
-		hint = "%d cells kept: a building needs their zone." % blocked_cells
+# Shows `problem` if there is one, otherwise how to use the current paint tool.
+func _emit_paint_hint(problem: String) -> void:
+	var actions: Array[String] = ["paint airside", "paint landside", "lay walkway (%s per cell)" % Economy.format(Economy.WALKWAY_COST_PER_CELL), "remove walkway"]
+	var hint := problem
+	if hint.is_empty():
+		hint = "Drag to %s. Two fingers: move and zoom." % actions[_paint_kind]
 	tool_changed.emit(Tool.PAINT, true, hint)
 
 
