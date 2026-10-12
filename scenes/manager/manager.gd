@@ -11,6 +11,9 @@ extends CharacterBody3D
 ## On-screen joystick to read touch input from. Optional: the keyboard works without it.
 @export var joystick: TouchJoystick
 
+## Turned off in the build view, so WASD moves the build camera instead of the manager.
+var input_enabled: bool = true
+
 
 func _physics_process(delta: float) -> void:
 	var input := _get_move_input()
@@ -35,6 +38,8 @@ func _physics_process(delta: float) -> void:
 
 ## Combined keyboard + joystick input. Length is 0..1; y is negative when pushing "up".
 func _get_move_input() -> Vector2:
+	if not input_enabled:
+		return Vector2.ZERO
 	var input := Input.get_vector(&"move_left", &"move_right", &"move_up", &"move_down")
 	if joystick:
 		input += joystick.output

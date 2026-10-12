@@ -1,58 +1,47 @@
 class_name TouchJoystick
 extends Control
-## Floating on-screen joystick: appears wherever the player touches the screen and follows the thumb.
+## Floating on-screen joystick for the manager view. Appears where a one-finger drag starts on the
+## left half of the screen and follows the thumb. The right half stays free for tapping things.
 ## Read `output` for the current direction (length 0..1, y is negative when pushed up).
 ## The joystick ring is kept inside this control's rect, so place it in a SafeAreaContainer.
 
 ## Radius of the outer ring in UI pixels. Pushing the knob to the edge means full speed.
-@export var base_radius: float = 110.0
-@export var knob_radius: float = 45.0
+@export var base_radius: float = 100.0
+@export var knob_radius: float = 40.0
 ## Small movements below this fraction of the radius are ignored.
 @export_range(0.0, 0.5) var dead_zone: float = 0.15
+## Fraction of the screen width (from the left) where a drag starts the joystick.
+@export_range(0.1, 1.0) var touch_area_width: float = 0.5
 @export var base_color: Color = Color(1.0, 1.0, 1.0, 0.25)
 @export var knob_color: Color = Color(1.0, 1.0, 1.0, 0.6)
 
-## Current stick direction, read by the player every physics step.
+## Turned off in the build view, where one-finger drags move the camera instead.
+var enabled: bool = true:
+	set(value):
+		enabled = value
+		if not enabled:
+			_stop()
+
+## Current stick direction, read by the manager every physics step.
 var output: Vector2 = Vector2.ZERO
 
-# Which finger controls the joystick (-1 = none). Lets a second finger be used for other things.
-var _touch_index: int = -1
+var _active: bool = false
 # Ring center in viewport coordinates.
 var _base_center: Vector2 = Vector2.ZERO
 var _knob_offset: Vector2 = Vector2.ZERO
 
 
 func _ready() -> void:
-	# Never block clicks/taps meant for other UI elements.
+	# Never block taps meant for other UI elements.
 	mouse_filter = MOUSE_FILTER_IGNORE
-
-
-# _unhandled_input only receives touches that no other UI element has consumed,
-# so later buttons on top of the screen keep working.
-func _unhandled_input(event: InputEvent) -> void:
-	if event is InputEventScreenTouch:
-		var touch := event as InputEventScreenTouch
-		if touch.pressed and _touch_index == -1:
-			_start(touch.index, touch.position)
-			get_viewport().set_input_as_handled()
-		elif not touch.pressed and touch.index == _touch_index:
-			_stop()
-			get_viewport().set_input_as_handled()
-	elif event is InputEventScreenDrag:
-		var drag := event as InputEventScreenDrag
-		if drag.index == _touch_index:
-			_move_knob(drag.position)
-			get_viewport().set_input_as_handled()
-
-
-func _notification(what: int) -> void:
-	# Release the stick if the app is sent to the background mid-drag (e.g. a phone call).
-	if what == NOTIFICATION_APPLICATION_FOCUS_OUT:
-		_stop()
+	# TouchGestures only reports one-finger drags, so a two-finger pinch can never move the stick.
+	TouchGestures.drag_started.connect(_on_drag_started)
+	TouchGestures.dragged.connect(_on_dragged)
+	TouchGestures.drag_ended.connect(_on_drag_ended)
 
 
 func _draw() -> void:
-	if _touch_index == -1:
+	if not _active:
 		return
 	var center := get_global_transform().affine_inverse() * _base_center
 	draw_circle(center, base_radius, base_color, true, -1.0, true)
@@ -60,12 +49,25 @@ func _draw() -> void:
 	draw_circle(center + _knob_offset, knob_radius, knob_color, true, -1.0, true)
 
 
-func _start(index: int, touch_position: Vector2) -> void:
-	_touch_index = index
+func _on_drag_started(start_position: Vector2, touch_position: Vector2) -> void:
+	if not enabled:
+		return
+	if start_position.x > get_viewport().get_visible_rect().size.x * touch_area_width:
+		return
+	_active = true
 	# Keep the whole ring inside the safe area, even if the touch is near the screen edge.
 	var allowed := get_global_rect().grow(-base_radius)
-	_base_center = touch_position.clamp(allowed.position, allowed.end)
+	_base_center = start_position.clamp(allowed.position, allowed.end)
 	_move_knob(touch_position)
+
+
+func _on_dragged(touch_position: Vector2, _relative: Vector2) -> void:
+	if _active:
+		_move_knob(touch_position)
+
+
+func _on_drag_ended(_touch_position: Vector2) -> void:
+	_stop()
 
 
 func _move_knob(touch_position: Vector2) -> void:
@@ -80,7 +82,7 @@ func _move_knob(touch_position: Vector2) -> void:
 
 
 func _stop() -> void:
-	_touch_index = -1
+	_active = false
 	_knob_offset = Vector2.ZERO
 	output = Vector2.ZERO
 	queue_redraw()
