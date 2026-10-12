@@ -6,6 +6,9 @@ enum View { MANAGER, BUILD }
 
 var current_view: View = View.MANAGER
 
+# How the last building_at() call decided, for the test-build tap diagnosis line.
+var _last_pick: String = ""
+
 @onready var _manager: Manager = $Manager
 @onready var _manager_camera: ManagerCamera = $ManagerCamera
 @onready var _build_camera: BuildCamera = $BuildCamera
@@ -50,13 +53,17 @@ func _process(_delta: float) -> void:
 
 # Manager view: tapping a building opens its station panel; tapping elsewhere closes it.
 func _on_tapped(screen_position: Vector2) -> void:
+	var where := "Tap (%d, %d)" % [roundi(screen_position.x), roundi(screen_position.y)]
 	if current_view != View.MANAGER:
+		_hud.report_tap(where + " in build view: stations open in the manager view")
 		return
 	var building := building_at(screen_position)
 	if building != null and building.type.role != BuildingType.Role.NONE:
 		_hud.show_station(building)
+		_hud.report_tap("%s → %s (%s)" % [where, building.type.display_name, _last_pick])
 	else:
 		_hud.hide_station()
+		_hud.report_tap("%s → no building (%s)" % [where, _last_pick])
 
 
 ## The building under a screen position in the manager view, or null.
@@ -66,8 +73,21 @@ func building_at(screen_position: Vector2) -> Building:
 	# Solid buildings: hit their walls or roof, not just the ground under the finger.
 	var query := PhysicsRayQueryParameters3D.create(from, from + direction * 300.0)
 	var hit := get_world_3d().direct_space_state.intersect_ray(query)
-	if not hit.is_empty() and (hit.collider as Object).has_meta(BuildingLayer.BUILDING_META):
-		return (hit.collider as Object).get_meta(BuildingLayer.BUILDING_META)
+	if hit.is_empty():
+		_last_pick = "ray hit nothing"
+	else:
+		var collider := hit.collider as Object
+		if collider.has_meta(BuildingLayer.BUILDING_META):
+			_last_pick = "ray"
+			return collider.get_meta(BuildingLayer.BUILDING_META)
+		_last_pick = "ray hit %s" % ((collider as Node).name if collider is Node else str(collider))
+
+	# Backup without physics: the station whose box covers this point on screen.
+	var on_screen := _station_on_screen(screen_position)
+	if on_screen != null:
+		_last_pick += ", found on screen"
+		return on_screen
+
 	# Flat buildings (stands) have no collision: look at the ground cell.
 	var ground: Variant = Plane(Vector3.UP, 0.0).intersects_ray(from, direction)
 	if ground == null:
@@ -75,7 +95,39 @@ func building_at(screen_position: Vector2) -> Building:
 	var cell := Airport.grid.world_to_cell(ground as Vector3)
 	if not Airport.grid.is_inside(cell) or Airport.grid.is_empty(cell):
 		return null
+	_last_pick += ", ground cell"
 	return Airport.grid.get_content(cell) as Building
+
+
+# The closest station whose box (as seen by the manager camera) covers `screen_position`.
+func _station_on_screen(screen_position: Vector2) -> Building:
+	var best: Building = null
+	var best_distance := INF
+	for building in Airport.buildings:
+		if building.type.role == BuildingType.Role.NONE or not building.type.is_solid:
+			continue
+		var size := Building.rotated_size(building.type.footprint, building.rotation_steps)
+		var center := Airport.grid.block_center(building.origin_cell, size)
+		var half := Vector3(size.x, 0.0, size.y) * Airport.grid.cell_size * 0.5
+		var screen_box := Rect2()
+		var behind_camera := false
+		for corner in 8:
+			var point := center + Vector3(
+				half.x * (1.0 if corner & 1 else -1.0),
+				building.type.height if corner & 2 else 0.0,
+				half.z * (1.0 if corner & 4 else -1.0))
+			if _manager_camera.is_position_behind(point):
+				behind_camera = true
+				break
+			var on_screen := _manager_camera.unproject_position(point)
+			screen_box = Rect2(on_screen, Vector2.ZERO) if corner == 0 else screen_box.expand(on_screen)
+		if behind_camera or not screen_box.has_point(screen_position):
+			continue
+		var distance := _manager_camera.global_position.distance_to(center)
+		if distance < best_distance:
+			best_distance = distance
+			best = building
+	return best
 
 
 func _on_view_toggle_pressed() -> void:

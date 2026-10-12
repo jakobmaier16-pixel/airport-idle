@@ -81,6 +81,13 @@ func _process(_delta: float) -> void:
 		_update_station_panel()
 
 
+## Test builds: shows what a tap did at the bottom of the screen (see TapFeedback).
+func report_tap(text: String) -> void:
+	var feedback := get_node_or_null(^"TapFeedback") as TapFeedback
+	if feedback != null and not feedback.is_queued_for_deletion():
+		feedback.report(text)
+
+
 ## Opens the station panel for `building` (manager view, design doc §7.8).
 func show_station(building: Building) -> void:
 	shown_station = building

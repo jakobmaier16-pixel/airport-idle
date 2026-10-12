@@ -125,3 +125,31 @@ func test_upgrade_label_counts_down() -> void:
 	var label: Label3D = main.get_node("Buildings")._hints[_building(&"check_in")]
 	check(label.visible, "upgrading building shows a label")
 	check(label.text.begins_with("Upgrading… 1:00") or label.text.begins_with("Upgrading… 0:"), "countdown: '%s'" % label.text)
+
+
+func test_station_found_on_screen_without_physics() -> void:
+	ShowcaseAirport.build(0.0)
+	await start_game()
+	var security := _building(&"security")
+	manager().global_position = Airport.grid.cell_to_world(Vector2i(32, 33))
+	manager_camera().snap_to_target()
+	await physics_frames(2)
+	var center := Airport.grid.block_center(security.origin_cell, Vector2i(5, 3)) + Vector3(0.0, 1.0, 0.0)
+	check(main._station_on_screen(manager_camera().unproject_position(center)) == security, "found by its box on screen")
+	check(main._station_on_screen(Vector2(5, 5)) == null, "nothing in the corner of the screen")
+
+
+func test_tap_report_line() -> void:
+	ShowcaseAirport.build(0.0)
+	await start_game()
+	manager().global_position = Airport.grid.cell_to_world(Vector2i(32, 33))
+	manager_camera().snap_to_target()
+	await physics_frames(2)
+	var security := _building(&"security")
+	tap(manager_camera().unproject_position(Airport.grid.block_center(security.origin_cell, Vector2i(5, 3)) + Vector3(0.0, 1.5, 0.0)))
+	await frames(1)
+	var feedback := hud().get_node("TapFeedback") as TapFeedback
+	check(feedback.report_text.contains("→ Security"), "report names the station: '%s'" % feedback.report_text)
+	await open_build_view()
+	tap(screen_size() * 0.5)
+	check(feedback.report_text.contains("build view"), "build view taps explain where stations open: '%s'" % feedback.report_text)
