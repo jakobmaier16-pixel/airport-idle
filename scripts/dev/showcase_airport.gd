@@ -35,6 +35,11 @@ static func build(warm_up_seconds: float = 180.0) -> void:
 	# Arrivals: baggage claim on the border next to security, out into the landside hall (§8.8).
 	Airport.place_building(catalog.find(&"baggage_claim"), Vector2i(37, 27), 0)
 
+	# Transfers (§8.9): transfer security beside gate 2; a small corridor loop leads from its back
+	# exit (row 37) round to the gates' walkway again.
+	Airport.paint_walkway(_cells(Vector2i(47, 34), Vector2i(7, 4)), true)
+	Airport.place_building(catalog.find(&"transfer_security"), Vector2i(47, 34), 0)
+
 	# Airside shopping between the gates (design doc §8.6).
 	Airport.place_building(catalog.find(&"shop"), Vector2i(22, 34), 0)
 	Airport.place_building(catalog.find(&"cafe"), Vector2i(30, 34), 0)

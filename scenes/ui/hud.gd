@@ -273,7 +273,8 @@ func _update_stats_panel() -> void:
 	var parts: PackedStringArray = []
 	for type_name in ["Families", "Low-cost", "Business"]:
 		parts.append("%d %s" % [counts.get(type_name, 0), type_name])
-	_types_label.text = "In the airport: " + "  ·  ".join(parts)
+	_types_label.text = "In the airport: " + "  ·  ".join(parts) \
+		+ "\nTransfers: %d transferring now  ·  %d connected" % [flow.transferring_count(), flow.transferred_count]
 	if bottleneck != null:
 		_bottleneck_label.text = "Bottleneck: %s · avg wait %d s" % [
 			flow.station_label(bottleneck.building), roundi(bottleneck.average_wait(flow.time))]
@@ -295,7 +296,7 @@ func _update_station_panel() -> void:
 	var lines: PackedStringArray = []
 	var role := building.type.role
 	var station := Airport.passenger_flow.station_for(building)
-	if role == BuildingType.Role.CHECK_IN or role == BuildingType.Role.SECURITY:
+	if role in [BuildingType.Role.CHECK_IN, BuildingType.Role.SECURITY, BuildingType.Role.TRANSFER_SECURITY]:
 		var unit := "counters" if role == BuildingType.Role.CHECK_IN else "lanes"
 		lines.append("%d %s · %.1f s per passenger" % [building.service_slots(), unit, building.service_time()])
 		if station != null:

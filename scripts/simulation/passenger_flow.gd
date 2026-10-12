@@ -39,6 +39,12 @@ var departed_count: int = 0
 var missed_count: int = 0
 ## Arriving passengers who have left the airport (design doc §8.8).
 var arrived_count: int = 0
+## Transfer passengers who boarded their connecting flight (design doc §8.9).
+var transferred_count: int = 0
+## True while a working transfer security lets the airport sell connections.
+var transfers_possible: bool = false
+## Tests only: if 0 or more, replaces every route's transfer share.
+var transfer_share_override: float = -1.0
 ## What is missing for a complete route, or "" if passengers can flow.
 var route_problem: String = ""
 
@@ -82,7 +88,7 @@ func station_for(building: Building) -> Station:
 ## Every station in a stable order: check-ins, security, gates, each in the order they were built.
 func stations() -> Array[Station]:
 	var result: Array[Station] = []
-	for role in [Role.CHECK_IN, Role.SECURITY, Role.GATE, Role.SHOP, Role.BAGGAGE_CLAIM]:
+	for role in [Role.CHECK_IN, Role.SECURITY, Role.TRANSFER_SECURITY, Role.GATE, Role.SHOP, Role.BAGGAGE_CLAIM]:
 		for building in Airport.buildings:
 			if building.type.role == role and _stations.has(building):
 				result.append(_stations[building])
@@ -137,7 +143,7 @@ func usable_gates() -> Array[Building]:
 func on_layout_changed() -> void:
 	_network.rebuild(Airport.grid)
 	for building in Airport.buildings:
-		if not _stations.has(building) and building.type.role in [Role.CHECK_IN, Role.SECURITY, Role.GATE, Role.SHOP, Role.BAGGAGE_CLAIM]:
+		if not _stations.has(building) and building.type.role in [Role.CHECK_IN, Role.SECURITY, Role.TRANSFER_SECURITY, Role.GATE, Role.SHOP, Role.BAGGAGE_CLAIM]:
 			_stations[building] = Station.new(building)
 	for station: Station in _stations.values():
 		# Baggage claim is used the other way round than security: in from airside (its back).
@@ -223,7 +229,18 @@ func board(flight: Flight, max_count: int) -> int:
 		return 0
 	_remove(boarding)
 	flight.boarded += boarding.size()
+	transferred_count += boarding.filter(func(p: Passenger) -> bool: return p.is_transfer).size()
 	return boarding.size()
+
+
+## Re-checks the passenger route (and whether connections can be sold), e.g. after hiring.
+func refresh_route() -> void:
+	_update_route()
+
+
+## How many transfer passengers are in the airport right now.
+func transferring_count() -> int:
+	return passengers.filter(func(p: Passenger) -> bool: return p.is_transfer).size()
 
 
 ## An arriving passenger of `type` leaves `flight`'s parked plane through the gate (design doc §8.8).
@@ -244,9 +261,30 @@ func deplane_passenger(flight: Flight, type: PassengerType) -> bool:
 	passenger.position = _cell_point(gate.entry_cells[_rng.randi() % gate.entry_cells.size()], passenger)
 	passenger.previous_position = passenger.position
 	passenger.goal = Role.BAGGAGE_CLAIM
+	# Some connect to another flight (design doc §8.9), if the airport can handle transfers.
+	var connection := _connecting_flight(flight)
+	if connection != null:
+		passenger.is_arriving = false
+		passenger.is_transfer = true
+		passenger.flight = connection
+		passenger.goal = Role.TRANSFER_SECURITY
 	passengers.append(passenger)
 	_plan(passenger)
 	return true
+
+
+# A connecting flight for a passenger coming off `inbound`, or null if they end their journey here.
+func _connecting_flight(inbound: Flight) -> Flight:
+	if not transfers_possible:
+		return null
+	var share: float = FlightSchedule.TRANSFER_SHARES.get(inbound.route, 0.0)
+	if transfer_share_override >= 0.0:
+		share = transfer_share_override
+	if _rng.randf() >= share:
+		return null
+	var options := schedule.flights.filter(func(f: Flight) -> bool:
+		return f != inbound and f.is_active() and f.departure_time >= time + FlightSchedule.MIN_CONNECTION)
+	return options[_rng.randi() % options.size()] if not options.is_empty() else null
 
 
 ## A building was demolished (design doc §7.6): its passengers look for another station of the
@@ -467,10 +505,10 @@ func _finish_service(station: Station, passenger: Passenger) -> void:
 			passenger.goal = Role.SECURITY
 			_maybe_shop(passenger, Role.SECURITY, SECURITY_ALLOWANCE, _shop_chance(passenger) * LANDSIDE_CAFE_FACTOR)
 			_plan(passenger)
-		Role.SECURITY:
+		Role.SECURITY, Role.TRANSFER_SECURITY:
 			passenger.goal = Role.GATE
 			_maybe_shop(passenger, Role.GATE, 0.0, _shop_chance(passenger))
-			# Through the security lane to the airside: appear behind the building.
+			# Through the security lane: appear behind the building.
 			var exit: Vector2i = _closest_cell_in_area(station.exit_cells, Airport.grid.world_to_cell(passenger.position), -1)
 			passenger.position = _cell_point(exit, passenger)
 			passenger.previous_position = passenger.position
@@ -621,7 +659,7 @@ func _type_factor(passenger: Passenger, station: Station) -> float:
 	match station.role():
 		Role.CHECK_IN:
 			return passenger.type.check_in_time_factor
-		Role.SECURITY:
+		Role.SECURITY, Role.TRANSFER_SECURITY:
 			return passenger.type.security_time_factor
 	return 1.0
 
@@ -672,6 +710,7 @@ func _cell_point(cell: Vector2i, passenger: Passenger) -> Vector3:
 # Checks, step by step like a passenger, whether Entrance -> Check-in -> Security -> Gate works.
 func _update_route() -> void:
 	_route_entrances.clear()
+	transfers_possible = false
 	var entrance_areas: Dictionary[int, bool] = {}
 	var has_entrance := false
 	for building in Airport.buildings:
@@ -729,6 +768,14 @@ func _update_route() -> void:
 	if not claim_works:
 		route_problem = "connect a baggage claim: back to the gates' walkway, front to the entrance's walkway."
 		return
+
+	# Connections are sold only with a working transfer security: in from the gates' walkway,
+	# out to it again, and someone to run it (design doc §8.9).
+	transfers_possible = _stations.values().any(func(s: Station) -> bool:
+		return s.role() == Role.TRANSFER_SECURITY \
+			and not Airport.staff_at(s.building).is_empty() \
+			and s.entry_cells.any(func(c: Vector2i) -> bool: return gate_areas.has(_network.area_of(c))) \
+			and s.exit_cells.any(func(c: Vector2i) -> bool: return gate_areas.has(_network.area_of(c))))
 
 	route_problem = ""
 	for building in Airport.buildings:

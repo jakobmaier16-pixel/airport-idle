@@ -20,7 +20,14 @@ func _ready() -> void:
 	var files := Array(DirAccess.get_files_at(CASES_DIR)).filter(func(f: String) -> bool: return f.ends_with(".gd"))
 	files.sort()
 	for file: String in files:
-		var test_case: TestCase = load(CASES_DIR + file).new()
+		# A test file that doesn't even load is a failure, not a reason to stop the whole run.
+		var script := load(CASES_DIR + file) as GDScript
+		if script == null or not script.can_instantiate():
+			failed += 1
+			print("FAIL %s" % file.get_basename())
+			print("  - %s: the test file does not load (see the script errors above)" % file)
+			continue
+		var test_case: TestCase = script.new()
 		add_child(test_case)
 		for method in test_case.get_script().get_script_method_list():
 			var test_name: String = method["name"]

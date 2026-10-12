@@ -34,6 +34,10 @@ const AIRLINE_CODE: String = "AX"
 const FAMILY: PassengerType = preload("res://data/passengers/family.tres")
 const LOW_COST: PassengerType = preload("res://data/passengers/low_cost.tres")
 const BUSINESS: PassengerType = preload("res://data/passengers/business.tres")
+## Share of a route's arriving passengers who connect to another flight (design doc §8.9).
+const TRANSFER_SHARES: Dictionary = {"Holiday": 0.1, "Low-cost": 0.05, "Business": 0.25}
+## A connecting flight must depart at least this long after the transfer passenger deplanes.
+const MIN_CONNECTION: float = 150.0
 ## Route types and their passenger mix: [families, low-cost, business] shares.
 const ROUTES: Dictionary = {
 	"Holiday": [0.7, 0.2, 0.1],

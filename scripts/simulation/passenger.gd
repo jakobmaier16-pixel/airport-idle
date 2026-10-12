@@ -20,6 +20,8 @@ var flight: Flight = null
 var type: PassengerType = null
 ## Arriving passengers (design doc §8.8) came off `flight`'s inbound plane and are heading out.
 var is_arriving: bool = false
+## Transfer passengers (design doc §8.9) came off an inbound plane; `flight` is their connection.
+var is_transfer: bool = false
 ## Arriving: whether they wait for a checked bag, and when it comes off the belt.
 var has_bag: bool = false
 var bag_ready_at: float = 0.0

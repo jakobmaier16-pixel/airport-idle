@@ -27,6 +27,7 @@ const CATALOG: BuildingCatalog = preload("res://data/buildings/catalog.tres")
 const SALARIES: Dictionary = {
 	BuildingType.Role.CHECK_IN: 8.0,
 	BuildingType.Role.SECURITY: 10.0,
+	BuildingType.Role.TRANSFER_SECURITY: 10.0,
 }
 ## Fictional names for new employees.
 const FIRST_NAMES: Array[String] = [
@@ -160,6 +161,8 @@ func hire(building: Building) -> Employee:
 	employee.salary_per_minute = SALARIES[building.type.role]
 	staff.append(employee)
 	_update_running_cost()
+	# Staffing decides whether e.g. transfer security works (design doc §8.9).
+	passenger_flow.refresh_route()
 	staff_changed.emit(building)
 	return employee
 
@@ -171,6 +174,7 @@ func dismiss(building: Building) -> bool:
 		return false
 	staff.erase(working[-1])
 	_update_running_cost()
+	passenger_flow.refresh_route()
 	staff_changed.emit(building)
 	return true
 

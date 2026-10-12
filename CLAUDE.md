@@ -177,6 +177,9 @@ UI controls (buttons) consume their touches first, so taps on buttons never reac
   Check new `class_name`s against built-in classes.
 - Autoloads are not available to scripts run with `--script`; that's why tests run as a scene
   (`tests/test_runner.tscn`). Wait one frame in a test scene's `_ready()` before adding nodes to the root.
+- GDScript lambdas capture local variables **by value**: `var hit := false; var f := func(): hit = true`
+  never changes the outer `hit`. In tests, count inside plain loops, or use an Array/Dictionary
+  (those are shared by reference). A check on a value a lambda "set" proves nothing.
 - Containers lay out newly shown buttons one frame later: tests must `await press(...)`
   (it waits a frame), never tap a button in the same frame it became visible.
 - The Mac save game lives in `~/Library/Application Support/Godot/app_userdata/AirportIdle/`.

@@ -10,7 +10,8 @@
 [ext_resource type="Resource" path="res://data/buildings/shop.tres" id="7_shop"]
 [ext_resource type="Resource" path="res://data/buildings/cafe.tres" id="8_cafe"]
 [ext_resource type="Resource" path="res://data/buildings/baggage_claim.tres" id="9_baggage_claim"]
+[ext_resource type="Resource" path="res://data/buildings/transfer_security.tres" id="10_transfer_security"]
 
 [resource]
 script = ExtResource("1_catalog")
-types = Array[ExtResource("1_type")]([ExtResource("2_entrance"), ExtResource("3_check_in"), ExtResource("4_security"), ExtResource("5_gate"), ExtResource("6_aircraft_stand"), ExtResource("7_shop"), ExtResource("8_cafe"), ExtResource("9_baggage_claim")])
+types = Array[ExtResource("1_type")]([ExtResource("2_entrance"), ExtResource("3_check_in"), ExtResource("4_security"), ExtResource("5_gate"), ExtResource("6_aircraft_stand"), ExtResource("7_shop"), ExtResource("8_cafe"), ExtResource("9_baggage_claim"), ExtResource("10_transfer_security")])
