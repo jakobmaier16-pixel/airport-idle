@@ -1,6 +1,6 @@
 # Game Design — Airport Manager (working title)
 
-> Status: Draft v0.14 · Last updated: 2026-10-12
+> Status: Draft v0.15 · Last updated: 2026-10-12
 > This document is the source of truth for *what* we are building. Code follows the design, not the other way round.
 > Decisions marked **(open)** are not final — see [Open Questions](#19-open-questions).
 
@@ -250,6 +250,24 @@ Placeholder numbers, tunable per building type.
 - Customers inside are not drawn (like passengers waiting inside a gate).
 - Station panel and statistics show customers inside and the airport's income from each place over the last 5 minutes.
 - Costs: Shop €3,500 build · €5/min running. Café €3,000 · €6/min. Low running costs because, like at real airports, the tenant runs the shop (staff, goods); the airport pays utilities and maintenance and earns the concession share.
+
+
+### 8.7 Passenger types (first version)
+Placeholder numbers, tunable in `data/passengers/`. Transfer passengers come with arriving flights.
+
+| | Families / holiday | Low-cost travellers | Business travellers |
+|---|---|---|---|
+| Figure colors | warm orange / yellow | blue / teal | dark grey / navy |
+| Arrive before departure | 4:20–3:00 (early) | 4:00–2:30 | 3:20–2:20 (late) |
+| Walking speed | 1.1 m/s | 1.3 m/s | 1.4 m/s |
+| Check-in | 40 % slower (bags, children) | 60 % skip it (online, hand luggage) | 30 % faster (priority) |
+| Security | 30 % slower | normal | 20 % faster (frequent flyers) |
+| Visit a shop / café | 80 % | 40 % | 60 % |
+| Spending | ×0.8 | ×0.6 | ×2 (premium) |
+
+- **Every flight has a route type** that sets its passenger mix (§10 "routes matter"): **Holiday** 70 % families / 20 % low-cost / 10 % business · **Low-cost** 15 / 80 / 5 · **Business** 10 / 30 / 60. Routes are random for now; later airlines and deals decide them.
+- The departures board shows the route; statistics show how many passengers of each type are in the airport.
+- Patience and satisfaction per type (§8.2 "needs") come later.
 
 ---
 
