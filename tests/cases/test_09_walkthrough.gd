@@ -37,3 +37,13 @@ func test_build_airport_by_touch_and_fly_passengers() -> void:
 
 	await close_build_view()
 	check(manager_camera().current, "back to the manager view with a working airport")
+
+	# Manage a station: tap security and upgrade it to a third lane.
+	var security: Building = Airport.buildings.filter(func(b: Building) -> bool: return b.type.role == BuildingType.Role.SECURITY)[0]
+	manager().global_position = Airport.grid.cell_to_world(Vector2i(32, 33))
+	manager_camera().snap_to_target()
+	await physics_frames(2)
+	tap(manager_camera().unproject_position(Airport.grid.block_center(security.origin_cell, Vector2i(5, 3)) + Vector3(0.0, 1.5, 0.0)))
+	await frames(1)
+	await press(ui("StationPanel/Content/UpgradeButton"))
+	check_eq(security.service_slots(), 3, "security upgraded to 3 lanes through the panel")

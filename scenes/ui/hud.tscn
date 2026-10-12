@@ -24,6 +24,17 @@ font_size = 30
 outline_size = 8
 outline_color = Color(0, 0, 0, 0.6)
 
+[sub_resource type="StyleBoxFlat" id="StyleBox_station_panel"]
+bg_color = Color(0.1, 0.12, 0.15, 0.85)
+corner_radius_top_left = 14
+corner_radius_top_right = 14
+corner_radius_bottom_right = 14
+corner_radius_bottom_left = 14
+content_margin_left = 24.0
+content_margin_top = 20.0
+content_margin_right = 24.0
+content_margin_bottom = 20.0
+
 [node name="HUD" type="CanvasLayer"]
 script = ExtResource("1_hud")
 
@@ -128,6 +139,39 @@ text = "Demo"
 [node name="BuildingButtons" type="HBoxContainer" parent="SafeArea/BuildMenu"]
 layout_mode = 2
 mouse_filter = 2
+
+[node name="StationPanel" type="PanelContainer" parent="SafeArea"]
+visible = false
+custom_minimum_size = Vector2(440, 0)
+layout_mode = 2
+size_flags_horizontal = 8
+size_flags_vertical = 4
+theme_override_styles/panel = SubResource("StyleBox_station_panel")
+
+[node name="Content" type="VBoxContainer" parent="SafeArea/StationPanel"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="TitleLabel" type="Label" parent="SafeArea/StationPanel/Content"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 30
+
+[node name="InfoLabel" type="Label" parent="SafeArea/StationPanel/Content"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 22
+
+[node name="UpgradeButton" type="Button" parent="SafeArea/StationPanel/Content"]
+custom_minimum_size = Vector2(0, 72)
+layout_mode = 2
+focus_mode = 0
+theme_override_font_sizes/font_size = 24
+text = "Upgrade"
+
+[node name="CloseButton" type="Button" parent="SafeArea/StationPanel/Content"]
+custom_minimum_size = Vector2(0, 64)
+layout_mode = 2
+focus_mode = 0
+text = "Close"
 
 [node name="ToolPanel" type="VBoxContainer" parent="SafeArea"]
 layout_mode = 2

@@ -25,6 +25,8 @@ func _ready() -> void:
 	_build_mode.tool_changed.connect(_hud.set_tool_state)
 	_hud.reset_confirmed.connect(_on_reset_confirmed)
 	_hud.showcase_confirmed.connect(_on_showcase_confirmed)
+	_hud.upgrade_pressed.connect(func(building: Building) -> void: Airport.start_upgrade(building))
+	TouchGestures.tapped.connect(_on_tapped)
 	_set_view(View.MANAGER)
 
 
@@ -46,6 +48,36 @@ func _process(_delta: float) -> void:
 	_hud.set_departures(Airport.passenger_flow.departures_text())
 
 
+# Manager view: tapping a building opens its station panel; tapping elsewhere closes it.
+func _on_tapped(screen_position: Vector2) -> void:
+	if current_view != View.MANAGER:
+		return
+	var building := building_at(screen_position)
+	if building != null and building.type.role != BuildingType.Role.NONE:
+		_hud.show_station(building)
+	else:
+		_hud.hide_station()
+
+
+## The building under a screen position in the manager view, or null.
+func building_at(screen_position: Vector2) -> Building:
+	var from := _manager_camera.project_ray_origin(screen_position)
+	var direction := _manager_camera.project_ray_normal(screen_position)
+	# Solid buildings: hit their walls or roof, not just the ground under the finger.
+	var query := PhysicsRayQueryParameters3D.create(from, from + direction * 300.0)
+	var hit := get_world_3d().direct_space_state.intersect_ray(query)
+	if not hit.is_empty() and (hit.collider as Object).has_meta(BuildingLayer.BUILDING_META):
+		return (hit.collider as Object).get_meta(BuildingLayer.BUILDING_META)
+	# Flat buildings (stands) have no collision: look at the ground cell.
+	var ground: Variant = Plane(Vector3.UP, 0.0).intersects_ray(from, direction)
+	if ground == null:
+		return null
+	var cell := Airport.grid.world_to_cell(ground as Vector3)
+	if not Airport.grid.is_inside(cell) or Airport.grid.is_empty(cell):
+		return null
+	return Airport.grid.get_content(cell) as Building
+
+
 func _on_view_toggle_pressed() -> void:
 	_set_view(View.BUILD if current_view == View.MANAGER else View.MANAGER)
 
@@ -63,6 +95,7 @@ func _set_view(view: View) -> void:
 	_manager.input_enabled = not building
 	_hud.joystick.enabled = not building
 	_build_mode.active = building
+	_hud.hide_station()
 	_hud.set_build_view_open(building)
 	# Build view: adding a second finger turns a pan into a pinch.
 	# Manager view: a second finger must never interrupt the joystick.

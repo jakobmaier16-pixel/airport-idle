@@ -47,6 +47,10 @@ enum Role { NONE, ENTRANCE, CHECK_IN, SECURITY, GATE, AIRCRAFT_STAND }
 ## Average seconds to serve one passenger (compressed game time).
 @export var service_time: float = 0.0
 
+@export_group("Upgrades")
+## Upgrade levels in order (design doc §7.8). Empty = the station can't be upgraded.
+@export var upgrades: Array[StationUpgrade] = []
+
 @export_group("Placeholder visuals")
 @export var color: Color = Color(0.7, 0.7, 0.75)
 ## Box height in meters.

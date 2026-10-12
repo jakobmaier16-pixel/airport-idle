@@ -45,4 +45,5 @@ func test_hint_label_follows_connection() -> void:
 	check(label.visible, "unconnected check-in shows a hint")
 	check_eq(label.text, "Needs a walkway in front", "hint text")
 	Airport.paint_walkway(cells(Vector2i(28, 19), Vector2i(5, 1)), true)
+	await frames(1)  # labels update once per frame
 	check(not label.visible, "hint disappears once connected")

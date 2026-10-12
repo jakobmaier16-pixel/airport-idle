@@ -1,6 +1,25 @@
 [gd_resource type="Resource" script_class="BuildingType" format=3]
 
 [ext_resource type="Script" path="res://scripts/resources/building_type.gd" id="1_type"]
+[ext_resource type="Script" path="res://scripts/resources/station_upgrade.gd" id="2_upgrade"]
+
+[sub_resource type="Resource" id="Upgrade_level_2"]
+script = ExtResource("2_upgrade")
+title = "+1 counter"
+cost = 2500.0
+extra_running_cost_per_minute = 10.0
+extra_slots = 1
+service_time_factor = 1.0
+build_seconds = 0.0
+
+[sub_resource type="Resource" id="Upgrade_level_3"]
+script = ExtResource("2_upgrade")
+title = "+1 counter"
+cost = 4000.0
+extra_running_cost_per_minute = 10.0
+extra_slots = 1
+service_time_factor = 1.0
+build_seconds = 60.0
 
 [resource]
 script = ExtResource("1_type")
@@ -18,3 +37,4 @@ service_slots = 3
 service_time = 8.0
 color = Color(0.45, 0.6, 0.8, 1)
 height = 2.5
+upgrades = Array[ExtResource("2_upgrade")]([SubResource("Upgrade_level_2"), SubResource("Upgrade_level_3")])

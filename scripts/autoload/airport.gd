@@ -5,6 +5,8 @@ extends Node
 ## Visuals listen to its signals and never change simulation data directly.
 
 signal building_placed(building: Building)
+## An upgrade started or finished (design doc §7.8).
+signal building_upgraded(building: Building)
 signal zones_changed
 signal walkways_changed
 ## Anything about the layout changed (buildings, zones, walkways). Used for saving and connection hints.
@@ -60,6 +62,46 @@ func _process(delta: float) -> void:
 func step(delta: float) -> void:
 	passenger_flow.tick(delta)
 	economy.tick(delta, _running_cost_per_minute)
+	for building in buildings:
+		if building.is_upgrading():
+			building.upgrade_seconds_left -= delta
+			if building.upgrade_seconds_left <= 0.0:
+				_finish_upgrade(building)
+
+
+## Why `building` can't be upgraded right now, as a short hint, or "" if it can.
+func upgrade_problem(building: Building) -> String:
+	if building.type.upgrades.is_empty():
+		return "No upgrades for this building yet"
+	if building.is_upgrading():
+		return "Upgrade in progress"
+	var upgrade := building.next_upgrade()
+	if upgrade == null:
+		return "Fully upgraded"
+	if not economy.can_afford(upgrade.cost):
+		return "Not enough money (%s)" % Economy.format(upgrade.cost)
+	return ""
+
+
+## Pays for and starts the next upgrade. Small upgrades finish at once, big ones take time.
+func start_upgrade(building: Building) -> bool:
+	if not upgrade_problem(building).is_empty():
+		return false
+	var upgrade := building.next_upgrade()
+	economy.pay_construction(upgrade.cost)
+	if upgrade.build_seconds <= 0.0:
+		_finish_upgrade(building)
+	else:
+		building.upgrade_seconds_left = upgrade.build_seconds
+		building_upgraded.emit(building)
+	return true
+
+
+func _finish_upgrade(building: Building) -> void:
+	building.upgrade_seconds_left = 0.0
+	building.level += 1
+	_update_running_cost()
+	building_upgraded.emit(building)
 
 
 ## Running costs of everything built, in euros per minute.
@@ -183,6 +225,8 @@ func save_state() -> Dictionary:
 			"type": String(building.type.id),
 			"cell": [building.origin_cell.x, building.origin_cell.y],
 			"rotation": building.rotation_steps,
+			"level": building.level,
+			"upgrade_left": building.upgrade_seconds_left,
 		})
 	return {
 		"map_size": [grid.size.x, grid.size.y],
@@ -209,8 +253,12 @@ func load_state(data: Dictionary) -> int:
 		var type := CATALOG.find(StringName(entry.get("type", "")))
 		var cell: Array = entry.get("cell", [0, 0])
 		var origin := Vector2i(int(cell[0]), int(cell[1]))
-		if type == null or place_building(type, origin, int(entry.get("rotation", 0)), false) == null:
+		var building := place_building(type, origin, int(entry.get("rotation", 0)), false) if type != null else null
+		if building == null:
 			skipped += 1
+			continue
+		building.level = clampi(int(entry.get("level", 1)), 1, type.upgrades.size() + 1)
+		building.upgrade_seconds_left = float(entry.get("upgrade_left", 0.0)) if building.next_upgrade() != null else 0.0
 	_loading = false
 	economy.balance = float(data.get("money", Economy.STARTING_MONEY))
 	zones_changed.emit()
@@ -229,9 +277,13 @@ func stand_behind(gate: Building) -> Building:
 
 func _on_layout_changed() -> void:
 	passenger_flow.on_layout_changed()
+	_update_running_cost()
+
+
+func _update_running_cost() -> void:
 	var cost := 0.0
 	for building in buildings:
-		cost += building.type.running_cost_per_minute
+		cost += building.running_cost_per_minute()
 	var walkway_cells := 0
 	for value in grid.get_walkway_data():
 		walkway_cells += value

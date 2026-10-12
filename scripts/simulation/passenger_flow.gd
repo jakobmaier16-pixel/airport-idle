@@ -60,6 +60,11 @@ func departures_text(max_lines: int = 4) -> String:
 	return "\n".join(lines)
 
 
+## The station of a building (check-in, security, gate), or null.
+func station_for(building: Building) -> Station:
+	return _stations.get(building)
+
+
 ## Gates are numbered in the order they were built, starting at 1.
 func gate_number(gate: Building) -> int:
 	var number := 0
@@ -268,6 +273,7 @@ func _tick_station(station: Station, delta: float) -> void:
 	if station.role() == Role.GATE:
 		return  # boarding is driven by the flight schedule
 
+	station.sync_slots()
 	for i in station.serving.size():
 		var served := station.serving[i]
 		if served != null:
@@ -282,7 +288,7 @@ func _tick_station(station: Station, delta: float) -> void:
 			next.state = Passenger.State.IN_SERVICE
 			station.serving[i] = next
 			# Some passengers are quicker than others.
-			station.service_left[i] = station.building.type.service_time * _rng.randf_range(0.75, 1.25)
+			station.service_left[i] = station.building.service_time() * _rng.randf_range(0.75, 1.25)
 
 	for k in station.queue.size():
 		_move_towards(station.queue[k], _queue_spot(station, k), delta)

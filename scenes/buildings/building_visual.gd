@@ -32,8 +32,8 @@ func place_on_grid(grid: AirportGrid, footprint: Vector2i, origin_cell: Vector2i
 	rotation.y = -rotation_steps * PI * 0.5
 
 
-## Makes the building solid, so the manager can't walk through it.
-func add_collision(type: BuildingType, cell_size: float) -> void:
+## Makes the building solid, so the manager can't walk through it. Returns the physics body.
+func add_collision(type: BuildingType, cell_size: float) -> StaticBody3D:
 	var body := StaticBody3D.new()
 	var shape := CollisionShape3D.new()
 	var box := BoxShape3D.new()
@@ -42,6 +42,7 @@ func add_collision(type: BuildingType, cell_size: float) -> void:
 	shape.position.y = type.height * 0.5
 	body.add_child(shape)
 	add_child(body)
+	return body
 
 
 func _add_mesh(mesh: Mesh, offset: Vector3, cast_shadows: bool) -> void:

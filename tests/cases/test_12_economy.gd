@@ -75,17 +75,16 @@ func test_running_costs() -> void:
 
 func test_flights_earn_money() -> void:
 	ShowcaseAirport.build(0.0)
-	var start := Airport.economy.balance
-	var flight: Flight = null
 	sim_seconds(1)
-	for f in Airport.passenger_flow.schedule.upcoming():
-		flight = f
-		break
+	var flight: Flight = Airport.passenger_flow.schedule.upcoming()[0]
+	# Just before the doors close, then just after: the difference is the fees minus 0.4 s of costs.
+	sim_seconds(flight.departure_time - Airport.passenger_flow.time - 0.2)
+	var before := Airport.economy.balance
 	var running := Airport.running_cost_per_minute()
-	sim_seconds(flight.departure_time - Airport.passenger_flow.time + 1.0)
-	var elapsed_minutes := Airport.passenger_flow.time / 60.0
-	var expected := start + flight.boarded * Economy.PASSENGER_FEE + Economy.FLIGHT_FEE - running * elapsed_minutes
-	check(absf(Airport.economy.balance - expected) < 1.0, "fees for %d passengers + flight, minus running costs: %s vs %s" % [flight.boarded, Airport.economy.balance, expected])
+	sim_seconds(0.4)
+	check(flight.phase == Flight.Phase.DEPARTING, "doors closed")
+	var expected := before + flight.boarded * Economy.PASSENGER_FEE + Economy.FLIGHT_FEE - running * 0.4 / 60.0
+	check(absf(Airport.economy.balance - expected) < 0.5, "fees for %d passengers + flight: %s vs %s" % [flight.boarded, Airport.economy.balance, expected])
 
 
 func test_showcase_makes_a_profit() -> void:

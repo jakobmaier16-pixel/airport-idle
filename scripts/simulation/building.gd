@@ -7,12 +7,55 @@ var type: BuildingType
 var origin_cell: Vector2i
 ## Clockwise 90° steps as seen from above (0..3).
 var rotation_steps: int
+## Upgrade level, starting at 1 (design doc §7.8).
+var level: int = 1
+## Seconds until a running big upgrade is finished; 0 = no upgrade running.
+var upgrade_seconds_left: float = 0.0
 
 
 func _init(building_type: BuildingType, origin: Vector2i, rotation: int) -> void:
 	type = building_type
 	origin_cell = origin
 	rotation_steps = posmod(rotation, 4)
+
+
+## The upgrade that would take this building to the next level, or null at the top level.
+## While an upgrade is running, this is the one being built.
+func next_upgrade() -> StationUpgrade:
+	if level - 1 < type.upgrades.size():
+		return type.upgrades[level - 1]
+	return null
+
+
+func is_upgrading() -> bool:
+	return upgrade_seconds_left > 0.0
+
+
+## Counters / lanes at the current level.
+func service_slots() -> int:
+	var slots := type.service_slots
+	for upgrade in _done_upgrades():
+		slots += upgrade.extra_slots
+	return slots
+
+
+## Average seconds per passenger at the current level.
+func service_time() -> float:
+	var time := type.service_time
+	for upgrade in _done_upgrades():
+		time *= upgrade.service_time_factor
+	return time
+
+
+func running_cost_per_minute() -> float:
+	var cost := type.running_cost_per_minute
+	for upgrade in _done_upgrades():
+		cost += upgrade.extra_running_cost_per_minute
+	return cost
+
+
+func _done_upgrades() -> Array[StationUpgrade]:
+	return type.upgrades.slice(0, level - 1)
 
 
 ## The grid cells this building covers.

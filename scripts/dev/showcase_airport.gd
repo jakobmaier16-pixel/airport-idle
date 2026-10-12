@@ -29,10 +29,26 @@ static func build(warm_up_seconds: float = 120.0) -> void:
 	Airport.place_building(catalog.find(&"aircraft_stand"), Vector2i(10, 39), 0)
 	Airport.place_building(catalog.find(&"aircraft_stand"), Vector2i(38, 39), 0)
 
+	# Station upgrades (design doc §7.8): security already at level 2.
+	Airport.start_upgrade(_first(BuildingType.Role.SECURITY))
+
 	# The showcase is a test fixture: start with fresh money, as if it had been there all along.
 	Airport.economy = Economy.new()
 	for i in int(warm_up_seconds / Airport.SIM_STEP):
 		Airport.step(Airport.SIM_STEP)
+
+	# A big upgrade under construction right when the player looks (check-in to level 3).
+	var check_in := _first(BuildingType.Role.CHECK_IN)
+	check_in.level = 2
+	Airport.start_upgrade(check_in)
+	Airport.economy.balance = Economy.STARTING_MONEY
+
+
+static func _first(role: BuildingType.Role) -> Building:
+	for building in Airport.buildings:
+		if building.type.role == role:
+			return building
+	return null
 
 
 static func _cells(origin: Vector2i, size: Vector2i) -> Array[Vector2i]:

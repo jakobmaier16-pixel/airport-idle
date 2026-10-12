@@ -20,11 +20,18 @@ var waiting: Array[Passenger] = []
 
 func _init(placed: Building) -> void:
 	building = placed
-	serving.resize(placed.type.service_slots)
-	service_left.resize(placed.type.service_slots)
+	sync_slots()
 	var directions: Array[Vector2i] = [Vector2i(0, -1), Vector2i(1, 0), Vector2i(0, 1), Vector2i(-1, 0)]
 	var front := directions[placed.rotation_steps]
 	outward = Vector3(front.x, 0.0, front.y)
+
+
+## Adds counters / lanes after an upgrade (the number never goes down).
+func sync_slots() -> void:
+	var slots := building.service_slots()
+	if serving.size() < slots:
+		serving.resize(slots)
+		service_left.resize(slots)
 
 
 func role() -> BuildingType.Role:

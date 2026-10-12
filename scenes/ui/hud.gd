@@ -14,6 +14,7 @@ signal done_pressed
 signal reset_confirmed
 ## The player confirmed loading the showcase airport (test builds only).
 signal showcase_confirmed
+signal upgrade_pressed(building: Building)
 
 const MONEY_COLOR: Color = Color(1.0, 1.0, 1.0)
 const DEBT_COLOR: Color = Color(1.0, 0.4, 0.35)
@@ -24,6 +25,8 @@ const BUTTON_MIN_SIZE: Vector2 = Vector2(120, 72)
 const CONFIRM_TIME: float = 3.0
 
 var _build_view_open: bool = false
+## The building shown in the station panel, or null.
+var shown_station: Building = null
 var _tool: BuildMode.Tool = BuildMode.Tool.NONE
 
 @onready var joystick: TouchJoystick = $SafeArea/TouchJoystick
@@ -42,6 +45,10 @@ var _tool: BuildMode.Tool = BuildMode.Tool.NONE
 @onready var _departures_label: Label = $SafeArea/InfoPanel/DeparturesLabel
 @onready var _reset_button: Button = $SafeArea/BuildMenu/PaintButtons/ResetButton
 @onready var _demo_button: Button = $SafeArea/BuildMenu/PaintButtons/DemoButton
+@onready var _station_panel: Control = $SafeArea/StationPanel
+@onready var _station_title: Label = $SafeArea/StationPanel/Content/TitleLabel
+@onready var _station_info: Label = $SafeArea/StationPanel/Content/InfoLabel
+@onready var _upgrade_button: Button = $SafeArea/StationPanel/Content/UpgradeButton
 
 
 func _ready() -> void:
@@ -63,8 +70,27 @@ func _ready() -> void:
 	_demo_button.visible = OS.is_debug_build()
 	_reset_button.pressed.connect(_on_confirm_button_pressed.bind(_reset_button, "Reset", reset_confirmed))
 	_demo_button.pressed.connect(_on_confirm_button_pressed.bind(_demo_button, "Demo", showcase_confirmed))
+	_upgrade_button.pressed.connect(func() -> void: upgrade_pressed.emit(shown_station))
+	$SafeArea/StationPanel/Content/CloseButton.pressed.connect(hide_station)
 	_update_visibility()
 	_show_build_info()
+
+
+func _process(_delta: float) -> void:
+	if shown_station != null:
+		_update_station_panel()
+
+
+## Opens the station panel for `building` (manager view, design doc §7.8).
+func show_station(building: Building) -> void:
+	shown_station = building
+	_station_panel.visible = true
+	_update_station_panel()
+
+
+func hide_station() -> void:
+	shown_station = null
+	_station_panel.visible = false
 
 
 ## Creates one build menu button per building type.
@@ -122,6 +148,35 @@ func _update_visibility() -> void:
 	_cancel_button.visible = placing
 	_place_button.visible = placing
 	_done_button.visible = painting
+
+
+func _update_station_panel() -> void:
+	var building := shown_station
+	_station_title.text = "%s · Level %d" % [building.type.display_name, building.level]
+	var lines: PackedStringArray = []
+	var role := building.type.role
+	var station := Airport.passenger_flow.station_for(building)
+	if role == BuildingType.Role.CHECK_IN or role == BuildingType.Role.SECURITY:
+		var unit := "counters" if role == BuildingType.Role.CHECK_IN else "lanes"
+		lines.append("%d %s · %.1f s per passenger" % [building.service_slots(), unit, building.service_time()])
+		if station != null:
+			lines.append("Queue: %d waiting · %d being served" % [station.queue.size(), station.busyness() - station.queue.size()])
+	elif role == BuildingType.Role.GATE and station != null:
+		lines.append("Waiting at the gate: %d" % station.waiting.size())
+	lines.append("Running cost: %s/min" % Economy.format(building.running_cost_per_minute()))
+	if building.is_upgrading():
+		var seconds := ceili(building.upgrade_seconds_left)
+		lines.append("Upgrading: %s · %d:%02d left" % [building.next_upgrade().title, seconds / 60, seconds % 60])
+	_station_info.text = "\n".join(lines)
+
+	var upgrade := building.next_upgrade()
+	var problem := Airport.upgrade_problem(building)
+	if upgrade != null and not building.is_upgrading():
+		var duration := "" if upgrade.build_seconds <= 0.0 else " · %d min" % ceili(upgrade.build_seconds / 60.0)
+		_upgrade_button.text = "Upgrade: %s · %s%s" % [upgrade.title, Economy.format(upgrade.cost), duration]
+	else:
+		_upgrade_button.text = problem
+	_upgrade_button.disabled = not problem.is_empty()
 
 
 # For buttons that replace the map: the first tap arms the button, a second tap within a few
