@@ -1,6 +1,6 @@
 # Game Design — Airport Manager (working title)
 
-> Status: Draft v0.6 · Last updated: 2026-10-12
+> Status: Draft v0.7 · Last updated: 2026-10-12
 > This document is the source of truth for *what* we are building. Code follows the design, not the other way round.
 > Decisions marked **(open)** are not final — see [Open Questions](#19-open-questions).
 
@@ -78,6 +78,7 @@ Inspirations: *Builderment*, *Idle Train Empire*, *Airplane Inc.*, *TheoTown*.
 
 - **While playing:** full simulation, all income. The simulation **keeps running in the build view** — there is no pause (for now).
 - **Offline:** no income for breaks under 36 hours. After **36 hours or more** away, the player receives **4 hours' worth of income** once. (Similar in spirit to Clash of Clans — a small welcome back, not a reason to stay away.)
+- **Saving:** automatic — after every change and when the app goes to the background. No manual save button.
 - **Upgrades:** small upgrades are instant. Big upgrades take **1–10 minutes** with **visible construction on site**.
 
 ---
@@ -112,11 +113,24 @@ Inspirations: *Builderment*, *Idle Train Empire*, *Airplane Inc.*, *TheoTown*.
 - Buildings cannot overlap each other or leave the map.
 - Each building has a **front side** (e.g. where passengers queue at check-in), shown on the model.
 - **Building is free for now.** Construction costs come with the economy (§16, item 6).
-- Footprint sizes are provisional. First building: **check-in, 3 × 2 cells** (6 × 4 m).
+- If a spot is not allowed, a short hint says why (space taken, wrong zone, …).
+- MVP building sizes (provisional, easy to change per building):
+
+| Building | Cells | Meters | Zone rule |
+|---|---|---|---|
+| Entrance | 4 × 2 | 8 × 4 | landside |
+| Check-in | 5 × 3 | 10 × 6 | landside |
+| Security | 5 × 3 | 10 × 6 | border: front faces landside, back faces airside |
+| Gate | 5 × 5 | 10 × 10 | airside (waiting area included) |
+| Aircraft stand | 12 × 12 | 24 × 24 | airside (scaled down, see §7.1); flat, can be walked on |
 
 ### 7.2 Zones (realism rule)
 - The airport has a **landside (public)** zone and an **airside (secure)** zone.
 - **Security is the only way** for passengers to get from landside to airside. Once through security, you are in the secure zone.
+- **The player paints the zones** in the build view: pick *Airside* or *Landside* and drag a rectangle (or tap a single cell). Every cell starts as landside.
+- Each building has a **zone rule** (see the table in §7.1a). Security sits **on the border**: the row in front of it must be landside, the row behind it airside.
+- Cells that a building's zone rule depends on cannot be painted to the other zone while the building stands.
+- Zones are shown as a tint on the ground (airside darker / grey-blue).
 - Further realistic zone rules (e.g. passport control for non-Schengen, arrivals separated from departures) follow the same principle.
 
 ### 7.3 Staff-only paths
