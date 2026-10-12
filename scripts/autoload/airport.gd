@@ -17,12 +17,40 @@ const CELL_SIZE: float = 2.0
 const MAP_SIZE_CELLS: Vector2i = Vector2i(64, 64)
 ## Every building type in the game.
 const CATALOG: BuildingCatalog = preload("res://data/buildings/catalog.tres")
+## The simulation advances in fixed steps of this many seconds (10 per second): cheap and
+## independent of the frame rate. Visuals move smoothly between steps using `sim_alpha`.
+const SIM_STEP: float = 0.1
+## Most steps caught up in one frame, so a slow frame can't snowball.
+const MAX_STEPS_PER_FRAME: int = 5
 
 var grid: AirportGrid = AirportGrid.new(MAP_SIZE_CELLS, CELL_SIZE)
 var buildings: Array[Building] = []
+var passenger_flow: PassengerFlow = PassengerFlow.new()
+## How far the current frame is between the last and the next simulation step (0..1).
+var sim_alpha: float = 0.0
+
+var _sim_time: float = 0.0
+# While loading a save, layout_changed is sent once at the end instead of for every building.
+var _loading: bool = false
 
 # Cells whose zone a placed building depends on (cell -> required Zone). They can't be repainted.
 var _zone_locks: Dictionary[Vector2i, int] = {}
+
+
+func _ready() -> void:
+	layout_changed.connect(_on_layout_changed)
+	_on_layout_changed()
+
+
+func _process(delta: float) -> void:
+	_sim_time += delta
+	var steps := 0
+	while _sim_time >= SIM_STEP and steps < MAX_STEPS_PER_FRAME:
+		passenger_flow.tick(SIM_STEP)
+		_sim_time -= SIM_STEP
+		steps += 1
+	_sim_time = minf(_sim_time, SIM_STEP)
+	sim_alpha = _sim_time / SIM_STEP
 
 
 ## Why a building can't go here, as a short hint for the player, or "" if it can.
@@ -56,7 +84,8 @@ func place_building(type: BuildingType, origin_cell: Vector2i, rotation_steps: i
 		_zone_locks[cell] = requirements[cell]
 	buildings.append(building)
 	building_placed.emit(building)
-	layout_changed.emit()
+	if not _loading:
+		layout_changed.emit()
 	return building
 
 
@@ -112,6 +141,8 @@ func reset() -> void:
 	grid = AirportGrid.new(MAP_SIZE_CELLS, CELL_SIZE)
 	buildings.clear()
 	_zone_locks.clear()
+	passenger_flow = PassengerFlow.new()
+	_on_layout_changed()
 
 
 ## The whole airport as plain data, for the save game.
@@ -142,22 +173,28 @@ func load_state(data: Dictionary) -> int:
 		grid.set_zone_data(Marshalls.base64_to_raw(data.get("zones", "")))
 		grid.set_walkway_data(Marshalls.base64_to_raw(data.get("walkways", "")))
 	var skipped := 0
+	_loading = true
 	for entry: Dictionary in data.get("buildings", []):
 		var type := CATALOG.find(StringName(entry.get("type", "")))
 		var cell: Array = entry.get("cell", [0, 0])
 		var origin := Vector2i(int(cell[0]), int(cell[1]))
 		if type == null or place_building(type, origin, int(entry.get("rotation", 0))) == null:
 			skipped += 1
+	_loading = false
 	zones_changed.emit()
 	walkways_changed.emit()
 	layout_changed.emit()
 	return skipped
 
 
+func _on_layout_changed() -> void:
+	passenger_flow.on_layout_changed()
+
+
 func _is_aircraft_stand(cell: Vector2i) -> bool:
 	if not grid.is_inside(cell) or grid.is_empty(cell):
 		return false
-	return (grid.get_content(cell) as Building).type.is_aircraft_stand
+	return (grid.get_content(cell) as Building).type.role == BuildingType.Role.AIRCRAFT_STAND
 
 
 func _zone_hint(type: BuildingType) -> String:
