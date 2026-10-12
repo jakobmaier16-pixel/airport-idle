@@ -125,3 +125,27 @@ func test_plane_parks_nose_in_at_the_stand() -> void:
 	var gate_center := Airport.grid.block_center(gate.origin_cell, Building.rotated_size(gate.type.footprint, gate.rotation_steps))
 	var nose := -plane.global_basis.z
 	check(nose.dot((gate_center - stand_center).normalized()) > 0.99, "nose points at the gate")
+
+
+func test_plane_is_solid() -> void:
+	ShowcaseAirport.build(0.0)
+	var flight := _flight_at(1)
+	sim_seconds(flight.departure_time - FlightSchedule.BOARDING_OPENS + 5.0)  # parked, boarding
+	await start_game()
+	var stand := flight.stand
+	var stand_center := Airport.grid.block_center(stand.origin_cell, Building.rotated_size(stand.type.footprint, stand.rotation_steps))
+	# Start south of the plane's tail and walk north, straight into it.
+	manager().global_position = stand_center + Vector3(0.0, 0.0, 16.0)
+	await physics_frames(10)
+	Input.action_press(&"move_up")
+	await physics_frames(300)  # 5 s: enough to walk 30 m
+	Input.action_release(&"move_up")
+	var tail_end_z := stand_center.z + PlaneVisual.LENGTH * 0.5
+	check(manager().global_position.z > tail_end_z - 1.0, "manager stopped at the tail: z=%.1f, tail at %.1f" % [manager().global_position.z, tail_end_z])
+	# And from the side, into the wing.
+	manager().global_position = stand_center + Vector3(-PlaneVisual.WINGSPAN * 0.5 - 4.0, 0.0, 0.5)
+	await physics_frames(10)
+	Input.action_press(&"move_right")
+	await physics_frames(300)
+	Input.action_release(&"move_right")
+	check(manager().global_position.x < stand_center.x - PlaneVisual.WINGSPAN * 0.5 + 1.0, "manager stopped at the wing tip: x=%.1f" % manager().global_position.x)
