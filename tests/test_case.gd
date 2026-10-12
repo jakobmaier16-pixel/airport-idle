@@ -147,13 +147,13 @@ func wheel(up: bool, times: int = 1) -> void:
 
 func open_build_view() -> void:
 	if not build_camera().current:
-		await press(ui("ViewButton"))
+		await press(ui("TopButtons/ViewButton"))
 		await frames(1)
 
 
 func close_build_view() -> void:
 	if build_camera().current:
-		await press(ui("ViewButton"))
+		await press(ui("TopButtons/ViewButton"))
 		await frames(1)
 
 

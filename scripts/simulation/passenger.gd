@@ -32,5 +32,7 @@ var path_index: int = 0
 var offset: Vector3 = Vector3.ZERO
 ## Clothing color (index into the visual palette).
 var color_index: int = 0
+## Simulation time when the passenger joined their current queue (for wait statistics).
+var queued_since: float = 0.0
 ## Seconds until a STUCK passenger tries again.
 var retry_in: float = 0.0

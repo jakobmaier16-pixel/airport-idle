@@ -32,6 +32,7 @@ var route_problem: String = ""
 var _network: WalkwayNetwork = WalkwayNetwork.new()
 var _stations: Dictionary[Building, Station] = {}
 var _route_entrances: Array[Building] = []
+var _sample_timer: float = 0.0
 var _rng: RandomNumberGenerator = RandomNumberGenerator.new()
 
 
@@ -63,6 +64,38 @@ func departures_text(max_lines: int = 4) -> String:
 ## The station of a building (check-in, security, gate), or null.
 func station_for(building: Building) -> Station:
 	return _stations.get(building)
+
+
+## Every station in a stable order: check-ins, security, gates, each in the order they were built.
+func stations() -> Array[Station]:
+	var result: Array[Station] = []
+	for role in [Role.CHECK_IN, Role.SECURITY, Role.GATE]:
+		for building in Airport.buildings:
+			if building.type.role == role and _stations.has(building):
+				result.append(_stations[building])
+	return result
+
+
+## "Check-in 2", or just "Security" when there is only one of a kind.
+func station_label(building: Building) -> String:
+	var same_kind := Airport.buildings.filter(func(b: Building) -> bool: return b.type == building.type)
+	if same_kind.size() == 1:
+		return building.type.display_name
+	return "%s %d" % [building.type.display_name, same_kind.find(building) + 1]
+
+
+## The check-in or security with the longest average wait (at least `min_wait` seconds), or null.
+func bottleneck(min_wait: float = 5.0) -> Station:
+	var worst: Station = null
+	var worst_wait := min_wait
+	for station: Station in _stations.values():
+		if station.role() == Role.GATE:
+			continue
+		var wait := station.average_wait(time)
+		if wait >= worst_wait:
+			worst_wait = wait
+			worst = station
+	return worst
 
 
 ## Gates are numbered in the order they were built, starting at 1.
@@ -110,6 +143,11 @@ func tick(delta: float) -> void:
 	schedule.tick(time, delta, self)
 	for station: Station in _stations.values():
 		_tick_station(station, delta)
+	_sample_timer += delta
+	while _sample_timer >= 1.0:
+		_sample_timer -= 1.0
+		for station: Station in _stations.values():
+			station.record_sample()
 
 	for passenger in passengers:
 		match passenger.state:
@@ -258,6 +296,7 @@ func _arrive(passenger: Passenger) -> void:
 		station.waiting.append(passenger)
 	else:
 		passenger.state = Passenger.State.QUEUING
+		passenger.queued_since = time
 		station.queue.append(passenger)
 
 
@@ -287,6 +326,7 @@ func _tick_station(station: Station, delta: float) -> void:
 			var next: Passenger = station.queue.pop_front()
 			next.state = Passenger.State.IN_SERVICE
 			station.serving[i] = next
+			station.record_wait(time, time - next.queued_since)
 			# Some passengers are quicker than others.
 			station.service_left[i] = station.building.service_time() * _rng.randf_range(0.75, 1.25)
 

@@ -366,7 +366,7 @@ A button switches between the two views.
 
 ## 16. First Playable Version (MVP)
 
-The smallest version that proves the core idea:
+The smallest version that proves the core idea. **Status (2026-10-13): all 8 items are built and playable** (placeholder numbers and visuals).
 
 1. One floor, one grid, landside + airside zone
 2. Place and rotate: entrance, check-in, security, gate, aircraft stand

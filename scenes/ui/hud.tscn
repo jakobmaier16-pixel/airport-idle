@@ -52,11 +52,21 @@ script = ExtResource("2_safe_area")
 [node name="TouchJoystick" parent="SafeArea" instance=ExtResource("3_joystick")]
 layout_mode = 2
 
-[node name="ViewButton" type="Button" parent="SafeArea"]
-custom_minimum_size = Vector2(200, 72)
+[node name="TopButtons" type="HBoxContainer" parent="SafeArea"]
 layout_mode = 2
 size_flags_horizontal = 8
 size_flags_vertical = 0
+mouse_filter = 2
+
+[node name="StatsButton" type="Button" parent="SafeArea/TopButtons"]
+custom_minimum_size = Vector2(160, 72)
+layout_mode = 2
+focus_mode = 0
+text = "Stats"
+
+[node name="ViewButton" type="Button" parent="SafeArea/TopButtons"]
+custom_minimum_size = Vector2(200, 72)
+layout_mode = 2
 focus_mode = 0
 text = "Build"
 
@@ -169,6 +179,39 @@ theme_override_font_sizes/font_size = 24
 text = "Upgrade"
 
 [node name="CloseButton" type="Button" parent="SafeArea/StationPanel/Content"]
+custom_minimum_size = Vector2(0, 64)
+layout_mode = 2
+focus_mode = 0
+text = "Close"
+
+[node name="StatsPanel" type="PanelContainer" parent="SafeArea"]
+visible = false
+layout_mode = 2
+size_flags_horizontal = 4
+size_flags_vertical = 4
+theme_override_styles/panel = SubResource("StyleBox_station_panel")
+
+[node name="Content" type="VBoxContainer" parent="SafeArea/StatsPanel"]
+layout_mode = 2
+theme_override_constants/separation = 14
+
+[node name="TitleLabel" type="Label" parent="SafeArea/StatsPanel/Content"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 30
+text = "Statistics · last 5 minutes"
+
+[node name="Table" type="GridContainer" parent="SafeArea/StatsPanel/Content"]
+layout_mode = 2
+theme_override_constants/h_separation = 36
+theme_override_constants/v_separation = 8
+columns = 5
+
+[node name="BottleneckLabel" type="Label" parent="SafeArea/StatsPanel/Content"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.7, 0.3, 1)
+theme_override_font_sizes/font_size = 24
+
+[node name="CloseButton" type="Button" parent="SafeArea/StatsPanel/Content"]
 custom_minimum_size = Vector2(0, 64)
 layout_mode = 2
 focus_mode = 0

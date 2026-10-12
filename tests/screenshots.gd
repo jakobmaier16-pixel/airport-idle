@@ -30,6 +30,10 @@ func _ready() -> void:
 	await _shot("station_panel")
 	hud().hide_station()
 
+	hud().show_stats()
+	await _shot("stats_panel")
+	hud().hide_stats()
+
 	await open_build_view()
 	build_camera().center_on(Airport.grid.cell_to_world(Vector2i(32, 30)))
 	await _shot("build_view")

@@ -19,18 +19,28 @@ signal upgrade_pressed(building: Building)
 const MONEY_COLOR: Color = Color(1.0, 1.0, 1.0)
 const DEBT_COLOR: Color = Color(1.0, 0.4, 0.35)
 
+const STATS_FONT_SIZE: int = 22
+const BOTTLENECK_COLOR: Color = Color(1.0, 0.7, 0.3)
+## How often the statistics panel refreshes, in seconds.
+const STATS_REFRESH: float = 0.5
+
 ## Smallest size for touch buttons, in UI pixels (Apple recommends at least 44 pt).
 const BUTTON_MIN_SIZE: Vector2 = Vector2(120, 72)
 ## How long Reset / Demo wait for the confirming second tap.
 const CONFIRM_TIME: float = 3.0
 
 var _build_view_open: bool = false
+var _stats_refresh_in: float = 0.0
 ## The building shown in the station panel, or null.
 var shown_station: Building = null
 var _tool: BuildMode.Tool = BuildMode.Tool.NONE
 
 @onready var joystick: TouchJoystick = $SafeArea/TouchJoystick
-@onready var _view_button: Button = $SafeArea/ViewButton
+@onready var _view_button: Button = $SafeArea/TopButtons/ViewButton
+@onready var _stats_button: Button = $SafeArea/TopButtons/StatsButton
+@onready var _stats_panel: Control = $SafeArea/StatsPanel
+@onready var _stats_table: GridContainer = $SafeArea/StatsPanel/Content/Table
+@onready var _bottleneck_label: Label = $SafeArea/StatsPanel/Content/BottleneckLabel
 @onready var _build_menu: Control = $SafeArea/BuildMenu
 @onready var _building_buttons: HBoxContainer = $SafeArea/BuildMenu/BuildingButtons
 @onready var _tool_panel: Control = $SafeArea/ToolPanel
@@ -72,13 +82,35 @@ func _ready() -> void:
 	_demo_button.pressed.connect(_on_confirm_button_pressed.bind(_demo_button, "Demo", showcase_confirmed))
 	_upgrade_button.pressed.connect(func() -> void: upgrade_pressed.emit(shown_station))
 	$SafeArea/StationPanel/Content/CloseButton.pressed.connect(hide_station)
+	_stats_button.pressed.connect(func() -> void: hide_stats() if _stats_panel.visible else show_stats())
+	$SafeArea/StatsPanel/Content/CloseButton.pressed.connect(hide_stats)
 	_update_visibility()
 	_show_build_info()
 
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
 	if shown_station != null:
 		_update_station_panel()
+	if _stats_panel.visible:
+		_stats_refresh_in -= delta
+		if _stats_refresh_in <= 0.0:
+			_stats_refresh_in = STATS_REFRESH
+			_update_stats_panel()
+
+
+## Opens the statistics panel (manager view, design doc §13.1).
+func show_stats() -> void:
+	hide_station()
+	_stats_panel.visible = true
+	_update_stats_panel()
+
+
+func hide_stats() -> void:
+	_stats_panel.visible = false
+
+
+func is_stats_open() -> bool:
+	return _stats_panel.visible
 
 
 ## Test builds: shows what a tap did at the bottom of the screen (see TapFeedback).
@@ -90,6 +122,7 @@ func report_tap(text: String) -> void:
 
 ## Opens the station panel for `building` (manager view, design doc §7.8).
 func show_station(building: Building) -> void:
+	hide_stats()
 	shown_station = building
 	_station_panel.visible = true
 	_update_station_panel()
@@ -136,6 +169,8 @@ func set_view_button_text(text: String) -> void:
 
 func set_build_view_open(open: bool) -> void:
 	_build_view_open = open
+	if open:
+		hide_stats()
 	_update_visibility()
 
 
@@ -155,6 +190,42 @@ func _update_visibility() -> void:
 	_cancel_button.visible = placing
 	_place_button.visible = placing
 	_done_button.visible = painting
+	_stats_button.visible = not _build_view_open
+
+
+func _update_stats_panel() -> void:
+	var flow := Airport.passenger_flow
+	var bottleneck := flow.bottleneck()
+	for child in _stats_table.get_children():
+		child.queue_free()
+	for heading in ["Station", "Queue now", "Longest", "Avg. wait", "Busy"]:
+		_add_stats_cell(heading, Color(0.75, 0.78, 0.82))
+	for station in flow.stations():
+		var color := BOTTLENECK_COLOR if station == bottleneck else Color.WHITE
+		_add_stats_cell(flow.station_label(station.building), color)
+		if station.role() == BuildingType.Role.GATE:
+			_add_stats_cell("%d waiting" % station.queue_length(), color)
+			for i in 3:
+				_add_stats_cell("", color)
+			continue
+		var wait := station.average_wait(flow.time)
+		_add_stats_cell(str(station.queue_length()), color)
+		_add_stats_cell(str(station.longest_queue()), color)
+		_add_stats_cell("–" if wait < 0.0 else "%d s" % roundi(wait), color)
+		_add_stats_cell("%d %%" % roundi(station.busy_share() * 100.0), color)
+	if bottleneck != null:
+		_bottleneck_label.text = "Bottleneck: %s · avg wait %d s" % [
+			flow.station_label(bottleneck.building), roundi(bottleneck.average_wait(flow.time))]
+	else:
+		_bottleneck_label.text = "No bottleneck: every queue moves quickly."
+
+
+func _add_stats_cell(text: String, color: Color) -> void:
+	var cell := Label.new()
+	cell.text = text
+	cell.add_theme_font_size_override(&"font_size", STATS_FONT_SIZE)
+	cell.add_theme_color_override(&"font_color", color)
+	_stats_table.add_child(cell)
 
 
 func _update_station_panel() -> void:

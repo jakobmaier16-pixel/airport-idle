@@ -6,7 +6,7 @@ func test_starts_in_manager_view() -> void:
 	await start_game()
 	check(manager_camera().current, "manager camera is active")
 	check(not build_camera().current, "build camera is not active")
-	check_eq((ui("ViewButton") as Button).text, "Build", "view button text")
+	check_eq((ui("TopButtons/ViewButton") as Button).text, "Build", "view button text")
 	check(not ui("BuildMenu").visible, "build menu hidden in manager view")
 	check(not ui("ToolPanel").visible, "tool panel hidden in manager view")
 
