@@ -1,6 +1,6 @@
 # Game Design — Airport Manager (working title)
 
-> Status: Draft v0.9 · Last updated: 2026-10-12
+> Status: Draft v0.10 · Last updated: 2026-10-12
 > This document is the source of truth for *what* we are building. Code follows the design, not the other way round.
 > Decisions marked **(open)** are not final — see [Open Questions](#19-open-questions).
 
@@ -205,14 +205,24 @@ Different types with different needs, behavior and spending. This creates a real
 
 ### 8.4 First passenger flow (MVP, item 4)
 Placeholder rules until flights exist (§16 item 5). All numbers are tunable.
-- **Arrival:** a steady rate (1 passenger every 3 s) at a connected entrance — only once a **complete route** exists: Entrance → Check-in → Security → Gate with stand.
+- **Arrival:** passengers arrive for a specific flight (§8.5), at a connected entrance — only once a **complete route** exists: Entrance → Check-in → Security → Gate with stand.
 - **Walking:** only on walkway cells, ~1.3 m/s (realistic walking speed), each passenger with a small sideways offset so crowds don't walk in one line.
-- **Choices:** check-in and security by the best mix of short queue and short distance; the gate at random (later: the gate of their flight).
+- **Choices:** check-in and security by the best mix of short queue and short distance; the gate of their flight.
 - **Queues:** visible lines in front of the station. Check-in: 3 counters, ~8 s per passenger. Security: 2 lanes, ~6 s. (Compressed time; a real check-in takes 1–2 min.)
 - **Security is the only link** between landside and airside walkways; passengers cannot reach airside any other way.
-- **Gate:** passengers wait inside the gate. Placeholder: every 45 s the gate "boards" everyone waiting (they count as departed).
+- **Gate:** passengers wait inside the gate until their flight boards (§8.5).
 - **Simulation vs. visuals:** passengers are simulated as data at 10 steps per second for the whole airport; figures are drawn only near the camera, in one batch (MultiMesh), with smooth movement between steps.
-- A **status line** shows passengers in the airport and departed, or what is missing for a complete route.
+- A **status line** shows passengers in the airport, departed and missed, or what is missing for a complete route.
+
+### 8.5 First flights (MVP, item 5)
+Placeholder schedule until airlines and deals exist (§10). All numbers are tunable (compressed game time).
+- **Schedule:** every gate with a stand gets one departure every **3 minutes**. The first flight at a new gate departs 3½ minutes after the gate becomes usable.
+- **Timeline of a flight** (before departure): passengers arrive at the entrance from 3:20 to 1:40 · the plane taxis onto the stand at 2:10 (15 s) · **boarding** opens at 1:30, about 1 passenger per second walks from the gate onto the plane · at 0:00 the doors close and the plane pushes back.
+- **Missed flights:** passengers not on board when the doors close miss the flight and leave the airport. They are counted — slow layouts cause missed flights (§7.7).
+- **Aircraft:** a narrow-body plane with 180 seats, scaled down like the airside (§7.1); parks nose-in at the stand, facing the gate. For now 12–20 booked passengers per flight, so a small airport can handle it; real demand comes with airlines (§10).
+- **Fictional** airline code "AX" and flight numbers (§18).
+- If a gate stops being usable (e.g. its walkway is removed), its flight is **cancelled** and its passengers leave.
+- A **departures board** shows the next flights: number, gate, status (scheduled, plane arriving, at stand, boarding) and time to departure.
 
 ---
 
