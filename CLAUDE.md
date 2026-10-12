@@ -124,14 +124,20 @@ UI controls (buttons) consume their touches first, so taps on buttons never reac
   (`application/export_project_only=true`); signing and installing happen in Xcode.
 - Export (into `build/ios/`, ignored by Git):
   ```
-  mkdir -p build/ios
+  mkdir -p build/ios && touch build/.gdignore
   /Applications/Godot.app/Contents/MacOS/Godot --headless --path . --export-debug "iOS" build/ios/AirportIdle.ipa
   ```
   Then open `build/ios/AirportIdle.xcodeproj` and press Run. Re-exporting overwrites the Xcode project.
-- Signing: free Apple ID (Personal Team), automatic signing, bundle id `com.jakobmaier.airportidle`.
+- `build/.gdignore` keeps Godot from scanning (and packing) the previous export; without it the
+  next export fails with "Can't open file from path 'res://build/ios/...'" errors.
+- Signing: free Apple ID (Personal Team `X62T6HGHTT`), automatic signing,
+  bundle id `com.jakobmaier.airportidle.dev` (`com.jakobmaier.airportidle` was not available).
+  Both are set in the preset, so no team selection is needed in Xcode after an export.
   Free-account builds expire after 7 days; re-run from Xcode to renew.
-- `application/app_store_team_id` must not be empty (Godot refuses to export). `PLACEHOLDR` means
-  the real Personal Team ID hasn't been filled in yet; then the team must be picked in Xcode after every export.
+- `application/app_store_team_id` must not be empty (Godot refuses to export).
+- **Expected:** Xcode shows a signing error for the **Release** configuration (it uses
+  "Apple Distribution", which a free account can't create). Ignore it until the paid Apple Developer
+  Program is joined; Debug builds to a device work.
 - iOS needs `rendering/textures/vram_compression/import_etc2_astc=true` (already set).
 - Minimum hardware: A12 chip (Godot requirement), iOS 15.
 
