@@ -1,0 +1,25 @@
+# Godot 4+ cache and generated files (rebuilt automatically when the project opens)
+.godot/
+*.translation
+
+# Export output and iOS build artifacts
+/build/
+/export/
+*.ipa
+*.xcarchive
+*.dSYM
+*.dSYM.zip
+export_credentials.cfg
+
+# Godot-generated temp files
+*.tmp
+*.import.tmp
+
+# macOS
+.DS_Store
+._*
+
+# Editors
+.vscode/
+.idea/
+*.swp
