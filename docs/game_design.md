@@ -1,6 +1,6 @@
 # Game Design — Airport Manager (working title)
 
-> Status: Draft v0.8 · Last updated: 2026-10-12
+> Status: Draft v0.9 · Last updated: 2026-10-12
 > This document is the source of truth for *what* we are building. Code follows the design, not the other way round.
 > Decisions marked **(open)** are not final — see [Open Questions](#19-open-questions).
 
@@ -202,6 +202,17 @@ Different types with different needs, behavior and spending. This creates a real
 ### 8.3 Visual representation
 - Passengers are visible and walk through the airport.
 - To keep performance good on older iPhones, passengers are **simple, low-detail 3D figures** (with instancing / level of detail as needed). Crowds may be simplified when zoomed out.
+
+### 8.4 First passenger flow (MVP, item 4)
+Placeholder rules until flights exist (§16 item 5). All numbers are tunable.
+- **Arrival:** a steady rate (1 passenger every 3 s) at a connected entrance — only once a **complete route** exists: Entrance → Check-in → Security → Gate with stand.
+- **Walking:** only on walkway cells, ~1.3 m/s (realistic walking speed), each passenger with a small sideways offset so crowds don't walk in one line.
+- **Choices:** check-in and security by the best mix of short queue and short distance; the gate at random (later: the gate of their flight).
+- **Queues:** visible lines in front of the station. Check-in: 3 counters, ~8 s per passenger. Security: 2 lanes, ~6 s. (Compressed time; a real check-in takes 1–2 min.)
+- **Security is the only link** between landside and airside walkways; passengers cannot reach airside any other way.
+- **Gate:** passengers wait inside the gate. Placeholder: every 45 s the gate "boards" everyone waiting (they count as departed).
+- **Simulation vs. visuals:** passengers are simulated as data at 10 steps per second for the whole airport; figures are drawn only near the camera, in one batch (MultiMesh), with smooth movement between steps.
+- A **status line** shows passengers in the airport and departed, or what is missing for a complete route.
 
 ---
 
