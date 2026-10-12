@@ -105,7 +105,7 @@ Inspirations: *Builderment*, *Idle Train Empire*, *Airplane Inc.*, *TheoTown*.
 
 ### 7.1a Placing a building (build view)
 1. Pick a building from the **build menu**.
-2. A **preview** appears on the map. **Tap** the map to move it there.
+2. A **preview** appears on the map. **Drag it** with a finger to move it; it snaps cell by cell, so small corrections are easy. Or **tap** the map to jump it there. Dragging anywhere else still moves the camera.
 3. **Rotate** in 90° steps with a button.
 4. **Place** or **Cancel** with buttons. The preview is **green** when the spot is free and **red** when it isn't; Place only works on green.
 

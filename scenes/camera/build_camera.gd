@@ -18,6 +18,9 @@ const HEIGHT_ABOVE_GROUND: float = 40.0
 ## Keyboard panning speed (Mac testing), in screen heights per second.
 @export var key_pan_speed: float = 0.8
 
+## Turned off while a finger drags something else in the build view (e.g. the building preview).
+var pan_enabled: bool = true
+
 
 func _ready() -> void:
 	projection = PROJECTION_ORTHOGONAL
@@ -51,7 +54,7 @@ func center_on(world_position: Vector3) -> void:
 
 
 func _on_dragged(_touch_position: Vector2, relative: Vector2) -> void:
-	if not current:
+	if not current or not pan_enabled:
 		return
 	# Move the camera opposite to the finger, so the map sticks to the finger.
 	var meters_per_pixel := view_height / get_viewport().get_visible_rect().size.y
