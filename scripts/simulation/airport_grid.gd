@@ -40,6 +40,20 @@ func is_empty(cell: Vector2i) -> bool:
 	return not _contents.has(cell)
 
 
+## True if every cell is on the map and empty.
+func are_cells_free(cells: Array[Vector2i]) -> bool:
+	for cell in cells:
+		if not is_inside(cell) or not is_empty(cell):
+			return false
+	return true
+
+
+## World position of the center of a rectangular block of cells, on the ground (y = 0).
+func block_center(origin_cell: Vector2i, size_in_cells: Vector2i) -> Vector3:
+	var center_in_cells := Vector2(origin_cell) + Vector2(size_in_cells) * 0.5
+	return origin + Vector3(center_in_cells.x * cell_size, 0.0, center_in_cells.y * cell_size)
+
+
 ## What occupies `cell`, or null if it is empty.
 func get_content(cell: Vector2i) -> Variant:
 	return _contents.get(cell)
