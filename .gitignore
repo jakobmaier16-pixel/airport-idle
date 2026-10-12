@@ -23,3 +23,7 @@ export_credentials.cfg
 .vscode/
 .idea/
 *.swp
+
+# Build stamp written by tools/export_ios.sh
+/build_info.gd
+/build_info.gd.uid

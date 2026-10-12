@@ -11,6 +11,8 @@ signal cancel_pressed
 
 ## Smallest size for touch buttons, in UI pixels (Apple recommends at least 44 pt).
 const BUTTON_MIN_SIZE: Vector2 = Vector2(160, 72)
+## Written by tools/export_ios.sh; missing when running from the editor.
+const BUILD_INFO_PATH: String = "res://build_info.gd"
 
 var _build_view_open: bool = false
 var _is_placing: bool = false
@@ -20,6 +22,7 @@ var _is_placing: bool = false
 @onready var _build_menu: HBoxContainer = $SafeArea/BuildMenu
 @onready var _placement_bar: HBoxContainer = $SafeArea/PlacementBar
 @onready var _place_button: Button = $SafeArea/PlacementBar/PlaceButton
+@onready var _build_label: Label = $SafeArea/BuildLabel
 
 
 func _ready() -> void:
@@ -28,6 +31,7 @@ func _ready() -> void:
 	_place_button.pressed.connect(place_pressed.emit)
 	$SafeArea/PlacementBar/CancelButton.pressed.connect(cancel_pressed.emit)
 	_update_visibility()
+	_show_build_info()
 
 
 ## Creates one build menu button per building type.
@@ -61,3 +65,12 @@ func set_placement_state(is_placing: bool, can_place: bool) -> void:
 func _update_visibility() -> void:
 	_build_menu.visible = _build_view_open and not _is_placing
 	_placement_bar.visible = _build_view_open and _is_placing
+
+
+# Shows which export is running, so a stale build on the device is easy to spot.
+func _show_build_info() -> void:
+	var text := "dev"
+	if ResourceLoader.exists(BUILD_INFO_PATH):
+		var info := load(BUILD_INFO_PATH) as GDScript
+		text = info.get_script_constant_map().get("TEXT", text)
+	_build_label.text = "build " + text

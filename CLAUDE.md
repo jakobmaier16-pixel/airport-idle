@@ -124,12 +124,10 @@ UI controls (buttons) consume their touches first, so taps on buttons never reac
   They must match the Godot version exactly; reinstall when Godot is updated.
 - Preset "iOS" in `export_presets.cfg` (committed). It exports an **Xcode project only**
   (`application/export_project_only=true`); signing and installing happen in Xcode.
-- Export (into `build/ios/`, ignored by Git):
-  ```
-  mkdir -p build/ios && touch build/.gdignore
-  /Applications/Godot.app/Contents/MacOS/Godot --headless --path . --export-debug "iOS" build/ios/AirportIdle.ipa
-  ```
-  Then open `build/ios/AirportIdle.xcodeproj` and press Run. Re-exporting overwrites the Xcode project.
+- Export with `tools/export_ios.sh` (into `build/ios/`, ignored by Git). It also writes
+  `build_info.gd` (ignored by Git), whose stamp (commit + time) the HUD shows at the top of the screen.
+- **After every export, press Run in Xcode.** Opening the app on the device runs the previous build.
+  If the HUD stamp doesn't match the export, the device is running a stale build.
 - `build/.gdignore` keeps Godot from scanning (and packing) the previous export; without it the
   next export fails with "Can't open file from path 'res://build/ios/...'" errors.
 - Signing: free Apple ID (Personal Team `X62T6HGHTT`), automatic signing,
