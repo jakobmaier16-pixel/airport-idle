@@ -23,7 +23,8 @@ func _add_visual(building: Building) -> void:
 	var visual := BuildingVisual.new()
 	visual.setup(building.type, cell_size, _material_for(building.type), _front_material)
 	visual.place_on_grid(Airport.grid, building.type.footprint, building.origin_cell, building.rotation_steps)
-	visual.add_collision(building.type, cell_size)
+	if building.type.is_solid:
+		visual.add_collision(building.type, cell_size)
 	add_child(visual)
 
 

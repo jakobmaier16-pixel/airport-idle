@@ -9,8 +9,6 @@ signal placement_changed(is_placing: bool, can_place: bool)
 
 ## The camera used to find which cell was tapped.
 @export var camera: BuildCamera
-## Building types offered in the build menu.
-@export var building_types: Array[BuildingType] = []
 @export var valid_color: Color = Color(0.3, 0.9, 0.4, 0.55)
 @export var invalid_color: Color = Color(0.95, 0.3, 0.25, 0.55)
 ## A drag that starts this many cells around the preview still grabs it (fingers are wide).

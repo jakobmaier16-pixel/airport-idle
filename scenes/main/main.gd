@@ -15,7 +15,7 @@ var current_view: View = View.MANAGER
 
 func _ready() -> void:
 	_hud.view_toggle_pressed.connect(_on_view_toggle_pressed)
-	_hud.setup_build_menu(_build_mode.building_types)
+	_hud.setup_build_menu(Airport.CATALOG.types)
 	_hud.building_type_selected.connect(_build_mode.start_placement)
 	_hud.rotate_pressed.connect(_build_mode.rotate_placement)
 	_hud.place_pressed.connect(_build_mode.confirm_placement)

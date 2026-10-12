@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="BuildingCatalog" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/building_catalog.gd" id="1_catalog"]
+[ext_resource type="Script" path="res://scripts/resources/building_type.gd" id="1_type"]
+[ext_resource type="Resource" path="res://data/buildings/entrance.tres" id="2_entrance"]
+[ext_resource type="Resource" path="res://data/buildings/check_in.tres" id="3_check_in"]
+[ext_resource type="Resource" path="res://data/buildings/security.tres" id="4_security"]
+[ext_resource type="Resource" path="res://data/buildings/gate.tres" id="5_gate"]
+[ext_resource type="Resource" path="res://data/buildings/aircraft_stand.tres" id="6_aircraft_stand"]
+
+[resource]
+script = ExtResource("1_catalog")
+types = Array[ExtResource("1_type")]([ExtResource("2_entrance"), ExtResource("3_check_in"), ExtResource("4_security"), ExtResource("5_gate"), ExtResource("6_aircraft_stand")])
