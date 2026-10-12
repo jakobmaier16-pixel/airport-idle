@@ -46,6 +46,13 @@ mouse_filter = 2
 theme_override_font_sizes/font_size = 18
 text = "build dev"
 
+[node name="StatusLabel" type="Label" parent="SafeArea"]
+layout_mode = 2
+size_flags_horizontal = 0
+size_flags_vertical = 0
+mouse_filter = 2
+label_settings = SubResource("LabelSettings_hint")
+
 [node name="BuildMenu" type="VBoxContainer" parent="SafeArea"]
 layout_mode = 2
 size_flags_horizontal = 0

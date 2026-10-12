@@ -34,6 +34,7 @@ var _tool: BuildMode.Tool = BuildMode.Tool.NONE
 @onready var _place_button: Button = $SafeArea/ToolPanel/ToolBar/PlaceButton
 @onready var _done_button: Button = $SafeArea/ToolPanel/ToolBar/DoneButton
 @onready var _build_label: Label = $SafeArea/BuildLabel
+@onready var _status_label: Label = $SafeArea/StatusLabel
 @onready var _reset_button: Button = $SafeArea/BuildMenu/PaintButtons/ResetButton
 
 
@@ -69,6 +70,11 @@ func setup_build_menu(types: Array[BuildingType]) -> void:
 		button.focus_mode = Control.FOCUS_NONE
 		button.pressed.connect(building_type_selected.emit.bind(type))
 		_building_buttons.add_child(button)
+
+
+## Passenger status line in the top left (both views).
+func set_status(text: String) -> void:
+	_status_label.text = text
 
 
 func set_view_button_text(text: String) -> void:

@@ -53,6 +53,9 @@ Target: smooth on older iPhones. Plan this in from the start (design doc §18).
 3. **Use Godot's built-in tools:** frustum culling, visibility ranges (`visibility_range_*`) and LOD
    for buildings and objects; MultiMesh / instancing for crowds.
 4. **Build view:** zoom is limited; when zoomed out, crowds are simplified (fewer figures, simple shapes).
+5. **Fixed simulation step:** the simulation ticks at 10 Hz (`Airport.SIM_STEP`), not per frame.
+   Visuals smooth between steps with `Airport.sim_alpha`. Avoid reference cycles between
+   RefCounted simulation objects (they leak); point to the Building instead of the Station.
 
 ## Tools
 
@@ -76,13 +79,15 @@ scenes/<feature>/     one folder per feature: <name>.tscn + <name>.gd side by si
   camera/             manager_camera (tilted follow) and build_camera (top-down)
   build/              build view logic: placing buildings (preview, rotate, place / cancel)
   buildings/          building visuals: BuildingLayer draws every simulated building
+  passengers/         PassengerLayer: draws passengers near the camera (one MultiMesh)
   ground/             map ground, sized from the grid
   ui/                 HUD, view button, joystick, safe area container
 scripts/autoload/     global singletons:
                         Airport       -> simulation root: grid, zones, buildings (cell size lives here)
                         SaveGame      -> autosave / load of the airport (user://savegame.json)
                         TouchGestures -> touch / mouse / trackpad -> drag, tap, pinch signals
-scripts/simulation/   pure simulation data classes (no nodes, no visuals), e.g. AirportGrid
+scripts/simulation/   pure simulation data classes (no nodes, no visuals): AirportGrid, Building,
+                      PassengerFlow, Passenger, Station, WalkwayNetwork
 scripts/resources/    custom Resource classes (data definitions), e.g. BuildingType
 data/buildings/       one BuildingType .tres per building (edit footprint, name, look in the Inspector)
 assets/               models/, textures/, materials/, audio/, fonts/

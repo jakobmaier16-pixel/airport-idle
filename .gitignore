@@ -27,3 +27,6 @@ export_credentials.cfg
 # Build stamp written by tools/export_ios.sh
 /build_info.gd
 /build_info.gd.uid
+
+# Throwaway headless test scenes
+/.smoke/

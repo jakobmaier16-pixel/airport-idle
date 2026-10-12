@@ -33,6 +33,10 @@ func _on_reset_confirmed() -> void:
 	get_tree().reload_current_scene()
 
 
+func _process(_delta: float) -> void:
+	_hud.set_status(Airport.passenger_flow.status_text())
+
+
 func _on_view_toggle_pressed() -> void:
 	_set_view(View.BUILD if current_view == View.MANAGER else View.MANAGER)
 
