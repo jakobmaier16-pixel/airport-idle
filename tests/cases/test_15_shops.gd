@@ -46,19 +46,27 @@ func test_customers_leave_by_final_call() -> void:
 
 
 func test_landside_cafe_gets_customers_before_security() -> void:
+	# Only early passengers have time for a café before security, and only some of them go.
+	# To test without luck, everyone who has the time goes (shop chance x landside factor = 1).
+	var types: Array[PassengerType] = [FlightSchedule.FAMILY, FlightSchedule.LOW_COST, FlightSchedule.BUSINESS]
+	var chances := types.map(func(t: PassengerType) -> float: return t.shop_chance)
+	for type in types:
+		type.shop_chance = 1.0 / PassengerFlow.LANDSIDE_CAFE_FACTOR
 	ShowcaseAirport.build(0.0)
 	# A café in the landside hall (rows 21..27), front facing the hall.
 	var cafe := Airport.place_building(type_of(&"cafe"), Vector2i(26, 24), 2)
 	check(cafe != null, "café placed landside")
 	var station := Airport.passenger_flow.station_for(cafe)
 	var visited := false
-	for i in 4000:
+	for i in 9000:  # 15 minutes
 		Airport.step(Airport.SIM_STEP)
 		if not station.waiting.is_empty():
 			visited = true
 			for customer in station.waiting:
 				check_eq(customer.after_shop, BuildingType.Role.SECURITY, "landside customers go on to security")
 			break
+	for i in types.size():
+		types[i].shop_chance = chances[i]
 	check(visited, "passengers sat in the landside café before security")
 
 
