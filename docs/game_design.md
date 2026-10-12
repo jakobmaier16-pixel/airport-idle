@@ -1,6 +1,6 @@
 # Game Design — Airport Manager (working title)
 
-> Status: Draft v0.15 · Last updated: 2026-10-12
+> Status: Draft v0.16 · Last updated: 2026-10-12
 > This document is the source of truth for *what* we are building. Code follows the design, not the other way round.
 > Decisions marked **(open)** are not final — see [Open Questions](#19-open-questions).
 
@@ -125,6 +125,7 @@ Inspirations: *Builderment*, *Idle Train Empire*, *Airplane Inc.*, *TheoTown*.
 | Aircraft stand | 12 × 12 | 24 × 24 | airside (scaled down, see §7.1); flat, can be walked on |
 | Shop (duty free / retail) | 3 × 3 | 6 × 6 | airside |
 | Café | 4 × 3 | 8 × 6 | landside or airside |
+| Baggage claim | 6 × 4 | 12 × 8 | border: front faces landside, back faces airside (like security, used the other way) |
 
 ### 7.1b Walkways (corridors and halls)
 - Corridors and halls are drawn as **walkway floor**: pick *Walkway* and drag a rectangle (or tap a cell); *Remove* erases walkway.
@@ -140,6 +141,7 @@ Inspirations: *Builderment*, *Idle Train Empire*, *Airplane Inc.*, *TheoTown*.
 | Security | front (landside) and back (airside) |
 | Gate | front (walkway) and back (aircraft stand) |
 | Shop, café | front (walkway) |
+| Baggage claim | back (airside, from the gates) and front (landside, to the exit) |
 | Aircraft stand | reached through a gate |
 
 - A building is **connected** when each access side touches at least one free walkway cell (the gate's back: an aircraft stand). Unconnected buildings can still be placed (build first, connect after) and show a hint such as "Needs a walkway in front".
@@ -268,6 +270,16 @@ Placeholder numbers, tunable in `data/passengers/`. Transfer passengers come wit
 - **Every flight has a route type** that sets its passenger mix (§10 "routes matter"): **Holiday** 70 % families / 20 % low-cost / 10 % business · **Low-cost** 15 / 80 / 5 · **Business** 10 / 30 / 60. Routes are random for now; later airlines and deals decide them.
 - The departures board shows the route; statistics show how many passengers of each type are in the airport.
 - Patience and satisfaction per type (§8.2 "needs") come later.
+
+
+### 8.8 Arriving passengers (first version)
+- **Every flight is a turnaround:** the plane arrives with 12–20 passengers (types by the route's mix). Once parked, they **deplane through the gate** (~1 per second) before boarding opens.
+- Arrivals walk airside to a **baggage claim**, wait for their bag, then leave through its landside front (customs) and exit the airport at an **entrance**.
+- **Bags** come off the belt 30–90 s after the plane parks. Passengers with hand luggage only walk straight through. Checked bag: families 100 %, low-cost 30 %, business 40 %.
+- **Baggage claim** €6,000 · €30/min. It sits on the border like security, used the other way round (airside → landside).
+- **Income:** €5 terminal fee per arriving passenger when they leave the airport.
+- **Required:** without a connected baggage claim, arriving passengers have no way out, so no flights operate; the status line says what is missing.
+- Status line: departed, arrived and missed passengers. Arrival and departure flows still share the same walkways; separating them (§7.2) comes later.
 
 ---
 
