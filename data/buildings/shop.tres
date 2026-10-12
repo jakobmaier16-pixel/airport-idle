@@ -6,6 +6,7 @@
 script = ExtResource("1_type")
 id = &"shop"
 display_name = "Shop"
+category = "Shops"
 footprint = Vector2i(3, 3)
 zone_rule = 1
 is_solid = true

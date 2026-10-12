@@ -41,7 +41,7 @@ func _ready() -> void:
 	await _shot("build_view_whole_map")
 
 	build_camera().center_on(Airport.grid.cell_to_world(Vector2i(32, 30)))
-	await press(ui("BuildMenu/BuildingButtons").get_child(2))  # Security, in an invalid spot
+	await pick_building("Security")  # Security, in an invalid spot
 	build_mode()._set_preview_origin(Vector2i(44, 24))
 	await _shot("placing_invalid")
 	get_tree().quit()

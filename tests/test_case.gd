@@ -179,17 +179,42 @@ func paint(tool_button: String, from_cell: Vector2i, to_cell: Vector2i) -> void:
 	await frames(1)
 
 
-## Places a building like a player: pick it, rotate, drag the preview to `origin`, press Place.
-## Returns true if the building was placed there.
-func place(display_name: String, origin: Vector2i, rotation_steps: int = 0) -> bool:
-	var button: Button = null
-	for child in ui("BuildMenu/BuildingButtons").get_children():
-		if (child as Button).text == display_name:
-			button = child
+## Picks a building in the build menu like a player: open its category, tap the building.
+## Returns false if there is no such building.
+func pick_building(display_name: String) -> bool:
+	var type: BuildingType = null
+	for candidate in Airport.CATALOG.types:
+		if candidate.display_name == display_name:
+			type = candidate
+	if type == null:
+		check(false, "no building type '%s'" % display_name)
+		return false
+	var row := ui("BuildMenu/BuildingButtons")
+	if _menu_button(row, display_name) == null:
+		var back := _menu_button(row, "‹")
+		if back != null:
+			await press(back)
+		await press(_menu_button(row, type.category + " ›"))
+	var button := _menu_button(row, display_name)
 	if button == null:
 		check(false, "no build menu button '%s'" % display_name)
 		return false
 	await press(button)
+	return true
+
+
+func _menu_button(row: Control, text: String) -> Button:
+	for child in row.get_children():
+		if not child.is_queued_for_deletion() and (child as Button).text == text:
+			return child
+	return null
+
+
+## Places a building like a player: pick it, rotate, drag the preview to `origin`, press Place.
+## Returns true if the building was placed there.
+func place(display_name: String, origin: Vector2i, rotation_steps: int = 0) -> bool:
+	if not await pick_building(display_name):
+		return false
 	for i in rotation_steps:
 		await press(ui("ToolPanel/ToolBar/RotateButton"))
 	var mode := build_mode()

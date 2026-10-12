@@ -6,6 +6,7 @@
 script = ExtResource("1_type")
 id = &"aircraft_stand"
 display_name = "Stand"
+category = "Airside"
 footprint = Vector2i(12, 12)
 zone_rule = 1
 is_solid = false

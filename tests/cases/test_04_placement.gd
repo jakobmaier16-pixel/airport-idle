@@ -5,8 +5,21 @@ extends TestCase
 func test_all_mvp_buildings_in_menu() -> void:
 	await start_game()
 	await open_build_view()
-	var names: Array = ui("BuildMenu/BuildingButtons").get_children().map(func(b: Node) -> String: return (b as Button).text)
-	check_eq(names, ["Entrance", "Check-in", "Security", "Gate", "Stand", "Shop", "Café", "Baggage claim"], "build menu buttons")
+	var row := ui("BuildMenu/BuildingButtons")
+	var texts := func() -> Array:
+		return row.get_children().filter(func(b: Node) -> bool: return not b.is_queued_for_deletion()).map(func(b: Node) -> String: return (b as Button).text)
+	check_eq(texts.call(), ["Terminal ›", "Airside ›", "Shops ›"], "categories")
+	await press(_menu_button(row, "Terminal ›"))
+	check_eq(texts.call(), ["‹", "Entrance", "Check-in", "Security", "Gate", "Baggage claim"], "terminal buildings")
+	await press(_menu_button(row, "‹"))
+	await press(_menu_button(row, "Shops ›"))
+	check_eq(texts.call(), ["‹", "Shop", "Café"], "shops")
+	await press(_menu_button(row, "‹"))
+	await press(_menu_button(row, "Airside ›"))
+	check_eq(texts.call(), ["‹", "Stand"], "airside")
+	await close_build_view()
+	await open_build_view()
+	check_eq(texts.call(), ["Terminal ›", "Airside ›", "Shops ›"], "menu starts at the categories again")
 
 
 func test_place_with_buttons() -> void:
@@ -21,7 +34,7 @@ func test_place_with_buttons() -> void:
 func test_drag_preview_cell_by_cell() -> void:
 	await start_game()
 	await open_build_view()
-	await press(ui("BuildMenu/BuildingButtons").get_child(1))
+	await pick_building("Check-in")
 	var mode := build_mode()
 	var camera := build_camera()
 	var start_origin := mode._placing_origin
@@ -42,7 +55,7 @@ func test_drag_preview_cell_by_cell() -> void:
 func test_rotate_keeps_position() -> void:
 	await start_game()
 	await open_build_view()
-	await press(ui("BuildMenu/BuildingButtons").get_child(1))
+	await pick_building("Check-in")
 	var mode := build_mode()
 	var origin := mode._placing_origin
 	await press(ui("ToolPanel/ToolBar/RotateButton"))
@@ -55,7 +68,7 @@ func test_overlap_is_red_and_place_disabled() -> void:
 	await start_game()
 	await open_build_view()
 	check(await place("Check-in", Vector2i(30, 30)), "first check-in")
-	await press(ui("BuildMenu/BuildingButtons").get_child(1))
+	await pick_building("Check-in")
 	build_mode()._set_preview_origin(Vector2i(31, 31))
 	var place_button := ui("ToolPanel/ToolBar/PlaceButton") as Button
 	check(place_button.disabled, "Place disabled on an occupied spot")
@@ -69,7 +82,7 @@ func test_zone_rules_and_hints() -> void:
 	Airport.paint_zone(cells(Vector2i(0, 32), Vector2i(64, 32)), AirportGrid.Zone.AIRSIDE)
 	await open_build_view()
 	var hint := ui("ToolPanel/HintLabel") as Label
-	await press(ui("BuildMenu/BuildingButtons").get_child(3))  # Gate
+	await pick_building("Gate")  # Gate
 	build_mode()._set_preview_origin(Vector2i(10, 10))
 	check_eq(hint.text, "Must be built on airside", "gate on landside")
 	build_mode()._set_preview_origin(Vector2i(10, 40))
@@ -82,7 +95,7 @@ func test_zone_rules_and_hints() -> void:
 func test_leaving_build_view_cancels() -> void:
 	await start_game()
 	await open_build_view()
-	await press(ui("BuildMenu/BuildingButtons").get_child(0))
+	await pick_building("Entrance")
 	await close_build_view()
 	check(not build_mode().is_placing(), "placement cancelled")
 	check(build_mode()._preview == null, "preview removed")

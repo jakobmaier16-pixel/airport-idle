@@ -26,6 +26,8 @@ enum Role { NONE, ENTRANCE, CHECK_IN, SECURITY, GATE, AIRCRAFT_STAND, SHOP, BAGG
 @export var id: StringName
 ## Name shown in the build menu.
 @export var display_name: String
+## Build menu category, e.g. "Terminal", "Airside", "Shops".
+@export var category: String = "Terminal"
 ## Size in grid cells before rotation: x = width along the front side, y = depth.
 ## The front side faces -Z ("up" on screen) when the building is not rotated.
 @export var footprint: Vector2i = Vector2i.ONE

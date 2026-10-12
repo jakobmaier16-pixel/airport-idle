@@ -30,6 +30,9 @@ const BUTTON_MIN_SIZE: Vector2 = Vector2(120, 72)
 const CONFIRM_TIME: float = 3.0
 
 var _build_view_open: bool = false
+# Build menu: every building type, and the category whose buildings are shown ("" = categories).
+var _building_types: Array[BuildingType] = []
+var _open_category: String = ""
 var _stats_refresh_in: float = 0.0
 ## The building shown in the station panel, or null.
 var shown_station: Building = null
@@ -134,17 +137,39 @@ func hide_station() -> void:
 	_station_panel.visible = false
 
 
-## Creates one build menu button per building type.
+## Fills the build menu: a row of categories; tapping one shows its buildings.
 func setup_build_menu(types: Array[BuildingType]) -> void:
+	_building_types = types
+	show_build_category("")
+
+
+## Shows the buildings of `category`, or the category buttons for "".
+func show_build_category(category: String) -> void:
+	_open_category = category
 	for child in _building_buttons.get_children():
+		_building_buttons.remove_child(child)
 		child.queue_free()
-	for type in types:
-		var button := Button.new()
-		button.text = type.display_name
-		button.custom_minimum_size = BUTTON_MIN_SIZE
-		button.focus_mode = Control.FOCUS_NONE
-		button.pressed.connect(building_type_selected.emit.bind(type))
-		_building_buttons.add_child(button)
+	if category.is_empty():
+		var categories: PackedStringArray = []
+		for type in _building_types:
+			if not categories.has(type.category):
+				categories.append(type.category)
+		for category_name in categories:
+			_add_menu_button(category_name + " ›", show_build_category.bind(category_name))
+		return
+	_add_menu_button("‹", show_build_category.bind(""))
+	for type in _building_types:
+		if type.category == category:
+			_add_menu_button(type.display_name, building_type_selected.emit.bind(type))
+
+
+func _add_menu_button(text: String, action: Callable) -> void:
+	var button := Button.new()
+	button.text = text
+	button.custom_minimum_size = BUTTON_MIN_SIZE
+	button.focus_mode = Control.FOCUS_NONE
+	button.pressed.connect(action)
+	_building_buttons.add_child(button)
 
 
 ## Balance and profit over the last minute, top left. Red while the balance is negative.
@@ -172,6 +197,8 @@ func set_build_view_open(open: bool) -> void:
 	_build_view_open = open
 	if open:
 		hide_stats()
+	elif not _open_category.is_empty():
+		show_build_category("")
 	_update_visibility()
 
 

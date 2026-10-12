@@ -6,6 +6,7 @@
 script = ExtResource("1_type")
 id = &"baggage_claim"
 display_name = "Baggage claim"
+category = "Terminal"
 footprint = Vector2i(6, 4)
 zone_rule = 2
 is_solid = true

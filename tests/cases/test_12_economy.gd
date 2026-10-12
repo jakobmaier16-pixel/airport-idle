@@ -14,13 +14,13 @@ func test_starting_money_and_construction_cost() -> void:
 func test_price_shown_while_placing() -> void:
 	await start_game()
 	await open_build_view()
-	await press(ui("BuildMenu/BuildingButtons").get_child(2))  # Security
+	await pick_building("Security")  # Security
 	var hint := (ui("ToolPanel/HintLabel") as Label).text
 	build_mode()._set_preview_origin(Vector2i(5, 5))
 	hint = (ui("ToolPanel/HintLabel") as Label).text
 	check(hint.contains("€") or hint.begins_with("Front must"), "hint names the price or the problem: '%s'" % hint)
 	await press(ui("ToolPanel/ToolBar/CancelButton"))
-	await press(ui("BuildMenu/BuildingButtons").get_child(1))  # Check-in on landside: allowed
+	await pick_building("Check-in")  # Check-in on landside: allowed
 	build_mode()._set_preview_origin(Vector2i(5, 5))
 	hint = (ui("ToolPanel/HintLabel") as Label).text
 	check(hint.ends_with("€3,000"), "valid spot shows the price: '%s'" % hint)
@@ -30,7 +30,7 @@ func test_not_enough_money_blocks_placing() -> void:
 	Airport.economy.balance = 1000.0
 	await start_game()
 	await open_build_view()
-	await press(ui("BuildMenu/BuildingButtons").get_child(1))  # Check-in, €3,000
+	await pick_building("Check-in")  # Check-in, €3,000
 	build_mode()._set_preview_origin(Vector2i(30, 20))
 	var place_button := ui("ToolPanel/ToolBar/PlaceButton") as Button
 	check(place_button.disabled, "Place disabled without enough money")

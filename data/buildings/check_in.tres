@@ -25,6 +25,7 @@ build_seconds = 60.0
 script = ExtResource("1_type")
 id = &"check_in"
 display_name = "Check-in"
+category = "Terminal"
 footprint = Vector2i(5, 3)
 zone_rule = 0
 is_solid = true

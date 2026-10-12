@@ -6,6 +6,7 @@
 script = ExtResource("1_type")
 id = &"entrance"
 display_name = "Entrance"
+category = "Terminal"
 footprint = Vector2i(4, 2)
 zone_rule = 0
 is_solid = true

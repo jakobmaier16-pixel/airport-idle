@@ -25,6 +25,7 @@ build_seconds = 60.0
 script = ExtResource("1_type")
 id = &"security"
 display_name = "Security"
+category = "Terminal"
 footprint = Vector2i(5, 3)
 zone_rule = 2
 is_solid = true
