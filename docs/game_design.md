@@ -264,6 +264,13 @@ Placeholder schedule until airlines and deals exist (§10). All numbers are tuna
 - Utilities (electricity, cleaning)
 - Construction and demolition
 
+### 11.3 Failure
+- **Bankruptcy is possible.** What exactly happens (game over, loan, restructuring) is **(open)**.
+
+### 11.4 Second currency
+- A second value like **reputation** is likely needed (e.g. to unlock better airlines or airport tiers). Design **(open)**.
+
+
 ### 11.5 First economy (MVP, item 6)
 Currency: **euro (€)**. All numbers are placeholders, tunable per building (compressed game time).
 - **Starting money:** €50,000.
@@ -273,12 +280,6 @@ Currency: **euro (€)**. All numbers are placeholders, tunable per building (co
 - **Display:** balance and profit per minute (last 60 s) at the top of the info panel; red when negative.
 - **Negative balance** is allowed for now: what bankruptcy means is still open (§11.3, §19).
 - **Not in the MVP yet:** shop income, parking, salaries per employee, upgrades (§16 item 7).
-
-### 11.3 Failure
-- **Bankruptcy is possible.** What exactly happens (game over, loan, restructuring) is **(open)**.
-
-### 11.4 Second currency
-- A second value like **reputation** is likely needed (e.g. to unlock better airlines or airport tiers). Design **(open)**.
 
 ---
 
