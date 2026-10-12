@@ -22,6 +22,9 @@ extends Resource
 @export var check_in_time_factor: float = 1.0
 @export var security_time_factor: float = 1.0
 
+## Arriving passengers: share with a checked bag, who wait at the baggage claim (design doc §8.8).
+@export_range(0.0, 1.0) var checked_bag_chance: float = 1.0
+
 @export_group("Shopping")
 ## Chance to visit a shop or café after security, if there is time (design doc §8.6).
 @export_range(0.0, 1.0) var shop_chance: float = 0.6

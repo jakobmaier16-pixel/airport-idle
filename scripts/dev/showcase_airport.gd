@@ -32,6 +32,9 @@ static func build(warm_up_seconds: float = 180.0) -> void:
 	Airport.place_building(catalog.find(&"aircraft_stand"), Vector2i(10, 39), 0)
 	Airport.place_building(catalog.find(&"aircraft_stand"), Vector2i(38, 39), 0)
 
+	# Arrivals: baggage claim on the border next to security, out into the landside hall (§8.8).
+	Airport.place_building(catalog.find(&"baggage_claim"), Vector2i(37, 27), 0)
+
 	# Airside shopping between the gates (design doc §8.6).
 	Airport.place_building(catalog.find(&"shop"), Vector2i(22, 34), 0)
 	Airport.place_building(catalog.find(&"cafe"), Vector2i(30, 34), 0)

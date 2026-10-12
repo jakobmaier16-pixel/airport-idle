@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="BuildingType" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/building_type.gd" id="1_type"]
+
+[resource]
+script = ExtResource("1_type")
+id = &"baggage_claim"
+display_name = "Baggage claim"
+footprint = Vector2i(6, 4)
+zone_rule = 2
+is_solid = true
+front_access = 1
+back_access = 1
+role = 7
+build_cost = 6000.0
+running_cost_per_minute = 30.0
+customer_capacity = 60
+color = Color(0.4, 0.62, 0.55, 1)
+height = 3.0

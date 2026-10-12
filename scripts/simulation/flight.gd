@@ -27,6 +27,10 @@ var arrival_times: PackedFloat32Array = PackedFloat32Array()
 var arrival_types: Array[PassengerType] = []
 ## How many of them have arrived so far.
 var spawned: int = 0
+## Passengers on the inbound plane (design doc §8.8), and how many have deplaned so far.
+var inbound_types: Array[PassengerType] = []
+var deplaned: int = 0
+var deplane_credit: float = 0.0
 var boarded: int = 0
 var missed: int = 0
 var phase: Phase = Phase.SCHEDULED

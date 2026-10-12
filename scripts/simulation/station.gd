@@ -93,7 +93,9 @@ func income_in_window(now: float) -> float:
 ## Passengers in the queue right now (gates: waiting for their flight; shops: customers inside).
 func queue_length() -> int:
 	var role := role()
-	return waiting.size() if role == BuildingType.Role.GATE or role == BuildingType.Role.SHOP else queue.size()
+	if role == BuildingType.Role.GATE or role == BuildingType.Role.SHOP or role == BuildingType.Role.BAGGAGE_CLAIM:
+		return waiting.size()
+	return queue.size()
 
 
 ## Share of counters / lanes in use right now (0..1).

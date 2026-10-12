@@ -8,6 +8,8 @@ enum State {
 	IN_SERVICE, ## Being served at the station in `target` (counter, security lane).
 	AT_GATE, ## Waiting inside the gate until boarding. Not drawn.
 	IN_SHOP, ## Inside a shop or café. Not drawn.
+	AT_BELT, ## Arriving: inside the baggage claim, waiting for the bag. Not drawn.
+	GONE, ## Left the airport this step (removed at the end of the step).
 	STUCK, ## No reachable station for the next step; retries regularly.
 }
 
@@ -16,6 +18,11 @@ var state: State = State.WALKING
 var flight: Flight = null
 ## Families, low-cost or business (design doc §8.7): speed, processing times, shopping.
 var type: PassengerType = null
+## Arriving passengers (design doc §8.8) came off `flight`'s inbound plane and are heading out.
+var is_arriving: bool = false
+## Arriving: whether they wait for a checked bag, and when it comes off the belt.
+var has_bag: bool = false
+var bag_ready_at: float = 0.0
 ## The kind of station the passenger is heading for next.
 var goal: BuildingType.Role = BuildingType.Role.CHECK_IN
 ## The building of the station the passenger is heading for or standing at.

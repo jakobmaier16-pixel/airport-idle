@@ -20,7 +20,7 @@ enum Access {
 }
 
 ## What the building does in the passenger flow (design doc §8.4).
-enum Role { NONE, ENTRANCE, CHECK_IN, SECURITY, GATE, AIRCRAFT_STAND, SHOP }
+enum Role { NONE, ENTRANCE, CHECK_IN, SECURITY, GATE, AIRCRAFT_STAND, SHOP, BAGGAGE_CLAIM }
 
 ## Stable internal name, used for save games. Never change it once players have saves.
 @export var id: StringName

@@ -45,7 +45,7 @@ func test_station_labels() -> void:
 	ShowcaseAirport.build(0.0)
 	var flow := Airport.passenger_flow
 	var labels := flow.stations().map(func(s: Station) -> String: return flow.station_label(s.building))
-	check_eq(labels, ["Check-in 1", "Check-in 2", "Security", "Gate 1", "Gate 2", "Shop", "Café"], "stations in order with numbers")
+	check_eq(labels, ["Check-in 1", "Check-in 2", "Security", "Gate 1", "Gate 2", "Shop", "Café", "Baggage claim"], "stations in order with numbers")
 
 
 func test_stats_panel_opens_and_shows_rows() -> void:
@@ -56,7 +56,7 @@ func test_stats_panel_opens_and_shows_rows() -> void:
 	await frames(2)
 	check(hud().is_stats_open(), "Stats opens the panel")
 	var table := ui("StatsPanel/Content/Table") as GridContainer
-	check_eq(table.get_child_count(), 8 * 5, "header + 7 stations, 5 columns")
+	check_eq(table.get_child_count(), 9 * 5, "header + 8 stations, 5 columns")
 	var bottleneck := (ui("StatsPanel/Content/BottleneckLabel") as Label).text
 	check(bottleneck.begins_with("Bottleneck:") or bottleneck.begins_with("No bottleneck"), "bottleneck line: '%s'" % bottleneck)
 	await press(ui("StatsPanel/Content/CloseButton"))

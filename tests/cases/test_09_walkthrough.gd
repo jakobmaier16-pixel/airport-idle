@@ -20,8 +20,10 @@ func test_build_airport_by_touch_and_fly_passengers() -> void:
 	check(await place("Gate", Vector2i(42, 34)), "gate 2")
 	check(await place("Stand", Vector2i(10, 39)), "stand 1")
 	check(await place("Stand", Vector2i(38, 39)), "stand 2")
+	check(not Airport.passenger_flow.route_problem.is_empty(), "without a baggage claim arrivals have no way out")
+	check(await place("Baggage claim", Vector2i(37, 27)), "baggage claim on the border")
 
-	check_eq(Airport.buildings.size(), 8, "all buildings placed")
+	check_eq(Airport.buildings.size(), 9, "all buildings placed")
 	var layer := main.get_node("Buildings")
 	var unconnected: Array = layer._hints.values().filter(func(l: Label3D) -> bool: return l.visible)
 	check_eq(unconnected.size(), 0, "every building connected")
@@ -31,6 +33,7 @@ func test_build_airport_by_touch_and_fly_passengers() -> void:
 	sim_seconds(360)
 	await frames(2)
 	check(Airport.passenger_flow.departed_count > 15, "passengers departed: %d" % Airport.passenger_flow.departed_count)
+	check(Airport.passenger_flow.arrived_count > 15, "arriving passengers left the airport: %d" % Airport.passenger_flow.arrived_count)
 	check(main.get_node("Planes").plane_count() > 0, "the next planes are at their stands")
 	var status := (ui("InfoPanel/StatusLabel") as Label).text
 	check(status.begins_with("Passengers:"), "status shows passenger numbers: '%s'" % status)

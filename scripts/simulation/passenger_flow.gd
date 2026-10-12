@@ -19,6 +19,8 @@ const SHOPPING_MIN_SPARE: float = 45.0
 const LANDSIDE_CAFE_FACTOR: float = 0.4
 ## Time kept free for getting through security after a landside café.
 const SECURITY_ALLOWANCE: float = 60.0
+## Arriving passengers without a checked bag still take this long to walk through baggage claim.
+const PASS_THROUGH_TIME: float = 3.0
 ## Customers leave a shop this long before boarding opens at the latest ("final call").
 const FINAL_CALL: float = 15.0
 ## How many clothing colors the visuals offer.
@@ -35,6 +37,8 @@ var time: float = 0.0
 ## Passengers whose plane has left, and passengers who were too late for their flight.
 var departed_count: int = 0
 var missed_count: int = 0
+## Arriving passengers who have left the airport (design doc §8.8).
+var arrived_count: int = 0
 ## What is missing for a complete route, or "" if passengers can flow.
 var route_problem: String = ""
 
@@ -52,7 +56,7 @@ func _init() -> void:
 func status_text() -> String:
 	if not route_problem.is_empty():
 		return "No passenger route yet: " + route_problem
-	return "Passengers: %d    Departed: %d    Missed: %d" % [passengers.size(), departed_count, missed_count]
+	return "Passengers: %d    Departed: %d    Arrived: %d    Missed: %d" % [passengers.size(), departed_count, arrived_count, missed_count]
 
 
 ## The next departures, one line each: number, gate, status, time to departure.
@@ -78,7 +82,7 @@ func station_for(building: Building) -> Station:
 ## Every station in a stable order: check-ins, security, gates, each in the order they were built.
 func stations() -> Array[Station]:
 	var result: Array[Station] = []
-	for role in [Role.CHECK_IN, Role.SECURITY, Role.GATE, Role.SHOP]:
+	for role in [Role.CHECK_IN, Role.SECURITY, Role.GATE, Role.SHOP, Role.BAGGAGE_CLAIM]:
 		for building in Airport.buildings:
 			if building.type.role == role and _stations.has(building):
 				result.append(_stations[building])
@@ -98,8 +102,8 @@ func bottleneck(min_wait: float = 5.0) -> Station:
 	var worst: Station = null
 	var worst_wait := min_wait
 	for station: Station in _stations.values():
-		if station.role() == Role.GATE or station.role() == Role.SHOP:
-			continue
+		if station.role() in [Role.GATE, Role.SHOP, Role.BAGGAGE_CLAIM]:
+			continue  # waiting there is part of the visit, not a queue
 		var wait := station.average_wait(time)
 		if wait >= worst_wait:
 			worst_wait = wait
@@ -133,11 +137,13 @@ func usable_gates() -> Array[Building]:
 func on_layout_changed() -> void:
 	_network.rebuild(Airport.grid)
 	for building in Airport.buildings:
-		if not _stations.has(building) and building.type.role in [Role.CHECK_IN, Role.SECURITY, Role.GATE, Role.SHOP]:
+		if not _stations.has(building) and building.type.role in [Role.CHECK_IN, Role.SECURITY, Role.GATE, Role.SHOP, Role.BAGGAGE_CLAIM]:
 			_stations[building] = Station.new(building)
 	for station: Station in _stations.values():
-		station.entry_cells = _access_cells(station.building, true)
-		station.exit_cells = _access_cells(station.building, false)
+		# Baggage claim is used the other way round than security: in from airside (its back).
+		var reversed := station.role() == Role.BAGGAGE_CLAIM
+		station.entry_cells = _access_cells(station.building, not reversed)
+		station.exit_cells = _access_cells(station.building, reversed)
 	_update_route()
 	# Walkways may have changed under people's feet: everyone on the move looks for a new way.
 	for passenger in passengers:
@@ -166,6 +172,8 @@ func tick(delta: float) -> void:
 				passenger.retry_in -= delta
 				if passenger.retry_in <= 0.0:
 					_plan(passenger)
+	if passengers.any(func(p: Passenger) -> bool: return p.state == Passenger.State.GONE):
+		passengers = passengers.filter(func(p: Passenger) -> bool: return p.state != Passenger.State.GONE)
 
 
 # --- Arrivals and departures (called by the schedule) ---
@@ -218,10 +226,34 @@ func board(flight: Flight, max_count: int) -> int:
 	return boarding.size()
 
 
-## Removes every passenger of `flight` still in the airport (doors closed or flight cancelled).
+## An arriving passenger of `type` leaves `flight`'s parked plane through the gate (design doc §8.8).
+## Returns false if they can't get off right now (no walkway in front of the gate).
+func deplane_passenger(flight: Flight, type: PassengerType) -> bool:
+	var gate := _stations.get(flight.gate) as Station
+	if gate == null or gate.entry_cells.is_empty():
+		return false
+	var passenger := Passenger.new()
+	passenger.flight = flight
+	passenger.type = type
+	passenger.is_arriving = true
+	passenger.has_bag = _rng.randf() < type.checked_bag_chance
+	var parked_at := flight.departure_time - (FlightSchedule.PLANE_ARRIVES - FlightSchedule.TAXI_TIME)
+	passenger.bag_ready_at = parked_at + _rng.randf_range(FlightSchedule.BAGS_FROM, FlightSchedule.BAGS_UNTIL)
+	passenger.offset = Vector3(_rng.randf_range(-MAX_OFFSET, MAX_OFFSET), 0.0, _rng.randf_range(-MAX_OFFSET, MAX_OFFSET))
+	passenger.color_index = _rng.randi() % COLOR_COUNT
+	passenger.position = _cell_point(gate.entry_cells[_rng.randi() % gate.entry_cells.size()], passenger)
+	passenger.previous_position = passenger.position
+	passenger.goal = Role.BAGGAGE_CLAIM
+	passengers.append(passenger)
+	_plan(passenger)
+	return true
+
+
+## Removes every departing passenger of `flight` still in the airport (doors closed or flight
+## cancelled). Arriving passengers of that plane are already on their way out and stay.
 ## Missed passengers are counted. Returns how many were removed.
 func remove_flight_passengers(flight: Flight, count_as_missed: bool) -> int:
-	var leaving := passengers.filter(func(p: Passenger) -> bool: return p.flight == flight)
+	var leaving := passengers.filter(func(p: Passenger) -> bool: return p.flight == flight and not p.is_arriving)
 	_remove(leaving)
 	if count_as_missed:
 		missed_count += leaving.size()
@@ -247,6 +279,9 @@ func _remove(leaving: Array) -> void:
 
 func _plan(passenger: Passenger) -> void:
 	passenger.target = null
+	if passenger.goal == Role.ENTRANCE:
+		_plan_exit(passenger)
+		return
 	var cell := Airport.grid.world_to_cell(passenger.position)
 	if not _network.is_walkable(cell):
 		var nearest: Variant = _network.nearest_walkable(cell)
@@ -321,9 +356,19 @@ func _walk(passenger: Passenger, delta: float) -> void:
 
 
 func _arrive(passenger: Passenger) -> void:
+	if passenger.goal == Role.ENTRANCE:
+		# Out of the airport: the arrival is complete (design doc §8.8).
+		passenger.state = Passenger.State.GONE
+		arrived_count += 1
+		Airport.economy.earn(Economy.ARRIVAL_FEE)
+		return
 	var station := _stations[passenger.target]
 	if station.role() == Role.GATE:
 		passenger.state = Passenger.State.AT_GATE
+		station.waiting.append(passenger)
+	elif station.role() == Role.BAGGAGE_CLAIM:
+		passenger.state = Passenger.State.AT_BELT
+		passenger.queued_since = time
 		station.waiting.append(passenger)
 	elif station.role() == Role.SHOP:
 		passenger.state = Passenger.State.IN_SHOP
@@ -349,6 +394,9 @@ func _tick_station(station: Station, delta: float) -> void:
 		return  # boarding is driven by the flight schedule
 	if station.role() == Role.SHOP:
 		_tick_shop(station, delta)
+		return
+	if station.role() == Role.BAGGAGE_CLAIM:
+		_tick_baggage_claim(station)
 		return
 
 	station.sync_slots()
@@ -435,6 +483,55 @@ func _tick_shop(station: Station, delta: float) -> void:
 			customer.previous_position = customer.position
 		customer.goal = customer.after_shop
 		_plan(customer)
+
+
+# --- Arrivals (design doc §8.8) ---
+
+# Passengers with their bag (or with hand luggage only) walk out through customs to the landside.
+func _tick_baggage_claim(station: Station) -> void:
+	var leaving: Array[Passenger] = []
+	for passenger in station.waiting:
+		var ready_at := passenger.queued_since + PASS_THROUGH_TIME
+		if passenger.has_bag:
+			ready_at = maxf(ready_at, passenger.bag_ready_at)
+		if time >= ready_at and not station.exit_cells.is_empty():
+			leaving.append(passenger)
+	for passenger in leaving:
+		station.waiting.erase(passenger)
+		station.record_wait(time, time - passenger.queued_since)
+		var door: Vector2i = station.exit_cells[_rng.randi() % station.exit_cells.size()]
+		passenger.position = _cell_point(door, passenger)
+		passenger.previous_position = passenger.position
+		passenger.goal = Role.ENTRANCE
+		_plan(passenger)
+
+
+# Arriving passengers leave the airport through the nearest reachable entrance.
+func _plan_exit(passenger: Passenger) -> void:
+	var cell := Airport.grid.world_to_cell(passenger.position)
+	if not _network.is_walkable(cell):
+		var nearest: Variant = _network.nearest_walkable(cell)
+		if nearest == null:
+			_set_stuck(passenger)
+			return
+		cell = nearest
+	var exits: Array[Vector2i] = []
+	for building in Airport.buildings:
+		if building.type.role == Role.ENTRANCE:
+			exits.append_array(_access_cells(building, false))
+	var exit: Variant = _closest_cell_in_area(exits, cell, _network.area_of(cell))
+	if exit == null:
+		_set_stuck(passenger)
+		return
+	var cells := _network.find_path(cell, exit)
+	if cells.is_empty():
+		_set_stuck(passenger)
+		return
+	passenger.path = PackedVector3Array()
+	for path_cell in cells:
+		passenger.path.append(_cell_point(path_cell, passenger))
+	passenger.path_index = 0
+	passenger.state = Passenger.State.WALKING
 
 
 # Queues form straight lines in front of the counters, one line per counter.
@@ -581,6 +678,19 @@ func _update_route() -> void:
 		return
 	if good_areas.is_empty():
 		route_problem = "connect a gate (with a stand behind it) to security's airside walkway."
+		return
+
+	# Arriving passengers need a way out: gate -> baggage claim -> entrance (design doc §8.8).
+	var claims := _stations.values().filter(func(s: Station) -> bool: return s.role() == Role.BAGGAGE_CLAIM)
+	if claims.is_empty():
+		route_problem = "build a baggage claim for arriving passengers."
+		return
+	var claim_works := claims.any(func(s: Station) -> bool:
+		var from_gates := s.entry_cells.any(func(c: Vector2i) -> bool: return gate_areas.has(_network.area_of(c)))
+		var to_exit := s.exit_cells.any(func(c: Vector2i) -> bool: return entrance_areas.has(_network.area_of(c)))
+		return from_gates and to_exit)
+	if not claim_works:
+		route_problem = "connect a baggage claim: back to the gates' walkway, front to the entrance's walkway."
 		return
 
 	route_problem = ""

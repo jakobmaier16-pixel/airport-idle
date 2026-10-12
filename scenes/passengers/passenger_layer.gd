@@ -57,8 +57,8 @@ func _process(_delta: float) -> void:
 
 	var count := 0
 	for passenger in Airport.passenger_flow.passengers:
-		if passenger.state == Passenger.State.AT_GATE or passenger.state == Passenger.State.IN_SHOP:
-			continue  # inside a building
+		if passenger.state in [Passenger.State.AT_GATE, Passenger.State.IN_SHOP, Passenger.State.AT_BELT, Passenger.State.GONE]:
+			continue  # inside a building, or already gone
 		var figure_position := passenger.previous_position.lerp(passenger.position, alpha)
 		if Vector2(figure_position.x, figure_position.z).distance_squared_to(center) > radius_squared:
 			continue

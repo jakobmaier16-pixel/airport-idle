@@ -20,6 +20,11 @@ const TAXI_TIME: float = 15.0
 const BOARDING_OPENS: float = 90.0
 ## Passengers per second walking from the gate onto the plane.
 const BOARDING_RATE: float = 1.0
+## Arriving passengers per second leaving the parked plane through the gate (design doc §8.8).
+const DEPLANE_RATE: float = 1.0
+## Bags come off the belt between these times after the plane has parked.
+const BAGS_FROM: float = 30.0
+const BAGS_UNTIL: float = 90.0
 const SEATS: int = 180
 const BOOKED_MIN: int = 12
 const BOOKED_MAX: int = 20
@@ -93,6 +98,11 @@ func _schedule(gate: Building, departure_time: float) -> void:
 	# Random route for now; later airlines and deals decide (design doc §10).
 	flight.route = ROUTES.keys()[_rng.randi() % ROUTES.size()]
 	_plan_arrivals(flight)
+	# The inbound leg: the same plane brings passengers before it takes new ones (turnaround).
+	var mix := PackedFloat32Array(ROUTES[flight.route])
+	var types: Array[PassengerType] = [FAMILY, LOW_COST, BUSINESS]
+	for i in _rng.randi_range(BOOKED_MIN, BOOKED_MAX):
+		flight.inbound_types.append(types[_rng.rand_weighted(mix)])
 	_last_planned[gate] = departure_time
 	flights.append(flight)
 
@@ -133,6 +143,16 @@ func _advance(flight: Flight, now: float, delta: float, flow: PassengerFlow) -> 
 	elif time_left <= PLANE_ARRIVES:
 		phase = Flight.Phase.ARRIVING
 
+	if phase == Flight.Phase.AT_STAND or (phase == Flight.Phase.BOARDING and flight.deplaned < flight.inbound_types.size()):
+		# Arriving passengers leave the plane first; whoever is left when boarding opens leaves at once.
+		flight.deplane_credit += DEPLANE_RATE * delta
+		if phase == Flight.Phase.BOARDING:
+			flight.deplane_credit = flight.inbound_types.size()
+		while flight.deplane_credit >= 1.0 and flight.deplaned < flight.inbound_types.size():
+			if not flow.deplane_passenger(flight, flight.inbound_types[flight.deplaned]):
+				break
+			flight.deplaned += 1
+			flight.deplane_credit -= 1.0
 	if phase == Flight.Phase.BOARDING:
 		flight.boarding_credit += BOARDING_RATE * delta
 		var boarded := flow.board(flight, floori(flight.boarding_credit))
