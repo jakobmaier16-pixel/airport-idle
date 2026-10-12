@@ -1,6 +1,6 @@
 # Game Design — Airport Manager (working title)
 
-> Status: Draft v0.4 · Last updated: 2026-10-12
+> Status: Draft v0.5 · Last updated: 2026-10-12
 > This document is the source of truth for *what* we are building. Code follows the design, not the other way round.
 > Decisions marked **(open)** are not final — see [Open Questions](#19-open-questions).
 
@@ -62,12 +62,13 @@ Inspirations: *Builderment*, *Idle Train Empire*, *Airplane Inc.*, *TheoTown*.
 ```
 
 **Moment to moment** the player:
-- builds, plans and rearranges the airport (**build view**, top-down)
-- walks around the airport as the manager and manages it (**manager view**, fixed tilted follow camera; what walking does in gameplay is still **(open)**)
-- watches passengers move and spots problems
-- opens statistics to find bottlenecks (security? boarding? marketing?)
-- hires, assigns and develops staff
-- negotiates deals with airlines (fees, slots, gates)
+- builds, plans and rearranges the airport — **build view** (top-down), the only place where building happens
+- everything else happens in the **manager view** (fixed tilted follow camera):
+  - walks around the airport as the manager (what walking does in gameplay is still **(open)**)
+  - watches passengers move and spots problems
+  - opens statistics to find bottlenecks (security? boarding? marketing?)
+  - hires, assigns and develops staff, manages stations
+  - negotiates deals with airlines (fees, slots, gates)
 
 **What "idle" means here:** passengers flow and earn money automatically while the player manages. Progress happens while playing, not while away.
 
@@ -97,6 +98,7 @@ Inspirations: *Builderment*, *Idle Train Empire*, *Airplane Inc.*, *TheoTown*.
 - **Compressed scale, not 1:1.** Realism means things *work* like a real airport, not that they are life-size.
   - **Terminal and landside** stay close to realistic proportions, because that is where the manager walks around in the manager view. One grid cell = **2 m** to start; the cell size must stay easy to change.
   - **Airside** (runways, taxiways, aprons, stands) is **scaled down** so the whole airport fits on a playable map.
+- **Map size:** 64 × 64 cells (128 × 128 m) for now. It will be enlarged when airside (stands, runways) comes in.
 - The player places **predesigned buildings / modules**: check-in, information desk, shops, restaurants, security, passport control, gates, baggage systems, etc.
 - Buildings can be **rotated** freely (in grid steps).
 - Buildings are connected by **corridors** and **waiting areas** (holding rooms, gate lounges) that the player draws on the grid.
@@ -250,9 +252,9 @@ This is a core tool, not an extra: the player's thinking happens here.
 ### Camera
 A button switches between the two views.
 
-- **Manager view:** fixed tilted camera, like *League of Legends*. It follows the manager from a fixed angle and **never rotates**. The player walks around and manages the airport in this view. **The game must be fully playable in this view.**
+- **Manager view:** fixed tilted camera, like *League of Legends*. It follows the manager from a fixed angle and **never rotates**. **Everything except building happens here:** walking, watching passengers, managing staff and stations, statistics. The camera must always show enough to play comfortably.
   - **Zoom:** a small zoom range — pinch with two fingers (scroll wheel on the Mac). Only the distance changes, within tight limits so it always stays playable. The angle stays fixed.
-- **Build view:** top-down / bird's-eye. Used for **all** building and planning.
+- **Build view:** top-down / bird's-eye. **All** building and layout planning happens here, and only here.
   - Drag with one finger to move, pinch to zoom. Zoom is limited so the game stays playable; the camera cannot leave the map.
   - When zoomed out, crowds are shown simplified (fewer figures, simple shapes). See §18.
 - What walking as the manager does in gameplay: **(open)**.
@@ -333,7 +335,6 @@ After that, features grow with play time and milestones: shops, staff, passenger
 10. What does walking around as the manager actually do in gameplay?
 11. Who is the target player (casual vs. strategy fan)? This affects difficulty and UI depth.
 12. Working title / final game name.
-13. The manager view must be fully playable, but all building happens in the build view. Does "fully playable" mean everything *except* building and planning, or should some building also be possible from the manager view?
 
 ### Glossary
 - **Gänge** → corridors / walkways

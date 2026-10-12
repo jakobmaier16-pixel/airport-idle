@@ -25,9 +25,10 @@ When a decision is made, update the design doc.
   The cell size must stay a single, easy-to-change value.
 - **Two camera views** (a HUD button switches between them):
   - *Manager view:* fixed tilted camera that follows the manager and **never rotates**
-    (like League of Legends). Do not add camera rotation. The game must be fully playable here.
+    (like League of Legends). Do not add camera rotation. Everything except building happens here
+    (walking, passengers, staff, stations, statistics); the camera must always show enough to play.
     Small pinch zoom (scroll wheel on the Mac): only the distance changes, within tight limits.
-  - *Build view:* top-down / bird's-eye, used for all building and planning. One-finger drag pans,
+  - *Build view:* top-down / bird's-eye. All building and layout planning happens here, and only here. One-finger drag pans,
     pinch zooms; zoom is limited and the camera stays inside the map.
 - **Simulation keeps running in the build view.** No pause for now.
 - **Input (manager view):** the floating joystick only appears when one finger touches the **left half**
