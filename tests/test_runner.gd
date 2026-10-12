@@ -1,0 +1,58 @@
+extends Node
+## Runs every walkthrough test in tests/cases/ and quits with exit code 0 (all passed) or 1.
+## Start it with tools/run_tests.sh. Optional: `-- --only=<file or test name part>`.
+
+const CASES_DIR: String = "res://tests/cases/"
+
+
+func _ready() -> void:
+	# Let the scene tree finish starting up before tests add the game to it.
+	await get_tree().process_frame
+	# Tests drive the simulation themselves (sim_seconds), so it doesn't also run in real time.
+	Airport.set_process(false)
+	var only := ""
+	for arg in OS.get_cmdline_user_args():
+		if arg.begins_with("--only="):
+			only = arg.trim_prefix("--only=")
+
+	var passed := 0
+	var failed := 0
+	var files := Array(DirAccess.get_files_at(CASES_DIR)).filter(func(f: String) -> bool: return f.ends_with(".gd"))
+	files.sort()
+	for file: String in files:
+		var test_case: TestCase = load(CASES_DIR + file).new()
+		add_child(test_case)
+		for method in test_case.get_script().get_script_method_list():
+			var test_name: String = method["name"]
+			if not test_name.begins_with("test_"):
+				continue
+			var full_name := "%s.%s" % [file.get_basename(), test_name]
+			if not only.is_empty() and not full_name.contains(only):
+				continue
+			_reset_world()
+			test_case.current_test = full_name
+			var failures_before := test_case.failures.size()
+			var started := Time.get_ticks_msec()
+			await test_case.call(test_name)
+			await test_case.cleanup()
+			var took := Time.get_ticks_msec() - started
+			if test_case.failures.size() == failures_before:
+				passed += 1
+				print("PASS %s (%d ms)" % [full_name, took])
+			else:
+				failed += 1
+				print("FAIL %s" % full_name)
+				for message in test_case.failures.slice(failures_before):
+					print("  - " + message)
+		test_case.queue_free()
+
+	_reset_world()
+	print("RESULT: %d passed, %d failed" % [passed, failed])
+	get_tree().quit(1 if failed > 0 else 0)
+
+
+func _reset_world() -> void:
+	Airport.reset()
+	TouchGestures._reset()
+	TouchGestures.pinch_cancels_drag = false
+	SaveGame.enabled = false

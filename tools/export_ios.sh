@@ -5,6 +5,13 @@ set -e
 cd "$(dirname "$0")/.."
 GODOT=/Applications/Godot.app/Contents/MacOS/Godot
 
+# Never ship a build that fails the walkthrough tests.
+if ! ./tools/run_tests.sh > /dev/null; then
+	echo "Tests failed: not exporting. Run tools/run_tests.sh to see why."
+	exit 1
+fi
+echo "All tests passed."
+
 COMMIT=$(git rev-parse --short HEAD)
 if ! git diff --quiet HEAD; then COMMIT="$COMMIT+changes"; fi
 STAMP="$COMMIT · $(date '+%Y-%m-%d %H:%M')"

@@ -90,6 +90,10 @@ scripts/simulation/   pure simulation data classes (no nodes, no visuals): Airpo
                       PassengerFlow, Passenger, Station, WalkwayNetwork
 scripts/resources/    custom Resource classes (data definitions), e.g. BuildingType
 data/buildings/       one BuildingType .tres per building (edit footprint, name, look in the Inspector)
+tests/                automated walkthrough tests (excluded from the app export):
+  test_case.gd        base class with player helpers (tap, drag, pinch, place, paint, sim_seconds)
+  cases/              test files, run in name order
+tools/                run_tests.sh, screenshots.sh, export_ios.sh
 assets/               models/, textures/, materials/, audio/, fonts/
 ```
 
@@ -115,12 +119,15 @@ UI controls (buttons) consume their touches first, so taps on buttons never reac
 
 ## Workflow
 
-- Before every commit, check that the project loads without errors:
-  ```
-  /Applications/Godot.app/Contents/MacOS/Godot --headless --path . --import
-  /Applications/Godot.app/Contents/MacOS/Godot --headless --path . --quit-after 120
-  ```
-  The output must contain no `ERROR` or `SCRIPT ERROR` lines.
+- **Always run the walkthrough tests before every commit and every export:** `tools/run_tests.sh`.
+  All tests must pass (exit code 0); engine errors and memory leaks count as failures.
+  `tools/export_ios.sh` runs them itself and refuses to export on a failure.
+- **Every new feature or bug fix gets tests** in `tests/cases/` (one file per area, `test_*` methods).
+  Test like a player: tap / drag / pinch the real UI through the `TestCase` helpers, and
+  fast-forward the simulation with `sim_seconds()`. `test_09_walkthrough` builds a whole airport
+  by touch; extend it when the core loop grows (e.g. planes, money).
+- **After visual changes** run `tools/screenshots.sh` and look at `build/screenshots/*.png`.
+- Tests run with `-- --no-save` and never touch the real save game.
 - Make small, focused commits with descriptive messages.
 - Do not commit the `.godot/` folder or export builds. **Do** commit the `*.uid` files next to
   scripts and shaders; Godot uses them to keep references stable.
@@ -155,9 +162,10 @@ UI controls (buttons) consume their touches first, so taps on buttons never reac
   reference silently stays `null`.
 - Godot 4.7 has a built-in `VirtualJoystick` class; our joystick is `TouchJoystick`.
   Check new `class_name`s against built-in classes.
-- Autoloads are not available to scripts run with `--script`. For headless tests, run a small
-  test *scene* instead, and **always pass `-- --no-save`** so the test neither loads nor overwrites
-  the real save game: `Godot --headless --path . res://path/to/test.tscn -- --no-save`.
+- Autoloads are not available to scripts run with `--script`; that's why tests run as a scene
+  (`tests/test_runner.tscn`). Wait one frame in a test scene's `_ready()` before adding nodes to the root.
+- Containers lay out newly shown buttons one frame later: tests must `await press(...)`
+  (it waits a frame), never tap a button in the same frame it became visible.
 - The Mac save game lives in `~/Library/Application Support/Godot/app_userdata/AirportIdle/`.
   Test builds have a two-tap "Reset" button in the build menu.
 - Changing a building's size or zone rule can make old saves invalid: such buildings are skipped

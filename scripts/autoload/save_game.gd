@@ -5,7 +5,6 @@ extends Node
 
 ## Bump when the save format changes in a way older code can't read.
 const FORMAT_VERSION: int = 1
-const SAVE_PATH: String = "user://savegame.json"
 ## Wait this long after a change before saving, so a burst of changes is saved once.
 const SAVE_DELAY: float = 1.0
 ## Command-line flag (after "--") that turns saving and loading off, for automated tests:
@@ -13,6 +12,8 @@ const SAVE_DELAY: float = 1.0
 const NO_SAVE_FLAG: String = "--no-save"
 
 var enabled: bool = true
+## Where the game is saved. Tests point this at a separate file.
+var save_path: String = "user://savegame.json"
 
 var _dirty: bool = false
 var _time_until_save: float = 0.0
@@ -47,20 +48,20 @@ func save_now() -> void:
 	var data := Airport.save_state()
 	data["version"] = FORMAT_VERSION
 	# Write to a temporary file first, then swap it in, so a crash mid-save can't corrupt the save.
-	var temp_path := SAVE_PATH + ".tmp"
+	var temp_path := save_path + ".tmp"
 	var file := FileAccess.open(temp_path, FileAccess.WRITE)
 	if file == null:
 		push_error("Could not write save game: %s" % error_string(FileAccess.get_open_error()))
 		return
 	file.store_string(JSON.stringify(data))
 	file.close()
-	DirAccess.rename_absolute(ProjectSettings.globalize_path(temp_path), ProjectSettings.globalize_path(SAVE_PATH))
+	DirAccess.rename_absolute(ProjectSettings.globalize_path(temp_path), ProjectSettings.globalize_path(save_path))
 
 
 func load_game() -> void:
-	if not enabled or not FileAccess.file_exists(SAVE_PATH):
+	if not enabled or not FileAccess.file_exists(save_path):
 		return
-	var data: Variant = JSON.parse_string(FileAccess.get_file_as_string(SAVE_PATH))
+	var data: Variant = JSON.parse_string(FileAccess.get_file_as_string(save_path))
 	if not data is Dictionary or int(data.get("version", 0)) != FORMAT_VERSION:
 		push_warning("Save game is unreadable or from an incompatible version; starting fresh.")
 		return
@@ -76,7 +77,7 @@ func reset_game() -> void:
 	Airport.reset()
 	_dirty = false
 	if enabled:
-		DirAccess.remove_absolute(ProjectSettings.globalize_path(SAVE_PATH))
+		DirAccess.remove_absolute(ProjectSettings.globalize_path(save_path))
 
 
 func _on_airport_changed() -> void:
