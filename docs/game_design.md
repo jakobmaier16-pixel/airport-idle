@@ -1,6 +1,6 @@
 # Game Design — Airport Manager (working title)
 
-> Status: Draft v0.7 · Last updated: 2026-10-12
+> Status: Draft v0.8 · Last updated: 2026-10-12
 > This document is the source of truth for *what* we are building. Code follows the design, not the other way round.
 > Decisions marked **(open)** are not final — see [Open Questions](#19-open-questions).
 
@@ -123,6 +123,24 @@ Inspirations: *Builderment*, *Idle Train Empire*, *Airplane Inc.*, *TheoTown*.
 | Security | 5 × 3 | 10 × 6 | border: front faces landside, back faces airside |
 | Gate | 5 × 5 | 10 × 10 | airside (waiting area included) |
 | Aircraft stand | 12 × 12 | 24 × 24 | airside (scaled down, see §7.1); flat, can be walked on |
+
+### 7.1b Walkways (corridors and halls)
+- Corridors and halls are drawn as **walkway floor**: pick *Walkway* and drag a rectangle (or tap a cell); *Remove* erases walkway.
+- **Any width.** Width will matter once passengers walk: narrow walkways get crowded and slow passengers down. A realistic corridor is at least 2 cells (4 m) wide.
+- **Buildings can stand on walkway** (e.g. check-in desks inside a hall). Cells under a building are not walkable.
+- Walkways belong to the zone they are painted in. Passengers only walk on walkways and can only get from landside to airside **through security** (§7.2).
+- **Access sides:** passengers enter and leave buildings only on their access sides.
+
+| Building | Access side(s) |
+|---|---|
+| Entrance | back (into the terminal); the front faces outside |
+| Check-in | front (queue area) |
+| Security | front (landside) and back (airside) |
+| Gate | front (walkway) and back (aircraft stand) |
+| Aircraft stand | reached through a gate |
+
+- A building is **connected** when each access side touches at least one free walkway cell (the gate's back: an aircraft stand). Unconnected buildings can still be placed (build first, connect after) and show a hint such as "Needs a walkway in front".
+- **Waiting areas:** for the MVP the waiting area is part of the gate. Separate holding rooms come later.
 
 ### 7.2 Zones (realism rule)
 - The airport has a **landside (public)** zone and an **airside (secure)** zone.
