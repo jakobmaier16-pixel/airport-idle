@@ -1,6 +1,6 @@
 # Game Design — Airport Manager (working title)
 
-> Status: Draft v0.10 · Last updated: 2026-10-12
+> Status: Draft v0.11 · Last updated: 2026-10-12
 > This document is the source of truth for *what* we are building. Code follows the design, not the other way round.
 > Decisions marked **(open)** are not final — see [Open Questions](#19-open-questions).
 
@@ -112,7 +112,7 @@ Inspirations: *Builderment*, *Idle Train Empire*, *Airplane Inc.*, *TheoTown*.
 
 - Buildings cannot overlap each other or leave the map.
 - Each building has a **front side** (e.g. where passengers queue at check-in), shown on the model.
-- **Building is free for now.** Construction costs come with the economy (§16, item 6).
+- **Building costs money** (§11.5). If there isn't enough, the building can't be placed and the hint shows the price.
 - If a spot is not allowed, a short hint says why (space taken, wrong zone, …).
 - MVP building sizes (provisional, easy to change per building):
 
@@ -263,6 +263,16 @@ Placeholder schedule until airlines and deals exist (§10). All numbers are tuna
 - Maintenance
 - Utilities (electricity, cleaning)
 - Construction and demolition
+
+### 11.5 First economy (MVP, item 6)
+Currency: **euro (€)**. All numbers are placeholders, tunable per building (compressed game time).
+- **Starting money:** €50,000.
+- **Income** when a flight's doors close: **€15 per departing passenger** (passenger fee paid by the airline) and **€300 per flight** (landing / turnaround fee).
+- **Construction:** Entrance €2,000 · Check-in €3,000 · Security €5,000 · Gate €4,000 · Aircraft stand €6,000 · Walkway €20 per cell. Painting zones is free. Removing walkway is free and refunds nothing (demolishing rules are still open, §19).
+- **Running costs per minute** (staff, maintenance, utilities): Entrance €10 · Check-in €30 · Security €40 · Gate €25 · Stand €15 · Walkway €0.05 per cell. Charged continuously while the game runs.
+- **Display:** balance and profit per minute (last 60 s) at the top of the info panel; red when negative.
+- **Negative balance** is allowed for now: what bankruptcy means is still open (§11.3, §19).
+- **Not in the MVP yet:** shop income, parking, salaries per employee, upgrades (§16 item 7).
 
 ### 11.3 Failure
 - **Bankruptcy is possible.** What exactly happens (game over, loan, restructuring) is **(open)**.
