@@ -6,13 +6,14 @@ extends RefCounted
 
 ## Seconds between two departures at the same gate.
 const INTERVAL: float = 180.0
-## A newly usable gate's first departure is this far in the future.
-const FIRST_DEPARTURE_DELAY: float = 210.0
+## A newly usable gate's first departure is this far in the future (after the arrival window).
+const FIRST_DEPARTURE_DELAY: float = 270.0
 ## Gates that become usable at the same moment are spread out by this much.
 const GATE_STAGGER: float = 45.0
-## Passengers for a flight arrive at the entrance between these times before departure.
-const ARRIVALS_START: float = 200.0
-const ARRIVALS_END: float = 100.0
+## Passengers for a flight arrive at the entrance between these times before departure,
+## early enough that most have time left for a shop or café after security (design doc §8.6).
+const ARRIVALS_START: float = 260.0
+const ARRIVALS_END: float = 140.0
 ## The plane starts taxiing onto the stand this long before departure.
 const PLANE_ARRIVES: float = 130.0
 ## Seconds to taxi onto the stand, and to push back after departure.

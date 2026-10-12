@@ -105,7 +105,7 @@ func test_tap_station_opens_panel_and_upgrades() -> void:
 	check(button.disabled, "button disabled while building")
 
 	# Tapping empty ground closes the panel.
-	tap(manager_camera().unproject_position(Airport.grid.cell_to_world(Vector2i(32, 36))))
+	tap(manager_camera().unproject_position(Airport.grid.cell_to_world(Vector2i(37, 33))))
 	await frames(1)
 	check(not ui("StationPanel").visible, "tapping elsewhere closes the panel")
 

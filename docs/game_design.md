@@ -232,8 +232,8 @@ Placeholder rules until flights exist (§16 item 5). All numbers are tunable.
 
 ### 8.5 First flights (MVP, item 5)
 Placeholder schedule until airlines and deals exist (§10). All numbers are tunable (compressed game time).
-- **Schedule:** every gate with a stand gets one departure every **3 minutes**. The first flight at a new gate departs 3½ minutes after the gate becomes usable.
-- **Timeline of a flight** (before departure): passengers arrive at the entrance from 3:20 to 1:40 · the plane taxis onto the stand at 2:10 (15 s) · **boarding** opens at 1:30, about 1 passenger per second walks from the gate onto the plane · at 0:00 the doors close and the plane pushes back.
+- **Schedule:** every gate with a stand gets one departure every **3 minutes**. The first flight at a new gate departs 4½ minutes after the gate becomes usable.
+- **Timeline of a flight** (before departure): passengers arrive at the entrance from 4:20 to 2:20 (early enough for a shop or café, §8.6) · the plane taxis onto the stand at 2:10 (15 s) · **boarding** opens at 1:30, about 1 passenger per second walks from the gate onto the plane · at 0:00 the doors close and the plane pushes back.
 - **Missed flights:** passengers not on board when the doors close miss the flight and leave the airport. They are counted — slow layouts cause missed flights (§7.7).
 - **Aircraft:** a narrow-body plane with 180 seats, scaled down like the airside (§7.1); parks nose-in at the stand, facing the gate. For now 12–20 booked passengers per flight, so a small airport can handle it; real demand comes with airlines (§10).
 - **Fictional** airline code "AX" and flight numbers (§18).
@@ -243,13 +243,13 @@ Placeholder schedule until airlines and deals exist (§10). All numbers are tuna
 
 ### 8.6 Shops and cafés (first version)
 Placeholder numbers, tunable per building type.
-- After security, a passenger with **enough time** (at least 1 minute to spare before boarding opens) visits a shop or café with **70 % probability** — the nearest one with free space.
+- After security, a passenger with **enough time** (at least 45 s to spare before boarding opens) visits a shop or café with **70 % probability** — the nearest one with free space.
 - **Capacity:** a shop holds 8 customers, a café 12. Full places are skipped.
 - **Time inside:** shop 20–40 s, café 30–60 s. When boarding is about to open, customers leave early (**final call**) — shopping must not make passengers miss flights.
 - **Spending:** shop €20–40, café €8–16 per customer. The airport earns a **30 % concession share** (§11.1: shops, restaurants, duty free).
 - Customers inside are not drawn (like passengers waiting inside a gate).
 - Station panel and statistics show customers inside and the airport's income from each place over the last 5 minutes.
-- Costs: Shop €3,500 build · €20/min running. Café €3,000 · €25/min.
+- Costs: Shop €3,500 build · €5/min running. Café €3,000 · €6/min. Low running costs because, like at real airports, the tenant runs the shop (staff, goods); the airport pays utilities and maintenance and earns the concession share.
 
 ---
 

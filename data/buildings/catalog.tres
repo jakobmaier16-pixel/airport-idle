@@ -7,7 +7,9 @@
 [ext_resource type="Resource" path="res://data/buildings/security.tres" id="4_security"]
 [ext_resource type="Resource" path="res://data/buildings/gate.tres" id="5_gate"]
 [ext_resource type="Resource" path="res://data/buildings/aircraft_stand.tres" id="6_aircraft_stand"]
+[ext_resource type="Resource" path="res://data/buildings/shop.tres" id="7_shop"]
+[ext_resource type="Resource" path="res://data/buildings/cafe.tres" id="8_cafe"]
 
 [resource]
 script = ExtResource("1_catalog")
-types = Array[ExtResource("1_type")]([ExtResource("2_entrance"), ExtResource("3_check_in"), ExtResource("4_security"), ExtResource("5_gate"), ExtResource("6_aircraft_stand")])
+types = Array[ExtResource("1_type")]([ExtResource("2_entrance"), ExtResource("3_check_in"), ExtResource("4_security"), ExtResource("5_gate"), ExtResource("6_aircraft_stand"), ExtResource("7_shop"), ExtResource("8_cafe")])

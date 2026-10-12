@@ -48,6 +48,8 @@ func test_passengers_go_to_their_flights_gate() -> void:
 	var flow := Airport.passenger_flow
 	var at_gates := 0
 	for station: Station in flow._stations.values():
+		if station.role() != BuildingType.Role.GATE:
+			continue  # shops also have customers "waiting" inside
 		for passenger in station.waiting:
 			at_gates += 1
 			check(passenger.flight.gate == station.building, "waiting at the gate of their own flight")
@@ -75,7 +77,7 @@ func test_slow_security_makes_passengers_miss_flights() -> void:
 	var normal_time := security.service_time
 	security.service_time = 60.0  # a very slow checkpoint
 	ShowcaseAirport.build(0.0)
-	sim_seconds(270)
+	sim_seconds(330)  # past the first departure (4:30)
 	security.service_time = normal_time
 	var flow := Airport.passenger_flow
 	check(flow.missed_count > 0, "passengers missed their flight: %d" % flow.missed_count)
@@ -103,7 +105,7 @@ func test_departures_board() -> void:
 	var text := Airport.passenger_flow.departures_text()
 	var lines := text.split("\n")
 	check_eq(lines.size(), 2, "one line per upcoming flight")
-	check(lines[0].begins_with("AX 101   Gate 1   Scheduled   3:"), "first line: '%s'" % lines[0])
+	check(lines[0].begins_with("AX 101   Gate 1   Scheduled   4:"), "first line: '%s'" % lines[0])
 	await start_game()
 	await frames(2)
 	check_eq((ui("InfoPanel/DeparturesLabel") as Label).text.split("\n").size(), 2, "board shown in the HUD")

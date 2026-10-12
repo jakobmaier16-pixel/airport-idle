@@ -12,6 +12,16 @@ const MAX_OFFSET: float = 0.6
 const QUEUE_SPACING: float = 0.8
 ## Seconds between attempts of a stuck passenger to find a way.
 const RETRY_INTERVAL: float = 1.0
+## Shops and cafés (design doc §8.6): passengers go only with at least this much time to spare
+## before boarding opens, and then with this probability.
+const SHOPPING_MIN_SPARE: float = 45.0
+const SHOPPING_CHANCE: float = 0.7
+## Before security, only passengers with plenty of time visit a landside café, less often.
+const LANDSIDE_CAFE_CHANCE: float = 0.3
+## Time kept free for getting through security after a landside café.
+const SECURITY_ALLOWANCE: float = 60.0
+## Customers leave a shop this long before boarding opens at the latest ("final call").
+const FINAL_CALL: float = 15.0
 ## How many clothing colors the visuals offer.
 const COLOR_COUNT: int = 6
 ## Safety limit, so a layout where passengers can't leave doesn't fill up endlessly.
@@ -69,7 +79,7 @@ func station_for(building: Building) -> Station:
 ## Every station in a stable order: check-ins, security, gates, each in the order they were built.
 func stations() -> Array[Station]:
 	var result: Array[Station] = []
-	for role in [Role.CHECK_IN, Role.SECURITY, Role.GATE]:
+	for role in [Role.CHECK_IN, Role.SECURITY, Role.GATE, Role.SHOP]:
 		for building in Airport.buildings:
 			if building.type.role == role and _stations.has(building):
 				result.append(_stations[building])
@@ -89,7 +99,7 @@ func bottleneck(min_wait: float = 5.0) -> Station:
 	var worst: Station = null
 	var worst_wait := min_wait
 	for station: Station in _stations.values():
-		if station.role() == Role.GATE:
+		if station.role() == Role.GATE or station.role() == Role.SHOP:
 			continue
 		var wait := station.average_wait(time)
 		if wait >= worst_wait:
@@ -124,7 +134,7 @@ func usable_gates() -> Array[Building]:
 func on_layout_changed() -> void:
 	_network.rebuild(Airport.grid)
 	for building in Airport.buildings:
-		if not _stations.has(building) and building.type.role in [Role.CHECK_IN, Role.SECURITY, Role.GATE]:
+		if not _stations.has(building) and building.type.role in [Role.CHECK_IN, Role.SECURITY, Role.GATE, Role.SHOP]:
 			_stations[building] = Station.new(building)
 	for station: Station in _stations.values():
 		station.entry_cells = _access_cells(station.building, true)
@@ -243,23 +253,34 @@ func _plan(passenger: Passenger) -> void:
 			continue
 		if passenger.goal == Role.GATE and station.building != passenger.flight.gate:
 			continue
+		if passenger.goal == Role.SHOP and not _has_room(station):
+			continue
 		var entry: Variant = _closest_cell_in_area(station.entry_cells, cell, area)
 		if entry != null:
 			candidates.append(station)
 			candidate_cells.append(entry)
 	if candidates.is_empty():
+		if passenger.goal == Role.SHOP:
+			# No shop with room nearby: carry on instead.
+			passenger.goal = passenger.after_shop
+			_plan(passenger)
+			return
 		_set_stuck(passenger)
 		return
 
-	# Short queue and short walk both count, like real passengers judging a hall.
-	# (For the gate there is only one candidate: the gate of their flight.)
 	var choice := 0
-	var best_score := INF
-	for i in candidates.size():
-		var score := candidates[i].busyness() * 3.0 + Vector2(candidate_cells[i] - cell).length() / 4.0
-		if score < best_score:
-			best_score = score
-			choice = i
+	if passenger.goal == Role.SHOP:
+		# Tastes differ: some want coffee, others duty free. Any place with room may be chosen.
+		choice = _rng.randi() % candidates.size()
+	else:
+		# Short queue and short walk both count, like real passengers judging a hall.
+		# (For the gate there is only one candidate: the gate of their flight.)
+		var best_score := INF
+		for i in candidates.size():
+			var score := candidates[i].busyness() * 3.0 + Vector2(candidate_cells[i] - cell).length() / 4.0
+			if score < best_score:
+				best_score = score
+				choice = i
 
 	var cells := _network.find_path(cell, candidate_cells[choice])
 	if cells.is_empty():
@@ -294,6 +315,11 @@ func _arrive(passenger: Passenger) -> void:
 	if station.role() == Role.GATE:
 		passenger.state = Passenger.State.AT_GATE
 		station.waiting.append(passenger)
+	elif station.role() == Role.SHOP:
+		passenger.state = Passenger.State.IN_SHOP
+		var type := station.building.type
+		passenger.visit_left = _rng.randf_range(type.visit_seconds_min, type.visit_seconds_max)
+		station.waiting.append(passenger)
 	else:
 		passenger.state = Passenger.State.QUEUING
 		passenger.queued_since = time
@@ -311,6 +337,9 @@ func _set_stuck(passenger: Passenger) -> void:
 func _tick_station(station: Station, delta: float) -> void:
 	if station.role() == Role.GATE:
 		return  # boarding is driven by the flight schedule
+	if station.role() == Role.SHOP:
+		_tick_shop(station, delta)
+		return
 
 	station.sync_slots()
 	for i in station.serving.size():
@@ -341,14 +370,60 @@ func _finish_service(station: Station, passenger: Passenger) -> void:
 	match station.role():
 		Role.CHECK_IN:
 			passenger.goal = Role.SECURITY
+			_maybe_shop(passenger, Role.SECURITY, SECURITY_ALLOWANCE, LANDSIDE_CAFE_CHANCE)
 			_plan(passenger)
 		Role.SECURITY:
 			passenger.goal = Role.GATE
+			_maybe_shop(passenger, Role.GATE, 0.0, SHOPPING_CHANCE)
 			# Through the security lane to the airside: appear behind the building.
 			var exit: Vector2i = _closest_cell_in_area(station.exit_cells, Airport.grid.world_to_cell(passenger.position), -1)
 			passenger.position = _cell_point(exit, passenger)
 			passenger.previous_position = passenger.position
 			_plan(passenger)
+
+
+# --- Shops and cafés (design doc §8.6) ---
+
+# With enough spare time (and some luck), the passenger visits a shop or café before `next`.
+# `allowance` is time still needed after the visit (e.g. for security).
+func _maybe_shop(passenger: Passenger, next: BuildingType.Role, allowance: float, chance: float) -> void:
+	var leave_by := passenger.flight.departure_time - FlightSchedule.BOARDING_OPENS - FINAL_CALL - allowance
+	if leave_by - time < SHOPPING_MIN_SPARE or _rng.randf() >= chance:
+		return
+	passenger.goal = Role.SHOP
+	passenger.after_shop = next
+	passenger.leave_shop_by = leave_by
+
+
+# A shop has room if the customers inside plus those on their way fit in.
+func _has_room(station: Station) -> bool:
+	var coming := 0
+	for passenger in passengers:
+		if passenger.state == Passenger.State.WALKING and passenger.target == station.building:
+			coming += 1
+	return station.waiting.size() + coming < station.building.type.customer_capacity
+
+
+func _tick_shop(station: Station, delta: float) -> void:
+	var leaving: Array[Passenger] = []
+	for customer in station.waiting:
+		customer.visit_left -= delta
+		# "Final call": leave in time for boarding, however long the visit was meant to be.
+		if customer.visit_left <= 0.0 or time >= customer.leave_shop_by:
+			leaving.append(customer)
+	for customer in leaving:
+		station.waiting.erase(customer)
+		var type := station.building.type
+		var income := _rng.randf_range(type.spend_min, type.spend_max) * Economy.CONCESSION_SHARE
+		Airport.economy.earn(income)
+		station.record_income(time, income)
+		# Out of the front door and on to the gate.
+		if not station.entry_cells.is_empty():
+			var door: Vector2i = station.entry_cells[_rng.randi() % station.entry_cells.size()]
+			customer.position = _cell_point(door, customer)
+			customer.previous_position = customer.position
+		customer.goal = customer.after_shop
+		_plan(customer)
 
 
 # Queues form straight lines in front of the counters, one line per counter.
@@ -394,6 +469,9 @@ func _access_cells(building: Building, front: bool) -> Array[Vector2i]:
 		side_zone = AirportGrid.Zone.AIRSIDE
 	elif type.zone_rule == BuildingType.ZoneRule.BORDER and not front:
 		side_zone = AirportGrid.Zone.AIRSIDE
+	elif type.zone_rule == BuildingType.ZoneRule.ANY:
+		# A café serves the side it stands on.
+		side_zone = Airport.grid.get_zone(building.origin_cell)
 	var cells: Array[Vector2i] = []
 	for cell in Building.outside_row(type.footprint, building.origin_cell, building.rotation_steps, front):
 		if _network.is_walkable(cell) and Airport.grid.get_zone(cell) == side_zone:

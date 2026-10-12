@@ -9,6 +9,8 @@ const STARTING_MONEY: float = 50000.0
 const PASSENGER_FEE: float = 15.0
 ## Paid by the airline for every departing flight (landing / turnaround).
 const FLIGHT_FEE: float = 300.0
+## The airport's share of what customers spend in shops and cafés (concession fee).
+const CONCESSION_SHARE: float = 0.3
 const WALKWAY_COST_PER_CELL: float = 20.0
 const WALKWAY_RUNNING_COST_PER_CELL: float = 0.05
 ## "Per minute" figures cover this many seconds.

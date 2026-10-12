@@ -9,6 +9,7 @@ enum ZoneRule {
 	LANDSIDE, ## The whole footprint must be landside.
 	AIRSIDE, ## The whole footprint must be airside.
 	BORDER, ## On the border: the row in front must be landside, the row behind airside (security).
+	ANY, ## Landside or airside (e.g. cafés exist on both sides).
 }
 
 ## What a side of the building must touch for passengers to get in or out (design doc §7.1b).
@@ -19,7 +20,7 @@ enum Access {
 }
 
 ## What the building does in the passenger flow (design doc §8.4).
-enum Role { NONE, ENTRANCE, CHECK_IN, SECURITY, GATE, AIRCRAFT_STAND }
+enum Role { NONE, ENTRANCE, CHECK_IN, SECURITY, GATE, AIRCRAFT_STAND, SHOP }
 
 ## Stable internal name, used for save games. Never change it once players have saves.
 @export var id: StringName
@@ -46,6 +47,16 @@ enum Role { NONE, ENTRANCE, CHECK_IN, SECURITY, GATE, AIRCRAFT_STAND }
 @export var service_slots: int = 0
 ## Average seconds to serve one passenger (compressed game time).
 @export var service_time: float = 0.0
+
+@export_group("Shop")
+## Customers inside at the same time (shops and cafés, design doc §8.6).
+@export var customer_capacity: int = 0
+## Seconds a customer stays inside (random between min and max).
+@export var visit_seconds_min: float = 0.0
+@export var visit_seconds_max: float = 0.0
+## What a customer spends in euros (random between min and max); the airport earns a share.
+@export var spend_min: float = 0.0
+@export var spend_max: float = 0.0
 
 @export_group("Upgrades")
 ## Upgrade levels in order (design doc §7.8). Empty = the station can't be upgraded.

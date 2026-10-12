@@ -18,7 +18,7 @@ var queue: Array[Passenger] = []
 ## One entry per counter / lane; null = free.
 var serving: Array[Passenger] = []
 var service_left: PackedFloat32Array = PackedFloat32Array()
-## Gates only: passengers waiting inside for their flight to board.
+## Gates: passengers waiting inside for their flight to board. Shops: customers inside.
 var waiting: Array[Passenger] = []
 
 # Statistics: one sample per second (ring buffers), and the waits of recently served passengers.
@@ -28,6 +28,8 @@ var _sample_index: int = 0
 var _samples_taken: int = 0
 var _wait_times: PackedFloat32Array = PackedFloat32Array()
 var _wait_seconds: PackedFloat32Array = PackedFloat32Array()
+var _income_times: PackedFloat32Array = PackedFloat32Array()
+var _income_amounts: PackedFloat32Array = PackedFloat32Array()
 
 
 func _init(placed: Building) -> void:
@@ -70,9 +72,28 @@ func record_wait(now: float, seconds: float) -> void:
 		_wait_seconds.remove_at(0)
 
 
-## Passengers in the queue right now (gates: waiting for their flight).
+## Records income the airport earned here (shops and cafés).
+func record_income(now: float, amount: float) -> void:
+	_income_times.append(now)
+	_income_amounts.append(amount)
+	while not _income_times.is_empty() and _income_times[0] < now - STATS_WINDOW:
+		_income_times.remove_at(0)
+		_income_amounts.remove_at(0)
+
+
+## Income the airport earned here over the statistics window.
+func income_in_window(now: float) -> float:
+	var total := 0.0
+	for i in _income_times.size():
+		if _income_times[i] >= now - STATS_WINDOW:
+			total += _income_amounts[i]
+	return total
+
+
+## Passengers in the queue right now (gates: waiting for their flight; shops: customers inside).
 func queue_length() -> int:
-	return waiting.size() if role() == BuildingType.Role.GATE else queue.size()
+	var role := role()
+	return waiting.size() if role == BuildingType.Role.GATE or role == BuildingType.Role.SHOP else queue.size()
 
 
 ## Share of counters / lanes in use right now (0..1).

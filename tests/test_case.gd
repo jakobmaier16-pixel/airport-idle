@@ -8,6 +8,9 @@ extends Node
 var failures: Array[String] = []
 ## Set by the runner before each test.
 var current_test: String = ""
+## Number of buildings in the showcase airport (scripts/dev/showcase_airport.gd).
+const SHOWCASE_BUILDINGS: int = 10
+
 ## The running game (main scene), created by start_game().
 var main: Node = null
 

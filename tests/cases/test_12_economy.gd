@@ -88,9 +88,12 @@ func test_flights_earn_money() -> void:
 
 
 func test_showcase_makes_a_profit() -> void:
+	# Once flights are running (after the first departures), the showcase earns money.
 	ShowcaseAirport.build(0.0)
-	sim_seconds(600)
-	check(Airport.economy.balance > Economy.STARTING_MONEY, "after 10 minutes the showcase has earned money: %s" % Economy.format(Airport.economy.balance))
+	sim_seconds(360)
+	var before := Airport.economy.balance
+	sim_seconds(540)  # three more departures per gate
+	check(Airport.economy.balance > before, "the running showcase earns money: %s -> %s" % [Economy.format(before), Economy.format(Airport.economy.balance)])
 
 
 func test_money_saved_and_loading_does_not_charge() -> void:
@@ -100,7 +103,7 @@ func test_money_saved_and_loading_does_not_charge() -> void:
 	Airport.reset()
 	Airport.load_state(state)
 	check_eq(Airport.economy.balance, 12345.0, "balance restored, buildings not paid again")
-	check_eq(Airport.buildings.size(), 8, "all buildings loaded")
+	check_eq(Airport.buildings.size(), SHOWCASE_BUILDINGS, "all buildings loaded")
 	state.erase("money")
 	Airport.load_state(state)
 	check_eq(Airport.economy.balance, Economy.STARTING_MONEY, "old save without money starts with the starting money")

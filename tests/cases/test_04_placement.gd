@@ -6,7 +6,7 @@ func test_all_mvp_buildings_in_menu() -> void:
 	await start_game()
 	await open_build_view()
 	var names: Array = ui("BuildMenu/BuildingButtons").get_children().map(func(b: Node) -> String: return (b as Button).text)
-	check_eq(names, ["Entrance", "Check-in", "Security", "Gate", "Stand"], "build menu buttons")
+	check_eq(names, ["Entrance", "Check-in", "Security", "Gate", "Stand", "Shop", "Café"], "build menu buttons")
 
 
 func test_place_with_buttons() -> void:

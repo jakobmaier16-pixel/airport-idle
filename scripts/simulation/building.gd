@@ -80,6 +80,8 @@ static func zone_requirements(type: BuildingType, origin: Vector2i, rotation: in
 		BuildingType.ZoneRule.AIRSIDE:
 			for cell in footprint_cells(type.footprint, origin, rotation):
 				result[cell] = AirportGrid.Zone.AIRSIDE
+		BuildingType.ZoneRule.ANY:
+			pass
 		BuildingType.ZoneRule.BORDER:
 			for cell in outside_row(type.footprint, origin, rotation, true):
 				result[cell] = AirportGrid.Zone.LANDSIDE

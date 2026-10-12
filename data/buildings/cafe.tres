@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="BuildingType" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/building_type.gd" id="1_type"]
+
+[resource]
+script = ExtResource("1_type")
+id = &"cafe"
+display_name = "Café"
+footprint = Vector2i(4, 3)
+zone_rule = 3
+is_solid = true
+front_access = 1
+back_access = 0
+role = 6
+build_cost = 3000.0
+running_cost_per_minute = 6.0
+customer_capacity = 12
+visit_seconds_min = 30.0
+visit_seconds_max = 60.0
+spend_min = 8.0
+spend_max = 16.0
+color = Color(0.72, 0.48, 0.33, 1)
+height = 2.8

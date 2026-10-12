@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="BuildingType" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/building_type.gd" id="1_type"]
+
+[resource]
+script = ExtResource("1_type")
+id = &"shop"
+display_name = "Shop"
+footprint = Vector2i(3, 3)
+zone_rule = 1
+is_solid = true
+front_access = 1
+back_access = 0
+role = 6
+build_cost = 3500.0
+running_cost_per_minute = 5.0
+customer_capacity = 8
+visit_seconds_min = 20.0
+visit_seconds_max = 40.0
+spend_min = 20.0
+spend_max = 40.0
+color = Color(0.95, 0.78, 0.3, 1)
+height = 3.0

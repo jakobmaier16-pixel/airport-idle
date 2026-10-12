@@ -208,6 +208,12 @@ func _update_stats_panel() -> void:
 			for i in 3:
 				_add_stats_cell("", color)
 			continue
+		if station.role() == BuildingType.Role.SHOP:
+			_add_stats_cell("%d inside" % station.queue_length(), color)
+			_add_stats_cell(str(station.longest_queue()), color)
+			_add_stats_cell("", color)
+			_add_stats_cell(Economy.format(station.income_in_window(flow.time)), color)
+			continue
 		var wait := station.average_wait(flow.time)
 		_add_stats_cell(str(station.queue_length()), color)
 		_add_stats_cell(str(station.longest_queue()), color)
@@ -241,6 +247,9 @@ func _update_station_panel() -> void:
 			lines.append("Queue: %d waiting · %d being served" % [station.queue.size(), station.busyness() - station.queue.size()])
 	elif role == BuildingType.Role.GATE and station != null:
 		lines.append("Waiting at the gate: %d" % station.waiting.size())
+	elif role == BuildingType.Role.SHOP and station != null:
+		lines.append("Customers inside: %d / %d" % [station.waiting.size(), building.type.customer_capacity])
+		lines.append("Airport income (5 min): %s" % Economy.format(station.income_in_window(Airport.passenger_flow.time)))
 	lines.append("Running cost: %s/min" % Economy.format(building.running_cost_per_minute()))
 	if building.is_upgrading():
 		var seconds := ceili(building.upgrade_seconds_left)
