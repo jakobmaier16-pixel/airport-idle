@@ -40,7 +40,7 @@ func test_showcase_is_complete_and_busy() -> void:
 
 func test_new_export_replaces_map_with_showcase() -> void:
 	_use_test_save("abc1234 · old")
-	Airport.place_building(type_of(&"check_in"), Vector2i(5, 5), 0)
+	Airport.place_building(type_of(&"check_in"), Vector2i(20, 20), 0)
 	SaveGame.save_now()
 
 	SaveGame.build_stamp = "def5678 · new"
@@ -51,7 +51,7 @@ func test_new_export_replaces_map_with_showcase() -> void:
 	check_eq(Airport.buildings.size(), SHOWCASE_BUILDINGS, "showcase replaced the map")
 
 	# Next start of the same export: keep what the player built since.
-	Airport.place_building(type_of(&"check_in"), Vector2i(2, 2), 0)
+	Airport.place_building(type_of(&"check_in"), Vector2i(12, 12), 0)
 	SaveGame.save_now()
 	Airport.reset()
 	SaveGame.load_game()
@@ -62,7 +62,7 @@ func test_new_export_replaces_map_with_showcase() -> void:
 
 func test_editor_runs_never_replace_the_map() -> void:
 	_use_test_save(BuildStamp.DEV)
-	Airport.place_building(type_of(&"check_in"), Vector2i(5, 5), 0)
+	Airport.place_building(type_of(&"check_in"), Vector2i(20, 20), 0)
 	SaveGame.save_now()
 	Airport.reset()
 	SaveGame.load_game()

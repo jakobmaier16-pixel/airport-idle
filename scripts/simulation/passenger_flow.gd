@@ -256,7 +256,9 @@ func board(flight: Flight, max_count: int) -> int:
 	for passenger in boarding:
 		_finish_journey(passenger)
 	flight.boarded += boarding.size()
-	transferred_count += boarding.filter(func(p: Passenger) -> bool: return p.is_transfer).size()
+	var transfers := boarding.filter(func(p: Passenger) -> bool: return p.is_transfer).size()
+	transferred_count += transfers
+	Airport.progression.transfers += transfers
 	return boarding.size()
 
 
@@ -317,6 +319,8 @@ func _connecting_flight(inbound: Flight) -> Flight:
 	if not transfers_possible:
 		return null
 	var share: float = FlightSchedule.TRANSFER_SHARES.get(inbound.route, 0.0)
+	if Airport.progression.tier == Progression.Tier.HUB:
+		share *= Progression.HUB_TRANSFER_FACTOR
 	if transfer_share_override >= 0.0:
 		share = transfer_share_override
 	if _rng.randf() >= share:
@@ -477,6 +481,7 @@ func _arrive(passenger: Passenger) -> void:
 		# Out of the airport: the arrival is complete (design doc §8.8).
 		passenger.state = Passenger.State.GONE
 		arrived_count += 1
+		Airport.progression.passengers += 1
 		_finish_journey(passenger)
 		Airport.economy.earn(Economy.ARRIVAL_FEE)
 		return

@@ -45,6 +45,15 @@ func _ready() -> void:
 	await _shot("build_view")
 	await show_whole_map()
 	await _shot("build_view_whole_map")
+	# A regional airport only owns the middle of the map (design doc §14.1).
+	Airport.progression.tier = Progression.Tier.REGIONAL
+	Airport.land_changed.emit()
+	await _shot("build_view_regional_land")
+	Airport.progression.tier = Progression.Tier.NATIONAL
+	Airport.land_changed.emit()
+	hud().show_milestone("National airport!", Progression.REWARDS[Progression.Tier.NATIONAL])
+	await _shot("milestone")
+	hud().get_node("SafeArea/MilestonePanel").visible = false
 
 	build_camera().center_on(Airport.grid.cell_to_world(Vector2i(32, 30)))
 	await pick_building("Security")  # Security, in an invalid spot

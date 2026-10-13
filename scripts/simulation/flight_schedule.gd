@@ -193,6 +193,7 @@ func _advance(flight: Flight, now: float, delta: float, flow: PassengerFlow) -> 
 		# Doors close: whoever isn't on board has missed the flight.
 		flight.missed = flow.remove_flight_passengers(flight, true)
 		flow.departed_count += flight.boarded
+		Airport.progression.passengers += flight.boarded
 		# The airline pays per passenger (as agreed in its deal) and per flight (design doc §11.5).
 		Airport.economy.earn(flight.boarded * flight.fee_per_passenger + Economy.FLIGHT_FEE)
 		var missed_share := float(flight.missed) / maxi(flight.booked, 1)

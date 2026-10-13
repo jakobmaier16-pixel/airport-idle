@@ -10,7 +10,7 @@ func test_all_mvp_buildings_in_menu() -> void:
 		return row.get_children().filter(func(b: Node) -> bool: return not b.is_queued_for_deletion()).map(func(b: Node) -> String: return (b as Button).text)
 	check_eq(texts.call(), ["Terminal ›", "Airside ›", "Shops ›"], "categories")
 	await press(_menu_button(row, "Terminal ›"))
-	check_eq(texts.call(), ["‹", "Entrance", "Check-in", "Security", "Gate", "Baggage claim", "Transfer security"], "terminal buildings")
+	check_eq(texts.call(), ["‹", "Entrance", "Check-in", "Security", "Gate", "Baggage claim", "Transfer security (National)"], "terminal buildings (transfer security unlocks later)")
 	await press(_menu_button(row, "‹"))
 	await press(_menu_button(row, "Shops ›"))
 	check_eq(texts.call(), ["‹", "Shop", "Café"], "shops")

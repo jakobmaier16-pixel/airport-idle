@@ -19,6 +19,10 @@ uniform vec2 map_size = vec2(128.0);
 // One pixel per cell: red = 1.0 means airside, green = 1.0 means walkway.
 // "filter_nearest" keeps cell edges sharp.
 uniform sampler2D zone_map : filter_nearest, repeat_disable;
+// Land the airport owns (world XZ: min x, min z, max x, max z). Outside it is shaded darker
+// (design doc §14.1).
+uniform vec4 owned_rect = vec4(-1.0e6, -1.0e6, 1.0e6, 1.0e6);
+uniform float not_owned_brightness = 0.6;
 
 varying vec3 world_position;
 
@@ -41,6 +45,13 @@ void fragment() {
 	vec3 lines = mix(line_color.rgb, airside_line_color.rgb, airside);
 	ground = mix(ground, mix(landside_floor_color.rgb, airside_floor_color.rgb, airside), walkway);
 	lines = mix(lines, floor_line_color.rgb, walkway);
-	ALBEDO = mix(ground, lines, line);
+	vec3 color = mix(ground, lines, line);
+	bool owned = world_position.x >= owned_rect.x && world_position.z >= owned_rect.y
+		&& world_position.x <= owned_rect.z && world_position.z <= owned_rect.w;
+	if (!owned) {
+		float gray = dot(color, vec3(0.3, 0.59, 0.11));
+		color = mix(color, vec3(gray), 0.5) * not_owned_brightness;
+	}
+	ALBEDO = color;
 	ROUGHNESS = 1.0;
 }

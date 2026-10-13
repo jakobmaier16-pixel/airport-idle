@@ -11,6 +11,8 @@ signal building_upgraded(building: Building)
 signal restructured(sold: PackedStringArray)
 ## Someone was hired or dismissed at `building` (design doc §9.1).
 signal staff_changed(building: Building)
+## The land the airport owns changed (a new tier, design doc §14.1).
+signal land_changed
 ## A building was demolished (design doc §7.6). Sent before layout_changed.
 signal building_removed(building: Building)
 signal zones_changed
@@ -49,6 +51,8 @@ var economy: Economy = Economy.new()
 ## Signed airlines and their offers (design doc §10.1). Kept for the whole game (reset, not
 ## replaced), so the HUD's signal connections stay valid.
 var airlines: Airlines = Airlines.new()
+## Airport tiers and lifetime passenger counts (design doc §14.1). Reset, not replaced.
+var progression: Progression = Progression.new()
 ## Star rating from satisfaction and punctuality (design doc §11.7).
 var reputation: Reputation = Reputation.new()
 ## Everyone working at the airport (design doc §9.1).
@@ -71,6 +75,7 @@ var _zone_locks: Dictionary[Vector2i, int] = {}
 
 func _ready() -> void:
 	layout_changed.connect(_on_layout_changed)
+	progression.tier_reached.connect(_on_tier_reached)
 	_on_layout_changed()
 
 
@@ -91,12 +96,29 @@ func step(delta: float) -> void:
 	economy.tick(delta, _running_cost_per_minute)
 	reputation.tick(delta)
 	airlines.tick(delta, stars(), not passenger_flow.usable_gates().is_empty())
+	progression.check(stars())
 	_check_loan(delta)
 	for building in buildings:
 		if building.is_upgrading():
 			building.upgrade_seconds_left -= delta
 			if building.upgrade_seconds_left <= 0.0:
 				_finish_upgrade(building)
+
+
+# --- Airport tiers (design doc §14.1) ---
+
+## True if the airport owns `cell` (land can be built on and painted).
+func owns_cell(cell: Vector2i) -> bool:
+	return progression.owned_land(grid.size).has_point(cell)
+
+
+func _on_tier_reached(tier: Progression.Tier) -> void:
+	land_changed.emit()
+	match tier:
+		Progression.Tier.NATIONAL:
+			airlines.offer_from(&"norvane")
+		Progression.Tier.HUB:
+			airlines.offer_from(&"corvista")
 
 
 # --- Manager on the spot (design doc §15.1) ---
@@ -328,13 +350,18 @@ func staff_fully(building: Building) -> void:
 
 
 ## Why a building can't go here, as a short hint for the player, or "" if it can.
-## `check_money` is false when restoring a save (the building was paid for back then).
+## `check_money` is false when restoring a save (the building was paid for back then, and
+## land and tier rules applied when it was built).
 func check_placement(type: BuildingType, origin_cell: Vector2i, rotation_steps: int, check_money: bool = true) -> String:
 	for cell in Building.footprint_cells(type.footprint, origin_cell, rotation_steps):
 		if not grid.is_inside(cell):
 			return "Outside the map"
 		if not grid.is_empty(cell):
 			return "Space is taken"
+		if check_money and not owns_cell(cell):
+			return "Not your land yet (%s airport)" % progression.name_of(Progression.Tier.NATIONAL)
+	if check_money and type.unlocked_at > progression.tier:
+		return "Unlocked at %s airport" % progression.name_of(type.unlocked_at as Progression.Tier)
 	var requirements := Building.zone_requirements(type, origin_cell, rotation_steps)
 	for cell in requirements:
 		if not grid.is_inside(cell) or grid.get_zone(cell) != requirements[cell]:
@@ -405,7 +432,7 @@ func paint_zone(cells: Array[Vector2i], zone: AirportGrid.Zone) -> int:
 	var blocked := 0
 	var changed := false
 	for cell in cells:
-		if not grid.is_inside(cell) or grid.get_zone(cell) == zone:
+		if not grid.is_inside(cell) or grid.get_zone(cell) == zone or not owns_cell(cell):
 			continue
 		if _zone_locks.has(cell) and _zone_locks[cell] != zone:
 			blocked += 1
@@ -424,7 +451,7 @@ func paint_zone(cells: Array[Vector2i], zone: AirportGrid.Zone) -> int:
 func paint_walkway(cells: Array[Vector2i], walkway: bool) -> String:
 	var changing: Array[Vector2i] = []
 	for cell in cells:
-		if grid.is_inside(cell) and grid.is_walkway(cell) != walkway:
+		if grid.is_inside(cell) and grid.is_walkway(cell) != walkway and owns_cell(cell):
 			changing.append(cell)
 	if changing.is_empty():
 		return ""
@@ -466,6 +493,8 @@ func reset() -> void:
 	economy = Economy.new()
 	reputation = Reputation.new()
 	airlines.reset()
+	progression.reset()
+	land_changed.emit()
 	manager_position = NOBODY_THERE
 	_on_layout_changed()
 
@@ -499,6 +528,7 @@ func save_state() -> Dictionary:
 		"satisfaction": passenger_flow.satisfaction.save_state(),
 		"reputation": reputation.save_state(),
 		"airlines": airlines.save_state(),
+		"progression": progression.save_state(),
 		"buildings": saved_buildings,
 	}
 
@@ -513,6 +543,8 @@ func load_state(data: Dictionary) -> int:
 	if saved_size.size() == 2 and Vector2i(int(saved_size[0]), int(saved_size[1])) == grid.size:
 		grid.set_zone_data(Marshalls.base64_to_raw(data.get("zones", "")))
 		grid.set_walkway_data(Marshalls.base64_to_raw(data.get("walkways", "")))
+	progression.load_state(data.get("progression", {}))
+	land_changed.emit()
 	var skipped := 0
 	_loading = true
 	# Saved building index -> loaded building (null if it was skipped).

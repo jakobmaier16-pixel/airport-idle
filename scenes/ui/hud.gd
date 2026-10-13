@@ -56,6 +56,8 @@ var _notice_left: float = 0.0
 @onready var _bottleneck_label: Label = $SafeArea/StatsPanel/Content/BottleneckLabel
 @onready var _types_label: Label = $SafeArea/StatsPanel/Content/TypesLabel
 @onready var _satisfaction_label: Label = $SafeArea/StatsPanel/Content/SatisfactionLabel
+@onready var _progress_label: Label = $SafeArea/StatsPanel/Content/ProgressLabel
+@onready var _milestone_panel: Control = $SafeArea/MilestonePanel
 @onready var _build_menu: Control = $SafeArea/BuildMenu
 @onready var _building_buttons: HBoxContainer = $SafeArea/BuildMenu/BuildingButtons
 @onready var _tool_panel: Control = $SafeArea/ToolPanel
@@ -112,6 +114,7 @@ func _ready() -> void:
 	$SafeArea/StationPanel/Content/CloseButton.pressed.connect(hide_station)
 	_stats_button.pressed.connect(func() -> void: hide_stats() if _stats_panel.visible else show_stats())
 	$SafeArea/StatsPanel/Content/CloseButton.pressed.connect(hide_stats)
+	$SafeArea/MilestonePanel/Content/OkButton.pressed.connect(func() -> void: _milestone_panel.visible = false)
 	_airlines_button.pressed.connect(func() -> void: hide_airlines() if airlines_panel.visible else show_airlines())
 	_update_visibility()
 	_show_build_info()
@@ -204,7 +207,11 @@ func show_build_category(category: String) -> void:
 	_add_menu_button("‹", show_build_category.bind(""))
 	for type in _building_types:
 		if type.category == category:
-			_add_menu_button(type.display_name, building_type_selected.emit.bind(type))
+			var label := type.display_name
+			if type.unlocked_at > Airport.progression.tier:
+				# Still pickable: the preview explains when it unlocks.
+				label += " (%s)" % Airport.progression.name_of(type.unlocked_at as Progression.Tier)
+			_add_menu_button(label, building_type_selected.emit.bind(type))
 
 
 func _add_menu_button(text: String, action: Callable) -> void:
@@ -247,11 +254,25 @@ func notice_text() -> String:
 	return _notice_label.text if _notice_panel.visible else ""
 
 
+## The milestone moment (design doc §14.1): a big panel naming the new tier and its rewards.
+func show_milestone(title: String, rewards: String) -> void:
+	hide_station()
+	hide_stats()
+	hide_airlines()
+	$SafeArea/MilestonePanel/Content/TitleLabel.text = title
+	$SafeArea/MilestonePanel/Content/RewardsLabel.text = rewards
+	_milestone_panel.visible = true
+
+
+func is_milestone_open() -> bool:
+	return _milestone_panel.visible
+
+
 ## Star rating and what it is made of, under the money (design doc §11.7).
-func set_rating(stars: float, satisfaction_percent: float, on_time_rate: float) -> void:
+func set_rating(stars: float, satisfaction_percent: float, on_time_rate: float, tier_name: String) -> void:
 	_stars.value = stars
-	_rating_label.text = "%.1f   ·   Satisfaction %d %%   ·   On time %d %%" % [
-		Reputation.shown_stars(stars), roundi(satisfaction_percent), roundi(on_time_rate * 100.0)]
+	_rating_label.text = "%.1f   ·   %s airport   ·   Satisfaction %d %%   ·   On time %d %%" % [
+		Reputation.shown_stars(stars), tier_name, roundi(satisfaction_percent), roundi(on_time_rate * 100.0)]
 
 
 ## Passenger status line in the top left (both views).
@@ -341,6 +362,7 @@ func _update_stats_panel() -> void:
 	_types_label.text = "In the airport: " + "  ·  ".join(parts) \
 		+ "\nTransfers: %d transferring now  ·  %d connected" % [flow.transferring_count(), flow.transferred_count]
 	_satisfaction_label.text = satisfaction_text(flow.satisfaction)
+	_progress_label.text = Airport.progression.progress_text(Airport.stars())
 	if bottleneck != null:
 		_bottleneck_label.text = "Bottleneck: %s · avg wait %d s" % [
 			flow.station_label(bottleneck.building), roundi(bottleneck.average_wait(flow.time))]

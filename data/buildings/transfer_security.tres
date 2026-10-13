@@ -22,6 +22,7 @@ zone_rule = 1
 is_solid = true
 front_access = 1
 back_access = 1
+unlocked_at = 1
 role = 8
 build_cost = 4000.0
 running_cost_per_minute = 8.0

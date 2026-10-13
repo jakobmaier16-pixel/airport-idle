@@ -457,7 +457,7 @@ This is a core tool, not an extra: the player's thinking happens here.
 
 ## 14. Progression & Milestones
 
-- **Airport tiers** might be something like regional → national → international → hub **(open)**.
+- **Airport tiers:** Regional → National → International → Hub (decided 2026-10-13, details §14.1).
 - Reaching a milestone should feel **special**, not a standard multiplier. Reward types we want (all of them):
   - **New mechanic** unlocks (night flights, cargo, long-haul, a second terminal)
   - **New land** to expand into
@@ -465,6 +465,22 @@ This is a core tool, not an extra: the player's thinking happens here.
   - **Special events** (first wide-body jet, VIP or state visit)
 - One airport for the whole game. More airports: maybe later, not now.
 - **No playtime limit.**
+
+
+### 14.1 Airport tiers (first version)
+Decided 2026-10-13 (closes §19 Q3 and Q4 for now). Placeholder numbers, tunable.
+- **Passengers** = departing passengers (including transfers) plus arriving passengers who left the airport, counted over the whole game.
+
+  | Tier | Reached with | Rewards |
+  |---|---|---|
+  | **Regional** | start | 48 × 48 cells of land in the middle of the map; every basic building |
+  | **National** | 2,000 passengers and 3 ★ | **new land** (the whole 64 × 64 map), **transfer security** (connections, §8.9), and a major airline (Norvane Airways) makes an offer at once |
+  | **International** | 10,000 passengers and 3½ ★ | **long-haul flights**: a wide-body stand and long-haul airlines with big planes (§10.2) |
+  | **Hub** | 40,000 passengers, 4 ★ and 1,000 transfers | **hub status**: airlines route twice as many connections through the airport, and a premium airline (Corvista Airlines) makes an offer |
+
+- Reaching a tier is a **milestone moment**: a big panel names the new tier and lists what it unlocked ("Let's build!").
+- Land the airport doesn't own yet is shaded darker; nothing can be built or painted there ("Unlocked at National airport"). Buildings already standing there (old saves) stay.
+- The tier is shown next to the star rating; the statistics panel shows the progress towards the next tier.
 
 ---
 

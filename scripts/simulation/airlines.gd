@@ -116,6 +116,19 @@ func make_offer(stars: float) -> AirlineOffer:
 	return offer
 
 
+## A special offer from one airline (a milestone reward, design doc §14.1), whatever the rating.
+## Returns null if that airline already flies here or has an open offer.
+func offer_from(id: StringName) -> AirlineOffer:
+	var type := CATALOG.find(id)
+	if type == null or find_signed(type) != null or _find_offer(type) != null:
+		return null
+	_cooldowns.erase(id)
+	var offer := AirlineOffer.new(type, type.flights_max, type.expected_fee)
+	offers.append(offer)
+	offer_arrived.emit(offer)
+	return offer
+
+
 ## The airline that gets the next free gate slot (the one owed the most flights), or null.
 func next_airline() -> Airline:
 	var best: Airline = null

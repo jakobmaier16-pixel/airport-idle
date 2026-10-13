@@ -31,8 +31,20 @@ func _ready() -> void:
 	_zone_texture = ImageTexture.create_from_image(_zone_image)
 	_material.set_shader_parameter(&"zone_map", _zone_texture)
 	_update_cells()
+	_update_land()
+	Airport.land_changed.connect(_update_land)
 	Airport.zones_changed.connect(_update_cells)
 	Airport.walkways_changed.connect(_update_cells)
+
+
+# Shades land the airport doesn't own yet (design doc §14.1).
+func _update_land() -> void:
+	var grid := Airport.grid
+	var land := Airport.progression.owned_land(grid.size)
+	var corner := Vector2(grid.origin.x, grid.origin.z)
+	var from := corner + Vector2(land.position) * grid.cell_size
+	var to := corner + Vector2(land.end) * grid.cell_size
+	_material.set_shader_parameter(&"owned_rect", Vector4(from.x, from.y, to.x, to.y))
 
 
 func _update_cells() -> void:

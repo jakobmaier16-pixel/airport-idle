@@ -16,12 +16,12 @@ func test_price_shown_while_placing() -> void:
 	await open_build_view()
 	await pick_building("Security")  # Security
 	var hint := (ui("ToolPanel/HintLabel") as Label).text
-	build_mode()._set_preview_origin(Vector2i(5, 5))
+	build_mode()._set_preview_origin(Vector2i(20, 20))
 	hint = (ui("ToolPanel/HintLabel") as Label).text
 	check(hint.contains("€") or hint.begins_with("Front must"), "hint names the price or the problem: '%s'" % hint)
 	await press(ui("ToolPanel/ToolBar/CancelButton"))
 	await pick_building("Check-in")  # Check-in on landside: allowed
-	build_mode()._set_preview_origin(Vector2i(5, 5))
+	build_mode()._set_preview_origin(Vector2i(20, 20))
 	hint = (ui("ToolPanel/HintLabel") as Label).text
 	check(hint.ends_with("€3,000"), "valid spot shows the price: '%s'" % hint)
 

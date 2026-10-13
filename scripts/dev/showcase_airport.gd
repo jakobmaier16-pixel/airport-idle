@@ -14,6 +14,12 @@ static func build(warm_up_seconds: float = 180.0) -> void:
 	# Build on an unlimited test budget, so nothing in the showcase fails for lack of money.
 	# The player gets the normal starting money at the end.
 	Airport.economy.balance = 1.0e9
+	# A National airport (design doc §14.1): the whole map and transfer security are unlocked,
+	# and it is on its way to International.
+	Airport.progression.tier = Progression.Tier.NATIONAL
+	Airport.progression.passengers = 6000
+	Airport.progression.transfers = 150
+	Airport.land_changed.emit()
 
 	# Zones: landside in the north, airside in the south (security sits on the border).
 	Airport.paint_zone(_cells(Vector2i(8, 31), Vector2i(49, 25)), AirportGrid.Zone.AIRSIDE)

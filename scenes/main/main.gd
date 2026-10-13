@@ -45,6 +45,7 @@ func _ready() -> void:
 			Airport.dismiss(building))
 	TouchGestures.tapped.connect(_on_tapped)
 	Airport.restructured.connect(_on_restructured)
+	Airport.progression.tier_reached.connect(_on_tier_reached)
 	Airport.airlines.offer_arrived.connect(_on_offer_arrived)
 	Airport.airlines.airline_unhappy.connect(_on_airline_unhappy)
 	Airport.airlines.airline_left.connect(_on_airline_left)
@@ -71,7 +72,8 @@ func _process(_delta: float) -> void:
 	_hud.set_money(Airport.economy.balance, Airport.economy.profit_per_minute())
 	var economy := Airport.economy
 	_hud.set_loan(economy.debt(), economy.interest_per_minute(), Airport.credit_limit(), Airport.restructure_in())
-	_hud.set_rating(Airport.stars(), Airport.passenger_flow.satisfaction.average, Airport.reputation.on_time_rate)
+	_hud.set_rating(Airport.stars(), Airport.passenger_flow.satisfaction.average, Airport.reputation.on_time_rate,
+		Airport.progression.name_of(Airport.progression.tier))
 	_hud.set_status(Airport.passenger_flow.status_text())
 	_hud.set_departures(Airport.passenger_flow.departures_text())
 
@@ -79,6 +81,12 @@ func _process(_delta: float) -> void:
 func _on_restructured(sold: PackedStringArray) -> void:
 	var what := "Sold: %s." % ", ".join(sold) if not sold.is_empty() else "Nothing was left to sell."
 	_hud.notify("The bank restructured your airport to cover the debt. %s The rest was written off. Reputation −1 star." % what)
+
+
+func _on_tier_reached(tier: Progression.Tier) -> void:
+	_hud.show_milestone("%s airport!" % Airport.progression.name_of(tier), Progression.REWARDS[tier])
+	# Newly unlocked buildings lose their "(National)" note.
+	_hud.setup_build_menu(Airport.CATALOG.types)
 
 
 func _on_offer_arrived(offer: AirlineOffer) -> void:
