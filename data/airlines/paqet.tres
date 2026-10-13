@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="AirlineType" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/airline_type.gd" id="1_type"]
+
+[resource]
+script = ExtResource("1_type")
+id = &"paqet"
+display_name = "Paqet Air Cargo"
+code = "PQ"
+route = "Cargo"
+color = Color(0.85, 0.45, 0.1, 1)
+expected_fee = 20.0
+flights_min = 6
+flights_max = 10
+min_stars = 2.5
+min_tier = 1
+cargo = true
+likes = 0
+dislikes = 1
+pitch = "Boxes in, boxes out, on time. Give us handlers and a fair rate per tonne."

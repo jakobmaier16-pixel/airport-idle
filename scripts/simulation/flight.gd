@@ -18,6 +18,10 @@ var number: String
 var airline: Airline = null
 ## A wide-body (long-haul) plane (design doc §10.2).
 var wide_body: bool = false
+## A freighter (design doc §10.3): no passengers, `tonnes` of freight to unload and load.
+var cargo: bool = false
+var tonnes: float = 0.0
+var tonnes_handled: float = 0.0
 ## What the airline pays per departing passenger.
 var fee_per_passenger: float = Economy.PASSENGER_FEE
 ## Route type, e.g. "Holiday" (sets the passenger mix, design doc §8.7).
@@ -29,6 +33,9 @@ var departure_time: float
 ## Seconds the flight is late in total: waiting for passengers who were already airside
 ## (design doc §11.7), weather and knock-on delays (§12.2).
 var delay: float = 0.0
+## Seconds the plane landed late without delaying the departure: the time at the stand absorbs it
+## (turnaround buffer, design doc §7.5a).
+var arrival_delay: float = 0.0
 ## The part of `delay` caused by weather (doesn't count against the airport).
 var weather_delay: float = 0.0
 ## Seconds of de-icing done (snow, design doc §12.2).

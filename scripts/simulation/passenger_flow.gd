@@ -83,6 +83,7 @@ var _route_entrances: Array[Building] = []
 # Car parks connected to the passenger route (design doc §11.8).
 var _route_car_parks: Array[Building] = []
 var _usable_gates: Array[Building] = []
+var _usable_cargo_terminals: Array[Building] = []
 var _sample_timer: float = 0.0
 var _rng: RandomNumberGenerator = RandomNumberGenerator.new()
 
@@ -110,8 +111,9 @@ func departures_text(max_lines: int = 4) -> String:
 		var status: String = phase_names[flight.phase]
 		if flight.delay > 0.0 and flight.phase == Flight.Phase.BOARDING:
 			status = "Delayed"
-		lines.append("%s   Gate %d   %s   %s   %d:%02d" % [
-			flight.number, gate_number(flight.gate), flight.route, status, seconds / 60, seconds % 60])
+		var where := "Cargo" if flight.cargo else "Gate %d" % gate_number(flight.gate)
+		lines.append("%s   %s   %s   %s   %d:%02d" % [
+			flight.number, where, "Freighter" if flight.cargo else flight.route, status, seconds / 60, seconds % 60])
 	return "\n".join(lines)
 
 
@@ -318,7 +320,7 @@ func deplane_passenger(flight: Flight, type: PassengerType) -> bool:
 	passenger.is_arriving = true
 	passenger.has_bag = _rng.randf() < type.checked_bag_chance
 	passenger.by_car = _rng.randf() < CAR_SHARE
-	var parked_at := flight.departs_at() - (FlightSchedule.PLANE_ARRIVES - FlightSchedule.TAXI_TIME)
+	var parked_at := flight.departs_at() + flight.arrival_delay - (FlightSchedule.PLANE_ARRIVES - FlightSchedule.TAXI_TIME)
 	passenger.bag_ready_at = parked_at + _rng.randf_range(FlightSchedule.BAGS_FROM, FlightSchedule.BAGS_UNTIL)
 	passenger.offset = Vector3(_rng.randf_range(-MAX_OFFSET, MAX_OFFSET), 0.0, _rng.randf_range(-MAX_OFFSET, MAX_OFFSET))
 	passenger.color_index = _rng.randi() % COLOR_COUNT
@@ -349,7 +351,7 @@ func _connecting_flight(inbound: Flight) -> Flight:
 	if _rng.randf() >= share:
 		return null
 	var options := schedule.flights.filter(func(f: Flight) -> bool:
-		return f != inbound and f.is_active() and f.departure_time >= time + FlightSchedule.MIN_CONNECTION)
+		return f != inbound and not f.cargo and f.is_active() and f.departure_time >= time + FlightSchedule.MIN_CONNECTION)
 	return options[_rng.randi() % options.size()] if not options.is_empty() else null
 
 
@@ -875,6 +877,17 @@ func _cell_point(cell: Vector2i, passenger: Passenger) -> Vector3:
 func _update_route() -> void:
 	_check_route()
 	_usable_gates = _find_usable_gates()
+	# Cargo doesn't need the passenger route (design doc §10.3): a connected stand and handlers.
+	_usable_cargo_terminals.clear()
+	for building in Airport.buildings:
+		if building.type.role == Role.CARGO_TERMINAL and not Airport.staff_at(building).is_empty() \
+				and Airport.connection_problem(building.type, building.origin_cell, building.rotation_steps).is_empty():
+			_usable_cargo_terminals.append(building)
+
+
+## Cargo terminals that can have flights right now (cached like usable_gates()).
+func usable_cargo_terminals() -> Array[Building]:
+	return _usable_cargo_terminals
 
 
 # Checks, step by step like a passenger, whether Entrance -> Check-in -> Security -> Gate works.

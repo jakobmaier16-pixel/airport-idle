@@ -12,7 +12,9 @@
 [ext_resource type="Resource" path="res://data/airlines/corvista.tres" id="9_corvista"]
 [ext_resource type="Resource" path="res://data/airlines/orynth.tres" id="10_orynth"]
 [ext_resource type="Resource" path="res://data/airlines/valtair.tres" id="11_valtair"]
+[ext_resource type="Resource" path="res://data/airlines/paqet.tres" id="12_paqet"]
+[ext_resource type="Resource" path="res://data/airlines/trevan.tres" id="13_trevan"]
 
 [resource]
 script = ExtResource("1_catalog")
-types = Array[ExtResource("1_type")]([ExtResource("2_velora"), ExtResource("3_zippa"), ExtResource("4_budjet"), ExtResource("5_sunkiss"), ExtResource("6_lagoona"), ExtResource("7_brisk"), ExtResource("8_norvane"), ExtResource("9_corvista"), ExtResource("10_orynth"), ExtResource("11_valtair")])
+types = Array[ExtResource("1_type")]([ExtResource("2_velora"), ExtResource("3_zippa"), ExtResource("4_budjet"), ExtResource("5_sunkiss"), ExtResource("6_lagoona"), ExtResource("7_brisk"), ExtResource("8_norvane"), ExtResource("9_corvista"), ExtResource("10_orynth"), ExtResource("11_valtair"), ExtResource("12_paqet"), ExtResource("13_trevan")])

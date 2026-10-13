@@ -21,7 +21,7 @@ enum Access {
 
 ## What the building does in the passenger flow (design doc §8.4).
 ## New roles go at the end: saves and .tres files store the number.
-enum Role { NONE, ENTRANCE, CHECK_IN, SECURITY, GATE, AIRCRAFT_STAND, SHOP, BAGGAGE_CLAIM, TRANSFER_SECURITY, CAR_PARK, LOUNGE, RUNWAY }
+enum Role { NONE, ENTRANCE, CHECK_IN, SECURITY, GATE, AIRCRAFT_STAND, SHOP, BAGGAGE_CLAIM, TRANSFER_SECURITY, CAR_PARK, LOUNGE, RUNWAY, CARGO_TERMINAL }
 
 ## Stable internal name, used for save games. Never change it once players have saves.
 @export var id: StringName

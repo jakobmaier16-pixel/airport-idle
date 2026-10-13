@@ -23,7 +23,7 @@ static func build(warm_up_seconds: float = 180.0) -> void:
 
 	# Zones: landside in the north, airside in the south (security sits on the border), down to the
 	# runway every airport starts with (design doc §7.5a).
-	Airport.paint_zone(_cells(Vector2i(8, 31), Vector2i(49, 26)), AirportGrid.Zone.AIRSIDE)
+	Airport.paint_zone(_cells(Vector2i(8, 31), Vector2i(54, 26)), AirportGrid.Zone.AIRSIDE)
 
 	# Walkways: a landside hall and an airside walkway along the gates.
 	Airport.paint_walkway(_cells(Vector2i(18, 21), Vector2i(28, 7)), true)
@@ -41,8 +41,11 @@ static func build(warm_up_seconds: float = 180.0) -> void:
 	# Long-haul (§10.2): gate 3 in the middle with a wide-body stand behind it.
 	Airport.place_building(catalog.find(&"gate"), Vector2i(27, 34), 0)
 	Airport.place_building(catalog.find(&"wide_body_stand"), Vector2i(22, 39), 0)
-	# De-icing pad for snowy days (§12.2), beside stand 2.
-	Airport.place_building(catalog.find(&"deicing_pad"), Vector2i(50, 39), 0)
+	# De-icing pad for snowy days (§12.2), east of the transfer corridor.
+	Airport.place_building(catalog.find(&"deicing_pad"), Vector2i(56, 31), 0)
+	# Cargo (§10.3): a cargo terminal with its own stand in the east, on the parallel taxiway.
+	Airport.place_building(catalog.find(&"cargo_terminal"), Vector2i(52, 38), 0)
+	Airport.place_building(catalog.find(&"aircraft_stand"), Vector2i(50, 43), 0)
 	# Taxiways (§7.5a): a parallel taxiway along the runway, and short links down from the stands.
 	Airport.paint_taxiway(_cells(Vector2i(8, 55), Vector2i(48, 2)), true)
 	Airport.paint_taxiway(_cells(Vector2i(15, 51), Vector2i(2, 4)), true)
@@ -77,6 +80,7 @@ static func build(warm_up_seconds: float = 180.0) -> void:
 	airlines.sign_deal(Airlines.CATALOG.find(&"zippa"), 16, 9.0)
 	airlines.sign_deal(Airlines.CATALOG.find(&"norvane"), 14, 20.0)
 	airlines.sign_deal(Airlines.CATALOG.find(&"orynth"), 10, 32.0)
+	airlines.sign_deal(Airlines.CATALOG.find(&"paqet"), 10, 20.0)
 	airlines.offers.append(AirlineOffer.new(Airlines.CATALOG.find(&"sunkiss"), 10, 13.0))
 
 	# Staff for every counter and lane, with a mix of new and experienced employees (§9.1).

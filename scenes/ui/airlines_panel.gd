@@ -116,8 +116,18 @@ func _refresh() -> void:
 func _update_list() -> void:
 	var airlines := Airport.airlines
 	var gates := Airport.passenger_flow.usable_gates().size()
-	_capacity_label.text = "Gate capacity: %d flights/h (%d gates)   ·   Signed: %d flights/h" % [
-		gates * _gate_flights_per_hour(), gates, airlines.signed_flights_per_hour()]
+	var terminals := Airport.passenger_flow.usable_cargo_terminals().size()
+	var cargo := 0
+	for airline in airlines.signed:
+		if airline.type.cargo:
+			cargo += airline.flights_per_hour
+	var text := "Gate capacity: %d flights/h (%d gates)" % [gates * _gate_flights_per_hour(), gates]
+	if terminals > 0 or cargo > 0:
+		text += ", cargo %d/h" % (terminals * _gate_flights_per_hour())
+	text += "   ·   Signed: %d flights/h" % (airlines.signed_flights_per_hour() - cargo)
+	if cargo > 0:
+		text += " + %d cargo" % cargo
+	_capacity_label.text = text
 
 	var key := ""
 	for airline in airlines.signed:

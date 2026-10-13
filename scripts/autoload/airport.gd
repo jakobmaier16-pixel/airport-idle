@@ -34,6 +34,7 @@ const SALARIES: Dictionary = {
 	BuildingType.Role.CHECK_IN: 8.0,
 	BuildingType.Role.SECURITY: 10.0,
 	BuildingType.Role.TRANSFER_SECURITY: 10.0,
+	BuildingType.Role.CARGO_TERMINAL: 9.0,
 }
 ## Fictional names for new employees.
 const FIRST_NAMES: Array[String] = [
@@ -109,7 +110,8 @@ func step(delta: float) -> void:
 	passenger_flow.tick(delta)
 	economy.tick(delta, _running_cost_per_minute - _salaries_per_minute, _salaries_per_minute)
 	reputation.tick(delta)
-	airlines.tick(delta, stars(), not passenger_flow.usable_gates().is_empty(), progression.tier)
+	var operating := not passenger_flow.usable_gates().is_empty() or not passenger_flow.usable_cargo_terminals().is_empty()
+	airlines.tick(delta, stars(), operating, progression.tier, has_cargo_terminal())
 	progression.check(stars())
 	_check_loan(delta)
 	_tick_incidents(delta)
@@ -305,6 +307,11 @@ func _next_to_sell() -> Building:
 ## The current season (design doc §12.2).
 func season() -> Weather.Season:
 	return Weather.season_of(clock.day())
+
+
+## True if a cargo terminal exists: cargo airlines make offers (design doc §10.3).
+func has_cargo_terminal() -> bool:
+	return buildings.any(func(b: Building) -> bool: return b.type.role == BuildingType.Role.CARGO_TERMINAL)
 
 
 ## True if a de-icing pad exists: de-icing in snow is much faster (design doc §12.2).

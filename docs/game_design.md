@@ -186,7 +186,8 @@ Placeholder numbers, tunable. Compressed like the rest of the airside.
 - **Runway** (Airside, 52 × 6 cells, €40,000 · €20/min): planes land on it and take off from it. **A new airport already has one** (the field came with it): along the south edge of the map, free, on land the airport owns from the start. More runways can be built later.
 - **Taxiways** are painted like walkways (build view: *Taxiway*, airside only, €30 per cell, €0.05/min): dark asphalt with a yellow centre line. **A stand only works if a taxiway connects one of its sides to a runway**; otherwise its gate gets no flights and the stand shows "Needs a taxiway to a runway". *Remove* clears walkways and taxiways.
 - **Planes follow the taxiways:** an arriving plane descends onto the runway, rolls out, turns onto the taxiway and taxis to its stand; a departing plane taxis back, rolls down the runway and climbs away.
-- **Runway capacity:** every landing and every take-off occupies a runway for 20 seconds (compressed); one runway handles 180 movements per hour (about 4 gates' worth). An arriving plane that finds its runway busy holds before landing — an arrival delay the airport caused, which also delays its next departure (the turnaround is fixed). A departing plane pushes back on time and, if the runway is busy, waits at the holding point; punctuality counts the push-back, as real statistics do. Busy airports need a second runway. Gates that open at the same time are spread 60 s apart so their movements interleave.
+- **Runway capacity:** every landing and every take-off occupies a runway for 20 seconds (compressed); one runway handles 180 movements per hour (about 4 gates' worth). An arriving plane that finds its runway busy holds before landing — an arrival delay the airport caused, which also delays its next departure (the turnaround is fixed). A departing plane pushes back on time and, if the runway is busy, waits at the holding point; punctuality counts the push-back, as real statistics do. Busy airports need a second runway.
+- **Turnaround buffer:** a plane may land up to 20 s late without delaying its departure (the time at the stand absorbs it); only longer waits push the departure back. Gates (and cargo terminals) that open at the same time share the 3-minute slot evenly so their runway movements interleave.
 - The regional airport's land (§14.1) reaches down to the runway, so the first taxiways can be painted.
 
 ### 7.6 Demolish and rebuild
@@ -405,6 +406,21 @@ Placeholder numbers, tunable. Unlocked at **International** (§14.1).
 - **Long-haul route:** 35 % families, 15 % low-cost, 50 % business; 30 % of arriving passengers connect (§8.9).
 - Reaching International brings an offer from Orynth Pacific at once.
 
+
+### 10.3 Cargo (first version)
+Placeholder numbers, tunable. Unlocked at **National** (§14.1).
+- **Cargo terminal** (Airside, 8 × 5, €12,000 · €15/min): a warehouse with an aircraft stand behind it, like a gate for freight. It needs **cargo handlers** (€9/min each, 4 places; upgrade +2 places €5,000) and its stand needs a taxiway to a runway.
+- **Cargo airlines** fly freighters to cargo terminals only (never to passenger gates). Each flight brings and takes 30–50 tonnes, which the handlers unload and load while the plane is parked: each handler moves 0.25 t per second (experience makes them faster, like all staff).
+- **Income:** the deal's fee per tonne handled, plus the landing fee. If the freight isn't handled by departure time the plane waits up to 60 s (the airport's delay); after that it leaves with what was loaded.
+- Cargo airlines (they only make offers once the airport has a cargo terminal):
+
+  | Airline | Expects | From | Likes | Dislikes |
+  |---|---|---|---|---|
+  | Paqet Air Cargo | €20/t | National, 2½ ★ | firm | friendly |
+  | Trevan Freight | €24/t | National, 3½ ★ | flexible | firm |
+
+- Freighters are grey with their airline's tail; the departures board shows them as "Cargo". Statistics list cargo income.
+
 ---
 
 ## 11. Economy
@@ -549,7 +565,7 @@ Decided 2026-10-13 (closes §19 Q3 and Q4 for now). Placeholder numbers, tunable
   | Tier | Reached with | Rewards |
   |---|---|---|
   | **Regional** | start | 48 columns of land in the middle of the map, from the north edge of the terminal area down to the runway; every basic building |
-  | **National** | 1,000 passengers and 3 ★ | **new land** (the whole 64 × 64 map), **transfer security** (connections, §8.9), and a major airline (Norvane Airways) makes an offer at once |
+  | **National** | 1,000 passengers and 3 ★ | **new land** (the whole 64 × 64 map), **transfer security** (connections, §8.9), **cargo** (§10.3), and a major airline (Norvane Airways) makes an offer at once |
   | **International** | 6,000 passengers and 3½ ★ | **long-haul flights**: a wide-body stand and long-haul airlines with big planes (§10.2) |
   | **Hub** | 25,000 passengers, 4 ★ and 600 transfers | **hub status**: airlines route twice as many connections through the airport, and a premium airline (Corvista Airlines) makes an offer |
 

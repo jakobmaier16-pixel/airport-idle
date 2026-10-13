@@ -25,6 +25,8 @@ enum Tone { FIRM, FRIENDLY, FLEXIBLE }
 @export var min_stars: float = 1.0
 ## Airport tier needed before they make an offer (Progression.Tier, design doc §14.1).
 @export_range(0, 3) var min_tier: int = 0
+## Flies freighters to cargo terminals; `expected_fee` is per tonne (design doc §10.3).
+@export var cargo: bool = false
 ## Flies wide-body planes: only gates with a wide-body stand can take them (design doc §10.2).
 @export var wide_body: bool = false
 

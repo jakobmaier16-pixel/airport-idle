@@ -522,6 +522,12 @@ func _update_station_panel() -> void:
 		lines.append("Waiting for bags: %d" % station.waiting.size())
 		var wait := station.average_wait(Airport.passenger_flow.time)
 		lines.append("Average time here (5 min): %s" % ("–" if wait < 0.0 else "%d s" % roundi(wait)))
+	elif role == BuildingType.Role.CARGO_TERMINAL:
+		# Cargo (design doc §10.3): handling speed and the freighter at the stand.
+		lines.append("Handling: %.1f t per second" % Airport.passenger_flow.schedule._handling_rate(building))
+		for flight in Airport.passenger_flow.schedule.flights:
+			if flight.gate == building and flight.phase >= Flight.Phase.AT_STAND:
+				lines.append("%s: %d / %d t handled" % [flight.number, roundi(flight.tonnes_handled), roundi(flight.tonnes)])
 	elif role == BuildingType.Role.CAR_PARK and station != null:
 		lines.append("Returning travellers pay %s each" % Economy.format(PassengerFlow.PARKING_FEE))
 		lines.append("Parking income (5 min): %s" % Economy.format(station.income_in_window(Airport.passenger_flow.time)))
@@ -535,7 +541,7 @@ func _update_station_panel() -> void:
 		for employee in working:
 			salaries += employee.salary_per_minute
 		lines.append("Running cost: %s/min + staff %s/min" % [Economy.format(building.running_cost_per_minute()), Economy.format(salaries)])
-		var unit := "counters" if role == BuildingType.Role.CHECK_IN else "lanes"
+		var unit := "counters" if role == BuildingType.Role.CHECK_IN else ("handler places" if role == BuildingType.Role.CARGO_TERMINAL else "lanes")
 		lines.append("Staff: %d / %d %s" % [working.size(), building.service_slots(), unit])
 		for employee in working.slice(0, 4):
 			lines.append("   %s · %s" % [employee.name, employee.level_name()])

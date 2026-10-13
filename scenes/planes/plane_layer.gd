@@ -28,6 +28,7 @@ func _process(_delta: float) -> void:
 				plane.tail_color = flight.airline.type.color
 			if flight.wide_body:
 				plane.size_factor = PlaneVisual.WIDE_BODY_SIZE
+			plane.cargo = flight.cargo
 			add_child(plane)
 			_planes[flight] = plane
 		_planes[flight].transform = pose
@@ -58,9 +59,13 @@ func _pose(flight: Flight, now: float) -> Variant:
 	var route := _route_for(flight.stand)
 	if route.is_empty():
 		return parked
-	if time_left > FlightSchedule.PLANE_ARRIVES - taxi:
+	# A plane that landed a little late (turnaround buffer) runs its arrival late.
+	var arrival_left := time_left + flight.arrival_delay
+	if arrival_left > FlightSchedule.PLANE_ARRIVES:
+		return null
+	if arrival_left > FlightSchedule.PLANE_ARRIVES - taxi:
 		# 0 at the start of the approach, 1 parked.
-		var progress := 1.0 - (time_left - (FlightSchedule.PLANE_ARRIVES - taxi)) / taxi
+		var progress := 1.0 - (arrival_left - (FlightSchedule.PLANE_ARRIVES - taxi)) / taxi
 		return _along(route, progress, parked, true)
 	if time_left < 0.0:
 		return _along(route, -time_left / taxi, parked, false)

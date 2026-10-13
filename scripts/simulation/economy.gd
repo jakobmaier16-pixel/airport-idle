@@ -37,11 +37,12 @@ const SHOPS: String = "Shops & cafés"
 const LOUNGE: String = "Lounge"
 const PARKING: String = "Parking"
 const FAST_TRACK: String = "Fast track"
+const CARGO: String = "Cargo"
 const RUNNING_COSTS: String = "Buildings & walkways"
 const SALARIES: String = "Salaries"
 const INTEREST: String = "Loan interest"
 ## Display order of the sources.
-const INCOME_SOURCES: Array[String] = [AIRLINE_FEES, ARRIVAL_FEES, SHOPS, LOUNGE, PARKING, FAST_TRACK]
+const INCOME_SOURCES: Array[String] = [AIRLINE_FEES, CARGO, ARRIVAL_FEES, SHOPS, LOUNGE, PARKING, FAST_TRACK]
 const COST_SOURCES: Array[String] = [RUNNING_COSTS, SALARIES, INTEREST]
 ## "Per minute" figures cover this many seconds.
 const WINDOW_SECONDS: int = 60

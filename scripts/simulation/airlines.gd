@@ -73,7 +73,7 @@ func reset() -> void:
 
 
 ## `operating` is false while no gate can have flights: airlines don't count flights as owed then.
-func tick(delta: float, stars: float, operating: bool, tier: int = 0) -> void:
+func tick(delta: float, stars: float, operating: bool, tier: int = 0, has_cargo_terminal: bool = false) -> void:
 	for airline in signed.duplicate():
 		if not operating:
 			continue
@@ -96,15 +96,18 @@ func tick(delta: float, stars: float, operating: bool, tier: int = 0) -> void:
 	_next_offer_in -= delta
 	if _next_offer_in <= 0.0:
 		_next_offer_in = rng.randf_range(OFFER_EVERY_MIN, OFFER_EVERY_MAX)
-		make_offer(stars, tier)
+		make_offer(stars, tier, has_cargo_terminal)
 
 
 ## A new offer from an airline that would fly here now, or null if none would (or too many are open).
-func make_offer(stars: float, tier: int = 0) -> AirlineOffer:
+## Cargo airlines only make offers once the airport has a cargo terminal (`has_cargo_terminal`).
+func make_offer(stars: float, tier: int = 0, has_cargo_terminal: bool = false) -> AirlineOffer:
 	if offers.size() >= MAX_OFFERS:
 		return null
 	var candidates: Array[AirlineType] = []
 	for type in CATALOG.types:
+		if type.cargo and not has_cargo_terminal:
+			continue
 		if stars >= type.min_stars and tier >= type.min_tier and find_signed(type) == null and _find_offer(type) == null and not _cooldowns.has(type.id):
 			candidates.append(type)
 	if candidates.is_empty():
@@ -131,9 +134,12 @@ func offer_from(id: StringName) -> AirlineOffer:
 
 ## The airline that gets the next free gate slot (the one owed the most flights), or null.
 ## Wide-body airlines only fit gates with a wide-body stand (`wide_stand`).
-func next_airline(wide_stand: bool = false) -> Airline:
+## Cargo terminals (`cargo_slot`) only take freighters, gates only passenger airlines (§10.3).
+func next_airline(wide_stand: bool = false, cargo_slot: bool = false) -> Airline:
 	var best: Airline = null
 	for airline in signed:
+		if airline.type.cargo != cargo_slot:
+			continue
 		if airline.type.wide_body and not wide_stand:
 			continue
 		# A wide-body stand goes to a wide-body airline first, if one is owed a flight.

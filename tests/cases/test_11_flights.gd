@@ -16,10 +16,11 @@ func test_one_flight_per_usable_gate() -> void:
 	ShowcaseAirport.build(0.0)
 	sim_seconds(1)
 	var flights := Airport.passenger_flow.schedule.flights
-	check_eq(flights.size(), 3, "one flight planned per gate")
+	check_eq(flights.size(), 4, "one flight planned per gate and cargo terminal")
 	check(flights[0].gate != flights[1].gate and flights[1].gate != flights[2].gate, "different gates")
 	check(flights.all(func(f: Flight) -> bool: return f.stand != null), "every flight has a stand")
-	check(is_equal_approx(_flight_at(2).departure_time - _flight_at(1).departure_time, FlightSchedule.GATE_STAGGER), "gates are staggered")
+	# Four slots open together (three gates, one cargo terminal): spread evenly over 3 minutes.
+	check(is_equal_approx(_flight_at(2).departure_time - _flight_at(1).departure_time, FlightSchedule.INTERVAL / 4.0), "gates are staggered")
 
 
 func test_three_minutes_between_departures() -> void:
@@ -106,7 +107,7 @@ func test_departures_board() -> void:
 	sim_seconds(1)
 	var text := Airport.passenger_flow.departures_text()
 	var lines := text.split("\n")
-	check_eq(lines.size(), 3, "one line per upcoming flight")
+	check_eq(lines.size(), 4, "one line per upcoming flight")
 	var columns := lines[0].split("   ")
 	var airline_codes := Airlines.CATALOG.types.map(func(t: AirlineType) -> String: return t.code)
 	check(columns[0].ends_with(" 101") and airline_codes.has(columns[0].left(2)), "flight number with airline code: '%s'" % columns[0])
@@ -116,7 +117,7 @@ func test_departures_board() -> void:
 	check(columns[4].begins_with("4:"), "time to departure: '%s'" % columns[4])
 	await start_game()
 	await frames(2)
-	check_eq((ui("InfoPanel/DeparturesLabel") as Label).text.split("\n").size(), 3, "board shown in the HUD")
+	check_eq((ui("InfoPanel/DeparturesLabel") as Label).text.split("\n").size(), 4, "board shown in the HUD")
 
 
 func test_plane_parks_nose_in_at_the_stand() -> void:

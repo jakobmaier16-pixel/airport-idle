@@ -8,6 +8,8 @@ const LENGTH: float = 21.0
 const FUSELAGE_RADIUS: float = 1.4
 const WINGSPAN: float = 21.0
 const BODY_COLOR: Color = Color(0.95, 0.96, 0.97)
+## Freighters are grey (design doc §10.3).
+const CARGO_BODY_COLOR: Color = Color(0.68, 0.7, 0.72)
 ## Tail color without an airline; with one, the airline's color (design doc §10.1).
 const TAIL_COLOR: Color = Color(0.1, 0.45, 0.65)
 const ENGINE_COLOR: Color = Color(0.55, 0.57, 0.6)
@@ -16,6 +18,8 @@ const WIDE_BODY_SIZE: float = 1.4
 
 ## Set before the plane enters the tree.
 var tail_color: Color = TAIL_COLOR
+## A freighter: grey body. Set before the plane enters the tree.
+var cargo: bool = false
 ## 1 for narrow-body planes; WIDE_BODY_SIZE for long-haul (design doc §10.2).
 var size_factor: float = 1.0
 
@@ -23,6 +27,7 @@ var _body: AnimatableBody3D
 
 # Shared by every plane, so many planes don't mean many materials.
 static var _body_material: StandardMaterial3D
+static var _cargo_body_material: StandardMaterial3D
 # One tail material per airline color.
 static var _tail_materials: Dictionary[Color, StandardMaterial3D] = {}
 static var _engine_material: StandardMaterial3D
@@ -31,7 +36,9 @@ static var _engine_material: StandardMaterial3D
 func _ready() -> void:
 	if _body_material == null:
 		_body_material = _material(BODY_COLOR)
+		_cargo_body_material = _material(CARGO_BODY_COLOR)
 		_engine_material = _material(ENGINE_COLOR)
+	var body_material := _cargo_body_material if cargo else _body_material
 	if not _tail_materials.has(tail_color):
 		_tail_materials[tail_color] = _material(tail_color)
 	# Every size is multiplied by k, so a wide-body plane is the same model, just bigger. (Scaling
@@ -51,7 +58,7 @@ func _ready() -> void:
 	fuselage.height = length
 	fuselage.radial_segments = 12
 	fuselage.rings = 2
-	_add(fuselage, _body_material, Vector3(0.0, body_height, 0.0), Vector3(PI * 0.5, 0.0, 0.0))
+	_add(fuselage, body_material, Vector3(0.0, body_height, 0.0), Vector3(PI * 0.5, 0.0, 0.0))
 	var fuselage_shape := CapsuleShape3D.new()
 	fuselage_shape.radius = radius
 	fuselage_shape.height = length
@@ -59,7 +66,7 @@ func _ready() -> void:
 
 	var wings := BoxMesh.new()
 	wings.size = Vector3(WINGSPAN, 0.3, 3.2) * k
-	_add(wings, _body_material, Vector3(0.0, body_height - 0.6 * k, 0.5 * k), Vector3.ZERO)
+	_add(wings, body_material, Vector3(0.0, body_height - 0.6 * k, 0.5 * k), Vector3.ZERO)
 	# One box covers the wings and the engines below them, from the ground up.
 	var wing_shape := BoxShape3D.new()
 	wing_shape.size = Vector3(WINGSPAN * k, body_height - 0.45 * k, 3.2 * k)
@@ -83,7 +90,7 @@ func _ready() -> void:
 
 	var stabilizer := BoxMesh.new()
 	stabilizer.size = Vector3(7.0, 0.25, 1.8) * k
-	_add(stabilizer, _body_material, Vector3(0.0, body_height + 0.4 * k, length * 0.5 - 1.4 * k), Vector3.ZERO)
+	_add(stabilizer, body_material, Vector3(0.0, body_height + 0.4 * k, length * 0.5 - 1.4 * k), Vector3.ZERO)
 	var tail_shape := BoxShape3D.new()
 	tail_shape.size = Vector3(7.0 * k, body_height + 0.5 * k, 1.8 * k)
 	_add_collision(tail_shape, Vector3(0.0, (body_height + 0.5 * k) * 0.5, length * 0.5 - 1.4 * k), Vector3.ZERO)
