@@ -26,6 +26,8 @@ func _process(_delta: float) -> void:
 			continue
 		if not _planes.has(flight):
 			var plane := PlaneVisual.new()
+			if flight.airline != null:
+				plane.tail_color = flight.airline.type.color
 			add_child(plane)
 			_planes[flight] = plane
 		_planes[flight].transform = pose

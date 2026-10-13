@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="AirlineCatalog" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/airline_catalog.gd" id="1_catalog"]
+[ext_resource type="Script" path="res://scripts/resources/airline_type.gd" id="1_type"]
+[ext_resource type="Resource" path="res://data/airlines/velora.tres" id="2_velora"]
+[ext_resource type="Resource" path="res://data/airlines/zippa.tres" id="3_zippa"]
+[ext_resource type="Resource" path="res://data/airlines/budjet.tres" id="4_budjet"]
+[ext_resource type="Resource" path="res://data/airlines/sunkiss.tres" id="5_sunkiss"]
+[ext_resource type="Resource" path="res://data/airlines/lagoona.tres" id="6_lagoona"]
+[ext_resource type="Resource" path="res://data/airlines/brisk.tres" id="7_brisk"]
+[ext_resource type="Resource" path="res://data/airlines/norvane.tres" id="8_norvane"]
+[ext_resource type="Resource" path="res://data/airlines/corvista.tres" id="9_corvista"]
+
+[resource]
+script = ExtResource("1_catalog")
+types = Array[ExtResource("1_type")]([ExtResource("2_velora"), ExtResource("3_zippa"), ExtResource("4_budjet"), ExtResource("5_sunkiss"), ExtResource("6_lagoona"), ExtResource("7_brisk"), ExtResource("8_norvane"), ExtResource("9_corvista")])

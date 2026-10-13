@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="AirlineType" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/airline_type.gd" id="1_type"]
+
+[resource]
+script = ExtResource("1_type")
+id = &"lagoona"
+display_name = "Lagoona Air"
+code = "LG"
+route = "Holiday"
+color = Color(0.1, 0.7, 0.65, 1)
+expected_fee = 14.0
+flights_min = 6
+flights_max = 10
+min_stars = 2.5
+likes = 2
+dislikes = 1
+pitch = "Beaches don't keep office hours, and neither do we. Can you handle changing schedules?"

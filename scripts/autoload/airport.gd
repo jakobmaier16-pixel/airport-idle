@@ -46,6 +46,9 @@ var grid: AirportGrid = AirportGrid.new(MAP_SIZE_CELLS, CELL_SIZE)
 var buildings: Array[Building] = []
 var passenger_flow: PassengerFlow = PassengerFlow.new()
 var economy: Economy = Economy.new()
+## Signed airlines and their offers (design doc §10.1). Kept for the whole game (reset, not
+## replaced), so the HUD's signal connections stay valid.
+var airlines: Airlines = Airlines.new()
 ## Star rating from satisfaction and punctuality (design doc §11.7).
 var reputation: Reputation = Reputation.new()
 ## Everyone working at the airport (design doc §9.1).
@@ -84,12 +87,31 @@ func step(delta: float) -> void:
 	passenger_flow.tick(delta)
 	economy.tick(delta, _running_cost_per_minute)
 	reputation.tick(delta)
+	airlines.tick(delta, stars(), not passenger_flow.usable_gates().is_empty())
 	_check_loan(delta)
 	for building in buildings:
 		if building.is_upgrading():
 			building.upgrade_seconds_left -= delta
 			if building.upgrade_seconds_left <= 0.0:
 				_finish_upgrade(building)
+
+
+# --- Airline deals (design doc §10.1): player commands from the Airlines panel ---
+
+func propose_airline_deal(offer: AirlineOffer, fee: float, flights: int, tone: AirlineType.Tone) -> Airlines.Answer:
+	return airlines.propose(offer, fee, flights, tone, stars())
+
+
+func accept_airline_counter(offer: AirlineOffer) -> Airline:
+	return airlines.accept_counter(offer)
+
+
+func decline_airline_offer(offer: AirlineOffer) -> void:
+	airlines.decline(offer)
+
+
+func end_airline_deal(airline: Airline) -> void:
+	airlines.end_deal(airline)
 
 
 # --- Bank loan and restructuring (design doc §11.6) ---
@@ -406,6 +428,7 @@ func reset() -> void:
 	passenger_flow = PassengerFlow.new()
 	economy = Economy.new()
 	reputation = Reputation.new()
+	airlines.reset()
 	_on_layout_changed()
 
 
@@ -436,6 +459,7 @@ func save_state() -> Dictionary:
 		"over_limit": economy.over_limit_seconds,
 		"satisfaction": passenger_flow.satisfaction.save_state(),
 		"reputation": reputation.save_state(),
+		"airlines": airlines.save_state(),
 		"buildings": saved_buildings,
 	}
 
@@ -489,6 +513,7 @@ func load_state(data: Dictionary) -> int:
 	economy.over_limit_seconds = float(data.get("over_limit", 0.0))
 	passenger_flow.satisfaction.load_state(data.get("satisfaction", {}))
 	reputation.load_state(data.get("reputation", {}))
+	airlines.load_state(data.get("airlines", {}))
 	zones_changed.emit()
 	walkways_changed.emit()
 	layout_changed.emit()

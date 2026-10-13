@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="AirlineType" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/airline_type.gd" id="1_type"]
+
+[resource]
+script = ExtResource("1_type")
+id = &"velora"
+display_name = "Velora Regional"
+code = "VR"
+route = "Holiday"
+color = Color(0.15, 0.5, 0.75, 1)
+expected_fee = 15.0
+flights_min = 8
+flights_max = 12
+min_stars = 0.0
+likes = 1
+dislikes = 0
+pitch = "We have flown this region for thirty years. We look for partners, not just runways."

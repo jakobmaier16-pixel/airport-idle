@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="AirlineType" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/airline_type.gd" id="1_type"]
+
+[resource]
+script = ExtResource("1_type")
+id = &"sunkiss"
+display_name = "Sunkiss Charter"
+code = "SK"
+route = "Holiday"
+color = Color(0.98, 0.5, 0.25, 1)
+expected_fee = 13.0
+flights_min = 6
+flights_max = 12
+min_stars = 2.0
+likes = 2
+dislikes = 0
+pitch = "Our flights follow the holidays. We need an airport that can move with us."

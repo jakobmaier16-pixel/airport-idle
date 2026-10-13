@@ -49,6 +49,8 @@ var _notice_left: float = 0.0
 @onready var joystick: TouchJoystick = $SafeArea/TouchJoystick
 @onready var _view_button: Button = $SafeArea/TopButtons/ViewButton
 @onready var _stats_button: Button = $SafeArea/TopButtons/StatsButton
+@onready var _airlines_button: Button = $SafeArea/TopButtons/AirlinesButton
+@onready var airlines_panel: AirlinesPanel = $SafeArea/AirlinesPanel
 @onready var _stats_panel: Control = $SafeArea/StatsPanel
 @onready var _stats_table: GridContainer = $SafeArea/StatsPanel/Content/Table
 @onready var _bottleneck_label: Label = $SafeArea/StatsPanel/Content/BottleneckLabel
@@ -110,11 +112,14 @@ func _ready() -> void:
 	$SafeArea/StationPanel/Content/CloseButton.pressed.connect(hide_station)
 	_stats_button.pressed.connect(func() -> void: hide_stats() if _stats_panel.visible else show_stats())
 	$SafeArea/StatsPanel/Content/CloseButton.pressed.connect(hide_stats)
+	_airlines_button.pressed.connect(func() -> void: hide_airlines() if airlines_panel.visible else show_airlines())
 	_update_visibility()
 	_show_build_info()
 
 
 func _process(delta: float) -> void:
+	var offer_count := Airport.airlines.offers.size()
+	_airlines_button.text = "Airlines (%d)" % offer_count if offer_count > 0 else "Airlines"
 	if _notice_left > 0.0:
 		_notice_left -= delta
 		if _notice_left <= 0.0:
@@ -128,9 +133,21 @@ func _process(delta: float) -> void:
 			_update_stats_panel()
 
 
+## Opens the airlines panel (design doc §10.1).
+func show_airlines() -> void:
+	hide_station()
+	hide_stats()
+	airlines_panel.open()
+
+
+func hide_airlines() -> void:
+	airlines_panel.close()
+
+
 ## Opens the statistics panel (manager view, design doc §13.1).
 func show_stats() -> void:
 	hide_station()
+	hide_airlines()
 	_stats_panel.visible = true
 	_update_stats_panel()
 
@@ -153,6 +170,7 @@ func report_tap(text: String) -> void:
 ## Opens the station panel for `building` (manager view, design doc §7.8).
 func show_station(building: Building) -> void:
 	hide_stats()
+	hide_airlines()
 	shown_station = building
 	_station_panel.visible = true
 	_update_station_panel()
@@ -254,6 +272,7 @@ func set_build_view_open(open: bool) -> void:
 	_build_view_open = open
 	if open:
 		hide_stats()
+		hide_airlines()
 	elif not _open_category.is_empty():
 		show_build_category("")
 	_update_visibility()
@@ -279,6 +298,7 @@ func _update_visibility() -> void:
 	_done_button.visible = painting
 	_demolish_button.visible = demolishing
 	_stats_button.visible = not _build_view_open
+	_airlines_button.visible = not _build_view_open
 
 
 func _update_stats_panel() -> void:

@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="AirlineType" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/airline_type.gd" id="1_type"]
+
+[resource]
+script = ExtResource("1_type")
+id = &"zippa"
+display_name = "Zippa"
+code = "ZP"
+route = "Low-cost"
+color = Color(0.95, 0.75, 0.1, 1)
+expected_fee = 9.0
+flights_min = 10
+flights_max = 20
+min_stars = 1.0
+likes = 0
+dislikes = 2
+pitch = "Let's keep it short: slots, fees, done. We don't do long meetings."

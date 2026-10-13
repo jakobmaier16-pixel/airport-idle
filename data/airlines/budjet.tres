@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="AirlineType" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/airline_type.gd" id="1_type"]
+
+[resource]
+script = ExtResource("1_type")
+id = &"budjet"
+display_name = "Budjet"
+code = "BJ"
+route = "Low-cost"
+color = Color(0.85, 0.2, 0.45, 1)
+expected_fee = 8.0
+flights_min = 12
+flights_max = 20
+min_stars = 1.5
+likes = 0
+dislikes = 1
+pitch = "Every cent counts for our passengers. Give us a number and we'll tell you yes or no."

@@ -47,6 +47,13 @@ static func build(warm_up_seconds: float = 180.0) -> void:
 	# Station upgrades (design doc §7.8): security already at level 2.
 	Airport.start_upgrade(_first(BuildingType.Role.SECURITY))
 
+	# Airlines (§10.1): the starter deal plus two more, together a little more than the two gates
+	# can take (40 flights per hour), and an open offer to negotiate.
+	var airlines := Airport.airlines
+	airlines.sign_deal(Airlines.CATALOG.find(&"zippa"), 12, 9.0)
+	airlines.sign_deal(Airlines.CATALOG.find(&"norvane"), 10, 20.0)
+	airlines.offers.append(AirlineOffer.new(Airlines.CATALOG.find(&"sunkiss"), 10, 13.0))
+
 	# Staff for every counter and lane, with a mix of new and experienced employees (§9.1).
 	for building in Airport.buildings:
 		Airport.staff_fully(building)

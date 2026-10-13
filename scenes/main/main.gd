@@ -38,6 +38,9 @@ func _ready() -> void:
 	_hud.dismiss_pressed.connect(func(building: Building) -> void: Airport.dismiss(building))
 	TouchGestures.tapped.connect(_on_tapped)
 	Airport.restructured.connect(_on_restructured)
+	Airport.airlines.offer_arrived.connect(_on_offer_arrived)
+	Airport.airlines.airline_unhappy.connect(_on_airline_unhappy)
+	Airport.airlines.airline_left.connect(_on_airline_left)
 	_set_view(View.MANAGER)
 
 
@@ -65,6 +68,20 @@ func _process(_delta: float) -> void:
 func _on_restructured(sold: PackedStringArray) -> void:
 	var what := "Sold: %s." % ", ".join(sold) if not sold.is_empty() else "Nothing was left to sell."
 	_hud.notify("The bank restructured your airport to cover the debt. %s The rest was written off. Reputation −1 star." % what)
+
+
+func _on_offer_arrived(offer: AirlineOffer) -> void:
+	_hud.notify("New offer: %s (%s) wants %d flights per hour. Tap Airlines to negotiate." % [
+		offer.type.display_name, offer.type.route, offer.flights_per_hour])
+
+
+func _on_airline_unhappy(airline: Airline) -> void:
+	_hud.notify("%s is unhappy (%d %%): late flights, missed passengers or no free gate. If it gets worse, they leave." % [
+		airline.type.display_name, roundi(airline.happiness)])
+
+
+func _on_airline_left(airline: Airline) -> void:
+	_hud.notify("%s ended its deal and left the airport." % airline.type.display_name)
 
 
 # Manager view: tapping a building opens its station panel; tapping elsewhere closes it.

@@ -1,0 +1,180 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scenes/ui/airlines_panel.gd" id="1_panel"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBox_panel"]
+bg_color = Color(0.1, 0.12, 0.15, 0.92)
+corner_radius_top_left = 14
+corner_radius_top_right = 14
+corner_radius_bottom_right = 14
+corner_radius_bottom_left = 14
+content_margin_left = 24.0
+content_margin_top = 20.0
+content_margin_right = 24.0
+content_margin_bottom = 20.0
+
+[node name="AirlinesPanel" type="PanelContainer"]
+custom_minimum_size = Vector2(820, 0)
+size_flags_horizontal = 4
+size_flags_vertical = 4
+theme_override_styles/panel = SubResource("StyleBox_panel")
+script = ExtResource("1_panel")
+
+[node name="Content" type="VBoxContainer" parent="."]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="TitleLabel" type="Label" parent="Content"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 30
+text = "Airlines"
+
+[node name="CapacityLabel" type="Label" parent="Content"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 22
+
+[node name="ListView" type="VBoxContainer" parent="Content"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="NegotiationView" type="VBoxContainer" parent="Content"]
+visible = false
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="AirlineLabel" type="Label" parent="Content/NegotiationView"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 24
+
+[node name="PitchLabel" type="Label" parent="Content/NegotiationView"]
+custom_minimum_size = Vector2(770, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.8, 0.85, 0.95, 1)
+theme_override_font_sizes/font_size = 22
+autowrap_mode = 3
+
+[node name="TermsRow" type="HBoxContainer" parent="Content/NegotiationView"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="FeeMinus" type="Button" parent="Content/NegotiationView/TermsRow"]
+custom_minimum_size = Vector2(72, 64)
+layout_mode = 2
+focus_mode = 0
+text = "−"
+
+[node name="FeeLabel" type="Label" parent="Content/NegotiationView/TermsRow"]
+custom_minimum_size = Vector2(230, 0)
+layout_mode = 2
+theme_override_font_sizes/font_size = 22
+horizontal_alignment = 1
+
+[node name="FeePlus" type="Button" parent="Content/NegotiationView/TermsRow"]
+custom_minimum_size = Vector2(72, 64)
+layout_mode = 2
+focus_mode = 0
+text = "+"
+
+[node name="Gap" type="Control" parent="Content/NegotiationView/TermsRow"]
+custom_minimum_size = Vector2(20, 0)
+layout_mode = 2
+
+[node name="FlightsMinus" type="Button" parent="Content/NegotiationView/TermsRow"]
+custom_minimum_size = Vector2(72, 64)
+layout_mode = 2
+focus_mode = 0
+text = "−"
+
+[node name="FlightsLabel" type="Label" parent="Content/NegotiationView/TermsRow"]
+custom_minimum_size = Vector2(230, 0)
+layout_mode = 2
+theme_override_font_sizes/font_size = 22
+horizontal_alignment = 1
+
+[node name="FlightsPlus" type="Button" parent="Content/NegotiationView/TermsRow"]
+custom_minimum_size = Vector2(72, 64)
+layout_mode = 2
+focus_mode = 0
+text = "+"
+
+[node name="ChanceLabel" type="Label" parent="Content/NegotiationView"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.88, 0.45, 1)
+theme_override_font_sizes/font_size = 24
+
+[node name="ToneButtons" type="HBoxContainer" parent="Content/NegotiationView"]
+layout_mode = 2
+
+[node name="FirmButton" type="Button" parent="Content/NegotiationView/ToneButtons"]
+custom_minimum_size = Vector2(0, 80)
+layout_mode = 2
+size_flags_horizontal = 3
+focus_mode = 0
+theme_override_font_sizes/font_size = 20
+text = "Firm
+\"These are my terms.\""
+
+[node name="FriendlyButton" type="Button" parent="Content/NegotiationView/ToneButtons"]
+custom_minimum_size = Vector2(0, 80)
+layout_mode = 2
+size_flags_horizontal = 3
+focus_mode = 0
+theme_override_font_sizes/font_size = 20
+text = "Friendly
+\"Let's build something together.\""
+
+[node name="FlexibleButton" type="Button" parent="Content/NegotiationView/ToneButtons"]
+custom_minimum_size = Vector2(0, 80)
+layout_mode = 2
+size_flags_horizontal = 3
+focus_mode = 0
+theme_override_font_sizes/font_size = 20
+text = "Flexible
+\"We'll work around your schedule.\""
+
+[node name="CounterButtons" type="HBoxContainer" parent="Content/NegotiationView"]
+visible = false
+layout_mode = 2
+
+[node name="SignButton" type="Button" parent="Content/NegotiationView/CounterButtons"]
+custom_minimum_size = Vector2(0, 72)
+layout_mode = 2
+size_flags_horizontal = 3
+focus_mode = 0
+text = "Sign"
+
+[node name="DeclineCounterButton" type="Button" parent="Content/NegotiationView/CounterButtons"]
+custom_minimum_size = Vector2(0, 72)
+layout_mode = 2
+size_flags_horizontal = 3
+focus_mode = 0
+text = "Decline"
+
+[node name="ResultLabel" type="Label" parent="Content/NegotiationView"]
+custom_minimum_size = Vector2(770, 0)
+layout_mode = 2
+theme_override_font_sizes/font_size = 22
+autowrap_mode = 3
+
+[node name="NavButtons" type="HBoxContainer" parent="Content/NegotiationView"]
+layout_mode = 2
+
+[node name="BackButton" type="Button" parent="Content/NegotiationView/NavButtons"]
+custom_minimum_size = Vector2(0, 64)
+layout_mode = 2
+size_flags_horizontal = 3
+focus_mode = 0
+text = "‹ Back"
+
+[node name="DeclineButton" type="Button" parent="Content/NegotiationView/NavButtons"]
+custom_minimum_size = Vector2(0, 64)
+layout_mode = 2
+size_flags_horizontal = 3
+focus_mode = 0
+text = "Turn down"
+
+[node name="CloseButton" type="Button" parent="Content"]
+custom_minimum_size = Vector2(0, 64)
+layout_mode = 2
+focus_mode = 0
+text = "Close"

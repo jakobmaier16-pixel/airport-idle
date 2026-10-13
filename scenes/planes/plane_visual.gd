@@ -7,24 +7,29 @@ extends Node3D
 const LENGTH: float = 21.0
 const FUSELAGE_RADIUS: float = 1.4
 const WINGSPAN: float = 21.0
-## Fictional airline colors (design doc §18).
 const BODY_COLOR: Color = Color(0.95, 0.96, 0.97)
+## Tail color without an airline; with one, the airline's color (design doc §10.1).
 const TAIL_COLOR: Color = Color(0.1, 0.45, 0.65)
 const ENGINE_COLOR: Color = Color(0.55, 0.57, 0.6)
+
+## Set before the plane enters the tree.
+var tail_color: Color = TAIL_COLOR
 
 var _body: AnimatableBody3D
 
 # Shared by every plane, so many planes don't mean many materials.
 static var _body_material: StandardMaterial3D
-static var _tail_material: StandardMaterial3D
+# One tail material per airline color.
+static var _tail_materials: Dictionary[Color, StandardMaterial3D] = {}
 static var _engine_material: StandardMaterial3D
 
 
 func _ready() -> void:
 	if _body_material == null:
 		_body_material = _material(BODY_COLOR)
-		_tail_material = _material(TAIL_COLOR)
 		_engine_material = _material(ENGINE_COLOR)
+	if not _tail_materials.has(tail_color):
+		_tail_materials[tail_color] = _material(tail_color)
 	var body_height := FUSELAGE_RADIUS + 1.0
 	_body = AnimatableBody3D.new()
 	# The plane is moved from _process (PlaneLayer), not by the physics engine.
@@ -61,7 +66,7 @@ func _ready() -> void:
 
 	var fin := BoxMesh.new()
 	fin.size = Vector3(0.3, 3.0, 2.6)
-	_add(fin, _tail_material, Vector3(0.0, body_height + 2.2, LENGTH * 0.5 - 1.6), Vector3.ZERO)
+	_add(fin, _tail_materials[tail_color], Vector3(0.0, body_height + 2.2, LENGTH * 0.5 - 1.6), Vector3.ZERO)
 
 	var stabilizer := BoxMesh.new()
 	stabilizer.size = Vector3(7.0, 0.25, 1.8)

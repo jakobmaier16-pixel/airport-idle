@@ -31,8 +31,8 @@ const BAGS_UNTIL: float = 90.0
 const SEATS: int = 180
 const BOOKED_MIN: int = 12
 const BOOKED_MAX: int = 20
-## Fictional airline code (design doc §18: no real airlines).
-const AIRLINE_CODE: String = "AX"
+## Flight numbers without an airline (tests only).
+const NO_AIRLINE_CODE: String = "XX"
 ## Passenger types (design doc §8.7).
 const FAMILY: PassengerType = preload("res://data/passengers/family.tres")
 const LOW_COST: PassengerType = preload("res://data/passengers/low_cost.tres")
@@ -75,11 +75,11 @@ func tick(now: float, delta: float, flow: PassengerFlow) -> void:
 	var new_gates := 0
 	for gate in usable:
 		if not _last_planned.has(gate):
-			_schedule(gate, now + FIRST_DEPARTURE_DELAY + new_gates * GATE_STAGGER)
+			_plan_slot(gate, now + FIRST_DEPARTURE_DELAY + new_gates * GATE_STAGGER)
 			new_gates += 1
-		# The next flight is planned exactly when its passengers have to start arriving.
+		# The next slot is planned exactly when its passengers have to start arriving.
 		while _last_planned[gate] + INTERVAL - now <= ARRIVALS_START:
-			_schedule(gate, _last_planned[gate] + INTERVAL)
+			_plan_slot(gate, _last_planned[gate] + INTERVAL)
 
 	for flight in flights:
 		_advance(flight, now, delta, flow)
@@ -93,17 +93,29 @@ func upcoming() -> Array[Flight]:
 	return sorted
 
 
-func _schedule(gate: Building, departure_time: float) -> void:
+# A gate's turnaround slot: the airline owed the most flights gets it; with no demand it stays empty.
+func _plan_slot(gate: Building, departure_time: float) -> void:
+	var airline := Airport.airlines.next_airline()
+	if airline != null:
+		_schedule(gate, departure_time, airline)
+	else:
+		_last_planned[gate] = departure_time
+
+
+func _schedule(gate: Building, departure_time: float, airline: Airline = null) -> void:
 	var flight := Flight.new()
-	flight.number = "%s %d" % [AIRLINE_CODE, _next_number]
+	flight.airline = airline
+	flight.number = "%s %d" % [airline.type.code if airline != null else NO_AIRLINE_CODE, _next_number]
 	_next_number += 1
 	flight.gate = gate
 	flight.stand = Airport.stand_behind(gate)
 	flight.seats = SEATS
 	flight.booked = _passenger_count()
 	flight.departure_time = departure_time
-	# Random route for now; later airlines and deals decide (design doc §10).
-	flight.route = ROUTES.keys()[_rng.randi() % ROUTES.size()]
+	# The airline's route type sets the passenger mix (design doc §10.1); random without one.
+	flight.route = airline.type.route if airline != null else ROUTES.keys()[_rng.randi() % ROUTES.size()]
+	if airline != null:
+		flight.fee_per_passenger = airline.fee
 	_plan_arrivals(flight)
 	# The inbound leg: the same plane brings passengers before it takes new ones (turnaround).
 	var mix := PackedFloat32Array(ROUTES[flight.route])
@@ -181,6 +193,8 @@ func _advance(flight: Flight, now: float, delta: float, flow: PassengerFlow) -> 
 		# Doors close: whoever isn't on board has missed the flight.
 		flight.missed = flow.remove_flight_passengers(flight, true)
 		flow.departed_count += flight.boarded
-		# The airline pays per passenger and per flight (design doc §11.5).
-		Airport.economy.earn(flight.boarded * Economy.PASSENGER_FEE + Economy.FLIGHT_FEE)
+		# The airline pays per passenger (as agreed in its deal) and per flight (design doc §11.5).
+		Airport.economy.earn(flight.boarded * flight.fee_per_passenger + Economy.FLIGHT_FEE)
+		var missed_share := float(flight.missed) / maxi(flight.booked, 1)
+		Airport.airlines.record_flight(flight.airline, flight.delay > Reputation.ON_TIME_LIMIT, missed_share)
 	flight.phase = phase

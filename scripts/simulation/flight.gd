@@ -14,6 +14,10 @@ enum Phase {
 }
 
 var number: String
+## The airline flying it (design doc §10.1), or null (tests only).
+var airline: Airline = null
+## What the airline pays per departing passenger.
+var fee_per_passenger: float = Economy.PASSENGER_FEE
 ## Route type, e.g. "Holiday" (sets the passenger mix, design doc §8.7).
 var route: String = ""
 var gate: Building

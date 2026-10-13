@@ -341,6 +341,33 @@ Placeholder numbers, tunable.
   - Long-haul routes need bigger stands, gates and runways, and bring higher income
   - Hub/transfer routes need good transfer flows
 
+
+### 10.1 Airlines and deals (first version)
+Placeholder numbers, tunable. All names are fictional.
+- **Gates are capacity, airlines are demand.** Every gate offers a turnaround slot every 3 minutes (20 flights per hour). Flights only come from **signed airlines**; each deal says how many **flights per hour** the airline wants and what it pays **per passenger**. The schedule fills each gate slot with the airline that is most "owed" a flight. Too few gates for the signed flights = **refused flights**, which make airlines unhappy. More gates than flights = idle gates.
+- **Airlines** (each has a route type that sets its passenger mix, an expected fee, a minimum star rating and a personality):
+
+  | Airline | Route | Expects | From | Likes | Dislikes |
+  |---|---|---|---|---|---|
+  | Velora Regional | Holiday | €15 | start | friendly | firm |
+  | Zippa | Low-cost | €9 | 1 ★ | firm | flexible |
+  | Budjet | Low-cost | €8 | 1½ ★ | firm | friendly |
+  | Sunkiss Charter | Holiday | €13 | 2 ★ | flexible | firm |
+  | Lagoona Air | Holiday | €14 | 2½ ★ | flexible | friendly |
+  | Brisk Express | Business | €18 | 3 ★ | firm | flexible |
+  | Norvane Airways | Business | €20 | 3½ ★ | friendly | flexible |
+  | Corvista Airlines | Business | €24 | 4 ★ | friendly | firm |
+
+- **A new airport starts with one deal:** Velora Regional, 20 flights per hour at €15 — exactly one gate's worth. Every further gate needs another airline.
+- **Offers** arrive every 4–7 minutes (the first after 2 minutes) from airlines whose minimum rating the airport meets; at most 3 are open, each expires after 10 minutes. A notice announces them.
+- **Negotiating** (Airlines panel, from anywhere): the offer card shows the airline's terms and a line from their representative that hints at their personality. The player sets the **fee per passenger** and the **flights per hour** (up to what they asked for) with − / + buttons, sees the **chance they agree**, and answers in one of three tones:
+  - *Firm:* "These are my terms." · *Friendly:* "Let's build something together." · *Flexible:* "We'll work around your schedule."
+- **Chance to agree:** 75 % at their expected fee; −15 points per 10 % above it, +15 per 10 % below. −5 points per 10 % fewer flights than asked. +5 points per star above their minimum. +15 points for the tone they like, −15 for the one they dislike. Clamped to 0–100 %.
+- **If they say no**, but the chance was at least 25 %, they come back once with a **counter-offer** halfway between the two fees, which the player can sign or decline. Otherwise they walk away and don't offer again for 15 minutes.
+- **Airline happiness** (starts at 75 %) follows their recent flights: on time 100, late 50, minus the share of their passengers who missed the flight; a refused flight counts as 0. Below 40 % the airline complains (notice); below 25 % it **ends the deal** and leaves.
+- The player can **end a deal** at any time (two taps).
+- Planes carry their airline's tail color; flight numbers use the airline code (e.g. ZP 214).
+
 ---
 
 ## 11. Economy

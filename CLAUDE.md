@@ -89,9 +89,12 @@ scripts/autoload/     global singletons:
                         TouchGestures -> touch / mouse / trackpad -> drag, tap, pinch signals
 scripts/simulation/   pure simulation data classes (no nodes, no visuals): AirportGrid, Building,
                       PassengerFlow, Passenger, Station, WalkwayNetwork, FlightSchedule, Flight,
-                      Economy, Employee. Advance everything with `Airport.step(delta)`.
+                      Economy, Employee, Satisfaction, Reputation, Airlines (+ Airline, AirlineOffer).
+                      Advance everything with `Airport.step(delta)`.
 scripts/resources/    custom Resource classes (data definitions), e.g. BuildingType
 data/buildings/       one BuildingType .tres per building (edit footprint, name, look in the Inspector)
+data/passengers/      one PassengerType .tres per passenger type (families, low-cost, business)
+data/airlines/        one AirlineType .tres per fictional airline, plus catalog.tres
 tests/                automated walkthrough tests (excluded from the app export):
   test_case.gd        base class with player helpers (tap, drag, pinch, place, paint, sim_seconds)
   cases/              test files, run in name order
@@ -174,7 +177,11 @@ UI controls (buttons) consume their touches first, so taps on buttons never reac
   must list it in its header: `node_paths=PackedStringArray("target")`. Otherwise the
   reference silently stays `null`.
 - Godot 4.7 has a built-in `VirtualJoystick` class; our joystick is `TouchJoystick`.
-  Check new `class_name`s against built-in classes.
+  Check new `class_name`s against built-in classes. Method names can clash too: a method called
+  `sign()` is shadowed by the global math function inside its own class ("Too many arguments").
+- `"%s" % some_array` treats the array as the argument list; wrap it: `"%s" % [some_array]`.
+- The default font has no ★ or → glyphs (stars are drawn by `StarRating`); check new symbols
+  with `ThemeDB.fallback_font.has_char()`.
 - Autoloads are not available to scripts run with `--script`; that's why tests run as a scene
   (`tests/test_runner.tscn`). Wait one frame in a test scene's `_ready()` before adding nodes to the root.
 - GDScript lambdas capture local variables **by value**: `var hit := false; var f := func(): hit = true`

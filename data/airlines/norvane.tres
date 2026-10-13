@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="AirlineType" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/airline_type.gd" id="1_type"]
+
+[resource]
+script = ExtResource("1_type")
+id = &"norvane"
+display_name = "Norvane Airways"
+code = "NV"
+route = "Business"
+color = Color(0.1, 0.2, 0.45, 1)
+expected_fee = 20.0
+flights_min = 8
+flights_max = 14
+min_stars = 3.5
+likes = 1
+dislikes = 2
+pitch = "For us, an airport is a home base. We want a long, reliable partnership."

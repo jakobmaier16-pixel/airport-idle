@@ -50,9 +50,32 @@ func test_build_airport_by_touch_and_fly_passengers() -> void:
 			await press(hire)
 			await frames(1)
 		check_eq(Airport.staff_at(building).size(), building.service_slots(), "%s fully staffed" % building.type.display_name)
+
+	# Sign a second airline (design doc §10.1): wait for an offer, open it, lower the fee until
+	# they surely agree, and answer in the tone they like.
+	sim_seconds(Airlines.FIRST_OFFER_AFTER + 1.0)
+	check_eq(Airport.airlines.offers.size(), 1, "an airline made an offer")
+	await press(ui("TopButtons/AirlinesButton"))
+	await frames(1)
+	var offer: AirlineOffer = Airport.airlines.offers[0]
+	var offer_button: Button = ui("AirlinesPanel/Content/ListView").get_children().filter(
+		func(c: Node) -> bool: return c is Button)[0]
+	await press(offer_button)
+	var chance_label := ui("AirlinesPanel/Content/NegotiationView/ChanceLabel") as Label
+	# The shown chance is for a neutral tone; the liked tone adds 15 points.
+	var shown_chance := func() -> int: return chance_label.text.get_slice("about ", 1).to_int()
+	for i in 20:
+		if shown_chance.call() >= 85:
+			break
+		await press(ui("AirlinesPanel/Content/NegotiationView/TermsRow/FeeMinus"))
+	check(shown_chance.call() >= 85, "a lower fee makes it likely: '%s'" % chance_label.text)
+	var tone_buttons := {AirlineType.Tone.FIRM: "FirmButton", AirlineType.Tone.FRIENDLY: "FriendlyButton", AirlineType.Tone.FLEXIBLE: "FlexibleButton"}
+	await press(ui("AirlinesPanel/Content/NegotiationView/ToneButtons/" + tone_buttons[offer.type.likes]))
+	check_eq(Airport.airlines.signed.size(), 2, "%s signed through the panel" % offer.type.display_name)
+	await press(ui("AirlinesPanel/Content/CloseButton"))
 	await open_build_view()
 
-	# Two flights depart within 6 minutes (at 4:30 and 5:15).
+	# Flights depart within the next 6 minutes.
 	sim_seconds(360)
 	await frames(2)
 	check(Airport.passenger_flow.departed_count > 15, "passengers departed: %d" % Airport.passenger_flow.departed_count)
@@ -64,8 +87,14 @@ func test_build_airport_by_touch_and_fly_passengers() -> void:
 	await close_build_view()
 	check(manager_camera().current, "back to the manager view with a working airport")
 
-	# Manage a station: tap security and upgrade it to a third lane.
+	# Manage a station: tap security and upgrade it to a third lane, once the airport has earned
+	# enough for it (how fast depends on which airline made the offer).
 	var security: Building = Airport.buildings.filter(func(b: Building) -> bool: return b.type.role == BuildingType.Role.SECURITY)[0]
+	for minute in 10:
+		if Airport.economy.can_afford(security.next_upgrade().cost):
+			break
+		sim_seconds(60)
+	check(Airport.economy.can_afford(security.next_upgrade().cost), "the airport earned enough for the upgrade: %s" % Economy.format(Airport.economy.balance))
 	manager().global_position = Airport.grid.cell_to_world(Vector2i(32, 33))
 	manager_camera().snap_to_target()
 	await physics_frames(2)

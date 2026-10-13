@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="AirlineType" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/airline_type.gd" id="1_type"]
+
+[resource]
+script = ExtResource("1_type")
+id = &"brisk"
+display_name = "Brisk Express"
+code = "BX"
+route = "Business"
+color = Color(0.55, 0.1, 0.15, 1)
+expected_fee = 18.0
+flights_min = 6
+flights_max = 10
+min_stars = 3.0
+likes = 0
+dislikes = 2
+pitch = "Business travellers hate waiting, and so do we. Make us a clear offer."

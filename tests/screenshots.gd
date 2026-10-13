@@ -34,6 +34,12 @@ func _ready() -> void:
 	await _shot("stats_panel")
 	hud().hide_stats()
 
+	hud().show_airlines()
+	await _shot("airlines_panel")
+	hud().airlines_panel.negotiate(Airport.airlines.offers[0])
+	await _shot("airlines_negotiation")
+	hud().hide_airlines()
+
 	await open_build_view()
 	build_camera().center_on(Airport.grid.cell_to_world(Vector2i(32, 30)))
 	await _shot("build_view")

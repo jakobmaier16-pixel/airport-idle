@@ -5,6 +5,7 @@
 [ext_resource type="PackedScene" path="res://scenes/ui/touch_joystick.tscn" id="3_joystick"]
 [ext_resource type="Script" path="res://scenes/ui/tap_feedback.gd" id="4_tap_feedback"]
 [ext_resource type="Script" path="res://scenes/ui/star_rating.gd" id="5_star_rating"]
+[ext_resource type="PackedScene" path="res://scenes/ui/airlines_panel.tscn" id="6_airlines_panel"]
 
 [sub_resource type="Theme" id="Theme_hud"]
 default_font_size = 28
@@ -64,6 +65,12 @@ custom_minimum_size = Vector2(160, 72)
 layout_mode = 2
 focus_mode = 0
 text = "Stats"
+
+[node name="AirlinesButton" type="Button" parent="SafeArea/TopButtons"]
+custom_minimum_size = Vector2(190, 72)
+layout_mode = 2
+focus_mode = 0
+text = "Airlines"
 
 [node name="ViewButton" type="Button" parent="SafeArea/TopButtons"]
 custom_minimum_size = Vector2(200, 72)
@@ -289,6 +296,9 @@ custom_minimum_size = Vector2(0, 64)
 layout_mode = 2
 focus_mode = 0
 text = "Close"
+
+[node name="AirlinesPanel" parent="SafeArea" instance=ExtResource("6_airlines_panel")]
+layout_mode = 2
 
 [node name="ToolPanel" type="VBoxContainer" parent="SafeArea"]
 layout_mode = 2
