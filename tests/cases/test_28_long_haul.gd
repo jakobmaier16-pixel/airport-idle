@@ -86,7 +86,7 @@ func test_reaching_international_brings_an_offer() -> void:
 		Airport.passenger_flow.satisfaction.record("Business", 100.0)
 	Airport.reputation.on_time_rate = 1.0
 	Airport.progression.tier = Progression.Tier.NATIONAL
-	Airport.progression.passengers = 10000
+	Airport.progression.passengers = Progression.PASSENGERS_NEEDED[Progression.Tier.INTERNATIONAL]
 	sim_seconds(0.2)
 	check_eq(Airport.progression.tier, Progression.Tier.INTERNATIONAL, "international")
 	check(Airport.airlines.offers.any(func(o: AirlineOffer) -> bool: return o.type.id == &"orynth"), "Orynth Pacific makes an offer")

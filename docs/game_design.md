@@ -535,10 +535,11 @@ Decided 2026-10-13 (closes §19 Q3 and Q4 for now). Placeholder numbers, tunable
   | Tier | Reached with | Rewards |
   |---|---|---|
   | **Regional** | start | 48 × 48 cells of land in the middle of the map; every basic building |
-  | **National** | 2,000 passengers and 3 ★ | **new land** (the whole 64 × 64 map), **transfer security** (connections, §8.9), and a major airline (Norvane Airways) makes an offer at once |
-  | **International** | 10,000 passengers and 3½ ★ | **long-haul flights**: a wide-body stand and long-haul airlines with big planes (§10.2) |
-  | **Hub** | 40,000 passengers, 4 ★ and 1,000 transfers | **hub status**: airlines route twice as many connections through the airport, and a premium airline (Corvista Airlines) makes an offer |
+  | **National** | 1,000 passengers and 3 ★ | **new land** (the whole 64 × 64 map), **transfer security** (connections, §8.9), and a major airline (Norvane Airways) makes an offer at once |
+  | **International** | 6,000 passengers and 3½ ★ | **long-haul flights**: a wide-body stand and long-haul airlines with big planes (§10.2) |
+  | **Hub** | 25,000 passengers, 4 ★ and 600 transfers | **hub status**: airlines route twice as many connections through the airport, and a premium airline (Corvista Airlines) makes an offer |
 
+- Pace (balance check, 2026-10-13): a new one-gate airport with the starter airline serves ~900 passengers per hour and earns ~€100/min, so National comes after 30–60 minutes depending on how quickly the player adds a second airline and gate.
 - Reaching a tier is a **milestone moment**: a big panel names the new tier and lists what it unlocked ("Let's build!").
 - Land the airport doesn't own yet is shaded darker; nothing can be built or painted there ("Unlocked at National airport"). Buildings already standing there (old saves) stay.
 - The tier is shown next to the star rating; the statistics panel shows the progress towards the next tier.

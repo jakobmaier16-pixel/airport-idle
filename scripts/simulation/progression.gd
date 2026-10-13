@@ -9,9 +9,9 @@ enum Tier { REGIONAL, NATIONAL, INTERNATIONAL, HUB }
 
 const NAMES: Array[String] = ["Regional", "National", "International", "Hub"]
 ## What reaching each tier needs: passengers, star rating, transfers. (Index = tier.)
-const PASSENGERS_NEEDED: Array[int] = [0, 2000, 10000, 40000]
+const PASSENGERS_NEEDED: Array[int] = [0, 1000, 6000, 25000]
 const STARS_NEEDED: Array[float] = [0.0, 3.0, 3.5, 4.0]
-const TRANSFERS_NEEDED: Array[int] = [0, 0, 0, 1000]
+const TRANSFERS_NEEDED: Array[int] = [0, 0, 0, 600]
 ## What each tier brings, for the milestone panel.
 const REWARDS: Array[String] = [
 	"",

@@ -22,12 +22,13 @@ func test_reaching_national() -> void:
 	var progression := Airport.progression
 	var reached: Array[Progression.Tier] = []
 	progression.tier_reached.connect(func(tier: Progression.Tier) -> void: reached.append(tier))
-	progression.passengers = 1999
+	var needed := Progression.PASSENGERS_NEEDED[Progression.Tier.NATIONAL]
+	progression.passengers = needed - 1
 	sim_seconds(1)
 	check_eq(progression.tier, Progression.Tier.REGIONAL, "one passenger short")
-	progression.passengers = 2000
+	progression.passengers = needed
 	sim_seconds(0.2)
-	check_eq(progression.tier, Progression.Tier.NATIONAL, "national with 2,000 passengers and 3 stars")
+	check_eq(progression.tier, Progression.Tier.NATIONAL, "national with enough passengers and 3 stars")
 	check_eq(reached, [Progression.Tier.NATIONAL] as Array[Progression.Tier], "milestone sent once")
 	check(Airport.check_placement(type_of(&"check_in"), Vector2i(2, 2), 0) != "Not your land yet (National airport)", "new land")
 	check(Airport.airlines.find_signed(Airlines.CATALOG.find(&"norvane")) != null \
@@ -48,10 +49,10 @@ func test_hub_needs_transfers() -> void:
 	var progression := Airport.progression
 	progression.tier = Progression.Tier.INTERNATIONAL
 	progression.passengers = 50000
-	progression.transfers = 999
+	progression.transfers = Progression.TRANSFERS_NEEDED[Progression.Tier.HUB] - 1
 	sim_seconds(1)
-	check_eq(progression.tier, Progression.Tier.INTERNATIONAL, "not without 1,000 transfers")
-	progression.transfers = 1000
+	check_eq(progression.tier, Progression.Tier.INTERNATIONAL, "not without enough transfers")
+	progression.transfers = Progression.TRANSFERS_NEEDED[Progression.Tier.HUB]
 	sim_seconds(0.2)
 	check_eq(progression.tier, Progression.Tier.HUB, "hub")
 	check_eq(progression.next_tier(), -1, "the top")
@@ -89,7 +90,7 @@ func test_hub_doubles_connections() -> void:
 func test_milestone_panel_and_menu() -> void:
 	_make_excellent()
 	await start_game()
-	Airport.progression.passengers = 2000
+	Airport.progression.passengers = Progression.PASSENGERS_NEEDED[Progression.Tier.NATIONAL]
 	sim_seconds(0.2)
 	await frames(2)
 	check(hud().is_milestone_open(), "the milestone panel opens")
