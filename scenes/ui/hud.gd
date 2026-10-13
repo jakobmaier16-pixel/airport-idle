@@ -45,7 +45,10 @@ var _building_types: Array[BuildingType] = []
 var _open_category: String = ""
 var _stats_refresh_in: float = 0.0
 ## Statistics tabs (design doc §13.2).
-enum StatsTab { STATIONS, MONEY, AIRLINES }
+enum StatsTab { STATIONS, MONEY, AIRLINES, MESSAGES }
+## The last notices, newest first: [clock text, message] (design doc §13.2).
+const MESSAGE_LOG_SIZE: int = 30
+var messages: Array = []
 var stats_tab: StatsTab = StatsTab.STATIONS
 ## The building shown in the station panel, or null.
 var shown_station: Building = null
@@ -132,7 +135,7 @@ func _ready() -> void:
 	$SafeArea/StationPanel/Content/CloseButton.pressed.connect(hide_station)
 	_stats_button.pressed.connect(func() -> void: hide_stats() if _stats_panel.visible else show_stats())
 	$SafeArea/StatsPanel/Content/CloseButton.pressed.connect(hide_stats)
-	for tab: StatsTab in [StatsTab.STATIONS, StatsTab.MONEY, StatsTab.AIRLINES]:
+	for tab: StatsTab in [StatsTab.STATIONS, StatsTab.MONEY, StatsTab.AIRLINES, StatsTab.MESSAGES]:
 		_tab_button(tab).pressed.connect(show_stats_tab.bind(tab))
 	$SafeArea/MilestonePanel/Content/OkButton.pressed.connect(func() -> void: _milestone_panel.visible = false)
 	$SafeArea/GoalPanel/Row/HideButton.pressed.connect(func() -> void: Airport.goals.hidden = true)
@@ -194,13 +197,13 @@ func show_stats() -> void:
 ## Switches the statistics panel to `tab`.
 func show_stats_tab(tab: StatsTab) -> void:
 	stats_tab = tab
-	for other: StatsTab in [StatsTab.STATIONS, StatsTab.MONEY, StatsTab.AIRLINES]:
+	for other: StatsTab in [StatsTab.STATIONS, StatsTab.MONEY, StatsTab.AIRLINES, StatsTab.MESSAGES]:
 		_tab_button(other).button_pressed = other == tab
 	_update_stats_panel()
 
 
 func _tab_button(tab: StatsTab) -> Button:
-	return get_node("SafeArea/StatsPanel/Content/Tabs/" + ["StationsTab", "MoneyTab", "AirlinesTab"][tab]) as Button
+	return get_node("SafeArea/StatsPanel/Content/Tabs/" + ["StationsTab", "MoneyTab", "AirlinesTab", "MessagesTab"][tab]) as Button
 
 
 func hide_stats() -> void:
@@ -291,8 +294,11 @@ func set_loan(debt: float, interest_per_minute: float, limit: float, restructure
 	_loan_label.text = text
 
 
-## Shows a message at the top of the screen for a few seconds.
+## Shows a message at the top of the screen for a few seconds, and keeps it in the log.
 func notify(text: String) -> void:
+	messages.push_front([Airport.clock.text(), text])
+	if messages.size() > MESSAGE_LOG_SIZE:
+		messages.pop_back()
 	_notice_label.text = text
 	_notice_panel.visible = true
 	_notice_left = NOTICE_SECONDS
@@ -382,6 +388,8 @@ func _update_stats_panel() -> void:
 			_fill_money_table()
 		StatsTab.AIRLINES:
 			_fill_airlines_table()
+		StatsTab.MESSAGES:
+			_fill_messages_table()
 		_:
 			_fill_stations_table(bottleneck)
 	var counts := flow.count_by_type()
@@ -429,6 +437,22 @@ func _add_money_row(label: String, amount: float, color: Color) -> void:
 	_add_stats_cell(label, color)
 	_add_stats_cell(Economy.format(amount), color)
 	_add_stats_cell(Economy.format(amount / (Economy.SOURCE_WINDOW_SECONDS / 60.0)), color)
+
+
+# The last notices, newest first.
+func _fill_messages_table() -> void:
+	_stats_table.columns = 2
+	if messages.is_empty():
+		_add_stats_cell("No messages yet.", Color(0.75, 0.78, 0.82))
+		_add_stats_cell("", Color.WHITE)
+	for entry: Array in messages:
+		_add_stats_cell(entry[0], Color(0.75, 0.78, 0.82))
+		var cell := Label.new()
+		cell.text = entry[1]
+		cell.custom_minimum_size = Vector2(620, 0)
+		cell.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		cell.add_theme_font_size_override(&"font_size", STATS_FONT_SIZE)
+		_stats_table.add_child(cell)
 
 
 # On-time performance and happiness per airline (design doc §13.2).

@@ -385,6 +385,14 @@ theme_override_font_sizes/font_size = 22
 toggle_mode = true
 text = "Airlines"
 
+[node name="MessagesTab" type="Button" parent="SafeArea/StatsPanel/Content/Tabs"]
+custom_minimum_size = Vector2(170, 56)
+layout_mode = 2
+focus_mode = 0
+theme_override_font_sizes/font_size = 22
+toggle_mode = true
+text = "Messages"
+
 [node name="TableScroll" type="ScrollContainer" parent="SafeArea/StatsPanel/Content"]
 custom_minimum_size = Vector2(0, 300)
 layout_mode = 2
