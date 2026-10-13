@@ -93,6 +93,13 @@ static func build(warm_up_seconds: float = 180.0) -> void:
 	Airport.start_upgrade(check_in)
 	Airport.economy.balance = Economy.STARTING_MONEY
 
+	# The newest events, so they're visible right after an update (§12.2, §12.3): light rain and
+	# an unattended bag at the second check-in. Not when tests build the showcase (no warm-up).
+	if warm_up_seconds > 0.0:
+		Airport.weather.start(Weather.Kind.RAIN)
+		var check_ins := Airport.buildings.filter(func(b: Building) -> bool: return b.type.role == BuildingType.Role.CHECK_IN)
+		Airport.start_incident(check_ins[1])
+
 
 static func _first(role: BuildingType.Role) -> Building:
 	for building in Airport.buildings:
