@@ -92,6 +92,13 @@ layout_mode = 2
 mouse_filter = 2
 label_settings = SubResource("LabelSettings_money")
 
+[node name="LoanLabel" type="Label" parent="SafeArea/InfoPanel"]
+visible = false
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(1, 0.55, 0.45, 1)
+label_settings = SubResource("LabelSettings_hint")
+
 [node name="RatingRow" type="HBoxContainer" parent="SafeArea/InfoPanel"]
 layout_mode = 2
 mouse_filter = 2
@@ -117,6 +124,22 @@ label_settings = SubResource("LabelSettings_hint")
 layout_mode = 2
 mouse_filter = 2
 label_settings = SubResource("LabelSettings_departures")
+
+[node name="NoticePanel" type="PanelContainer" parent="SafeArea"]
+visible = false
+custom_minimum_size = Vector2(600, 0)
+layout_mode = 2
+size_flags_horizontal = 4
+size_flags_vertical = 0
+mouse_filter = 2
+theme_override_styles/panel = SubResource("StyleBox_station_panel")
+
+[node name="NoticeLabel" type="Label" parent="SafeArea/NoticePanel"]
+custom_minimum_size = Vector2(600, 0)
+layout_mode = 2
+theme_override_font_sizes/font_size = 24
+horizontal_alignment = 1
+autowrap_mode = 3
 
 [node name="BuildMenu" type="VBoxContainer" parent="SafeArea"]
 layout_mode = 2

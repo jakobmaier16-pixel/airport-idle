@@ -372,8 +372,17 @@ Currency: **euro (€)**. All numbers are placeholders, tunable per building (co
 - **Construction:** Entrance €2,000 · Check-in €3,000 · Security €5,000 · Gate €4,000 · Aircraft stand €6,000 · Walkway €20 per cell. Painting zones is free. Removing walkway is free and refunds nothing (demolishing rules are still open, §19).
 - **Running costs per minute** (staff, maintenance, utilities): Entrance €10 · Check-in €30 · Security €40 · Gate €25 · Stand €15 · Walkway €0.05 per cell. Charged continuously while the game runs.
 - **Display:** balance and profit per minute (last 60 s) at the top of the info panel; red when negative.
-- **Negative balance** is allowed for now: what bankruptcy means is still open (§11.3, §19).
+- **Negative balance** is a bank loan (§11.6).
 - **Not in the MVP yet:** shop income, parking, salaries per employee, upgrades (§16 item 7).
+
+
+### 11.6 Bank loan and restructuring (first version)
+Placeholder numbers, tunable.
+- **A negative balance is a bank loan.** Interest: 1 % of the debt per minute, charged like a running cost (it shows in profit per minute). Nothing can be built or upgraded while the money isn't there.
+- **Credit limit:** €20,000 plus 25 % of what the airport is worth (build prices plus upgrades paid for).
+- **Over the limit for 2 minutes** and the bank **restructures** the airport: it sells buildings at the demolish refund (50 %) until the debt is covered — shops, cafés and transfer security first, then second (third, …) buildings of a kind, newest first. It never sells the last entrance, check-in, security, gate, stand or baggage claim, so a small working airport always remains. Whatever is still owed is written off.
+- After a restructuring the reputation loses **1 star**, which fades over 10 minutes.
+- HUD: a red line under the money shows the loan, the limit and the interest, and a countdown while over the limit. A notice says what the bank sold.
 
 
 ### 11.7 Reputation (first version)

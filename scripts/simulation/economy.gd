@@ -15,10 +15,19 @@ const ARRIVAL_FEE: float = 5.0
 const CONCESSION_SHARE: float = 0.3
 const WALKWAY_COST_PER_CELL: float = 20.0
 const WALKWAY_RUNNING_COST_PER_CELL: float = 0.05
+## Bank loan (design doc §11.6): a negative balance is a loan with this interest per minute.
+const LOAN_INTEREST_PER_MINUTE: float = 0.01
+## The bank lends up to this much, plus a share of what the airport is worth.
+const CREDIT_BASE: float = 20000.0
+const CREDIT_SHARE_OF_VALUE: float = 0.25
+## Over the credit limit for this long (seconds) and the bank restructures the airport.
+const RESTRUCTURE_AFTER: float = 120.0
 ## "Per minute" figures cover this many seconds.
 const WINDOW_SECONDS: int = 60
 
 var balance: float = STARTING_MONEY
+## Seconds the debt has been over the credit limit without a break.
+var over_limit_seconds: float = 0.0
 
 # Net operating money per second over the last minute (ring buffer).
 var _window: PackedFloat64Array = PackedFloat64Array()
@@ -50,9 +59,24 @@ func refund(amount: float) -> void:
 	balance += amount
 
 
-## Charges running costs for `delta` seconds and moves the one-minute window along.
+## What the airport owes the bank (0 while the balance is positive).
+func debt() -> float:
+	return maxf(-balance, 0.0)
+
+
+## Interest on the loan, in euros per minute.
+func interest_per_minute() -> float:
+	return debt() * LOAN_INTEREST_PER_MINUTE
+
+
+## How much the bank lends to an airport worth `airport_value`.
+static func credit_limit(airport_value: float) -> float:
+	return CREDIT_BASE + airport_value * CREDIT_SHARE_OF_VALUE
+
+
+## Charges running costs (and loan interest) for `delta` seconds and moves the one-minute window along.
 func tick(delta: float, running_cost_per_minute: float) -> void:
-	var cost := running_cost_per_minute / 60.0 * delta
+	var cost := (running_cost_per_minute + interest_per_minute()) / 60.0 * delta
 	balance -= cost
 	_window[_window_index] -= cost
 	_window_time += delta

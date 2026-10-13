@@ -28,6 +28,9 @@ const BOTTLENECK_COLOR: Color = Color(1.0, 0.7, 0.3)
 ## How often the statistics panel refreshes, in seconds.
 const STATS_REFRESH: float = 0.5
 
+## How long a notice stays on screen, in seconds.
+const NOTICE_SECONDS: float = 10.0
+
 ## Smallest size for touch buttons, in UI pixels (Apple recommends at least 44 pt).
 const BUTTON_MIN_SIZE: Vector2 = Vector2(120, 72)
 ## How long Reset / Demo wait for the confirming second tap.
@@ -41,6 +44,7 @@ var _stats_refresh_in: float = 0.0
 ## The building shown in the station panel, or null.
 var shown_station: Building = null
 var _tool: BuildMode.Tool = BuildMode.Tool.NONE
+var _notice_left: float = 0.0
 
 @onready var joystick: TouchJoystick = $SafeArea/TouchJoystick
 @onready var _view_button: Button = $SafeArea/TopButtons/ViewButton
@@ -61,6 +65,9 @@ var _tool: BuildMode.Tool = BuildMode.Tool.NONE
 @onready var _demolish_button: Button = $SafeArea/ToolPanel/ToolBar/DemolishButton
 @onready var _build_label: Label = $SafeArea/BuildLabel
 @onready var _money_label: Label = $SafeArea/InfoPanel/MoneyLabel
+@onready var _loan_label: Label = $SafeArea/InfoPanel/LoanLabel
+@onready var _notice_panel: Control = $SafeArea/NoticePanel
+@onready var _notice_label: Label = $SafeArea/NoticePanel/NoticeLabel
 @onready var _status_label: Label = $SafeArea/InfoPanel/StatusLabel
 @onready var _stars: StarRating = $SafeArea/InfoPanel/RatingRow/Stars
 @onready var _rating_label: Label = $SafeArea/InfoPanel/RatingRow/RatingLabel
@@ -108,6 +115,10 @@ func _ready() -> void:
 
 
 func _process(delta: float) -> void:
+	if _notice_left > 0.0:
+		_notice_left -= delta
+		if _notice_left <= 0.0:
+			_notice_panel.visible = false
 	if shown_station != null:
 		_update_station_panel()
 	if _stats_panel.visible:
@@ -192,6 +203,30 @@ func set_money(balance: float, profit_per_minute: float) -> void:
 	var plus := "+" if roundi(profit_per_minute) >= 0 else ""
 	_money_label.text = "%s   %s%s/min" % [Economy.format(balance), plus, Economy.format(profit_per_minute)]
 	_money_label.modulate = DEBT_COLOR if balance < 0.0 else MONEY_COLOR
+
+
+## Bank loan line under the money (design doc §11.6); hidden while there is no debt.
+## `restructure_in` is the countdown while over the credit limit, or -1.
+func set_loan(debt: float, interest_per_minute: float, limit: float, restructure_in: float) -> void:
+	_loan_label.visible = debt > 0.0
+	if debt <= 0.0:
+		return
+	var text := "Bank loan %s of %s · interest %s/min" % [Economy.format(debt), Economy.format(limit), Economy.format(interest_per_minute)]
+	if restructure_in >= 0.0:
+		var seconds := ceili(restructure_in)
+		text = "Over the credit limit! The bank restructures in %d:%02d" % [seconds / 60, seconds % 60]
+	_loan_label.text = text
+
+
+## Shows a message at the top of the screen for a few seconds.
+func notify(text: String) -> void:
+	_notice_label.text = text
+	_notice_panel.visible = true
+	_notice_left = NOTICE_SECONDS
+
+
+func notice_text() -> String:
+	return _notice_label.text if _notice_panel.visible else ""
 
 
 ## Star rating and what it is made of, under the money (design doc §11.7).

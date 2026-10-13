@@ -7,6 +7,8 @@ extends Node
 signal building_placed(building: Building)
 ## An upgrade started or finished (design doc §7.8).
 signal building_upgraded(building: Building)
+## The bank sold buildings to cover the debt (design doc §11.6). `sold` names them.
+signal restructured(sold: PackedStringArray)
 ## Someone was hired or dismissed at `building` (design doc §9.1).
 signal staff_changed(building: Building)
 ## A building was demolished (design doc §7.6). Sent before layout_changed.
@@ -82,11 +84,84 @@ func step(delta: float) -> void:
 	passenger_flow.tick(delta)
 	economy.tick(delta, _running_cost_per_minute)
 	reputation.tick(delta)
+	_check_loan(delta)
 	for building in buildings:
 		if building.is_upgrading():
 			building.upgrade_seconds_left -= delta
 			if building.upgrade_seconds_left <= 0.0:
 				_finish_upgrade(building)
+
+
+# --- Bank loan and restructuring (design doc §11.6) ---
+
+## Stars taken off the rating by a restructuring (fades, see Reputation).
+const RESTRUCTURE_PENALTY_STARS: float = 1.0
+## The bank sells these first, newest first: they make money but passengers can do without them.
+const OPTIONAL_ROLES: Array[BuildingType.Role] = [BuildingType.Role.SHOP, BuildingType.Role.TRANSFER_SECURITY]
+
+
+## What everything built is worth: build prices plus the upgrades paid for.
+func airport_value() -> float:
+	var value := 0.0
+	for building in buildings:
+		value += building.type.build_cost
+		for i in building.level - 1:
+			value += building.type.upgrades[i].cost
+	return value
+
+
+## How much the bank lends right now.
+func credit_limit() -> float:
+	return Economy.credit_limit(airport_value())
+
+
+## Seconds until the bank restructures, or -1 while the debt is within the limit.
+func restructure_in() -> float:
+	if economy.over_limit_seconds <= 0.0:
+		return -1.0
+	return maxf(Economy.RESTRUCTURE_AFTER - economy.over_limit_seconds, 0.0)
+
+
+func _check_loan(delta: float) -> void:
+	if economy.debt() <= 0.0 or economy.debt() <= credit_limit():
+		economy.over_limit_seconds = 0.0
+		return
+	economy.over_limit_seconds += delta
+	if economy.over_limit_seconds >= Economy.RESTRUCTURE_AFTER:
+		restructure()
+
+
+## The bank sells buildings (at the demolish refund) until the debt is covered, and writes off
+## whatever is still missing. It never sells the last building of a kind the passenger route
+## needs. The airport's reputation suffers. Returns the names of what was sold.
+func restructure() -> PackedStringArray:
+	var sold: PackedStringArray = []
+	while economy.balance < 0.0:
+		var building := _next_to_sell()
+		if building == null:
+			break
+		sold.append(passenger_flow.station_label(building) if passenger_flow.station_for(building) != null else building.type.display_name)
+		demolish(building)
+	economy.balance = maxf(economy.balance, 0.0)
+	economy.over_limit_seconds = 0.0
+	reputation.penalty += RESTRUCTURE_PENALTY_STARS
+	restructured.emit(sold)
+	return sold
+
+
+# Optional buildings first, then second (third, ...) buildings of a kind; newest first.
+func _next_to_sell() -> Building:
+	for i in range(buildings.size() - 1, -1, -1):
+		if buildings[i].type.role in OPTIONAL_ROLES:
+			return buildings[i]
+	for i in range(buildings.size() - 1, -1, -1):
+		var role := buildings[i].type.role
+		if role == BuildingType.Role.NONE:
+			return buildings[i]
+		for j in i:
+			if buildings[j].type.role == role:
+				return buildings[i]
+	return null
 
 
 ## The airport's star rating, 1.0 to 5.0 (design doc §11.7).
@@ -358,6 +433,7 @@ func save_state() -> Dictionary:
 		"zones": Marshalls.raw_to_base64(grid.get_zone_data()),
 		"walkways": Marshalls.raw_to_base64(grid.get_walkway_data()),
 		"money": economy.balance,
+		"over_limit": economy.over_limit_seconds,
 		"satisfaction": passenger_flow.satisfaction.save_state(),
 		"reputation": reputation.save_state(),
 		"buildings": saved_buildings,
@@ -410,6 +486,7 @@ func load_state(data: Dictionary) -> int:
 			if needs_staff(building):
 				staff_fully(building)
 	economy.balance = float(data.get("money", Economy.STARTING_MONEY))
+	economy.over_limit_seconds = float(data.get("over_limit", 0.0))
 	passenger_flow.satisfaction.load_state(data.get("satisfaction", {}))
 	reputation.load_state(data.get("reputation", {}))
 	zones_changed.emit()

@@ -37,6 +37,7 @@ func _ready() -> void:
 	_hud.hire_pressed.connect(func(building: Building) -> void: Airport.hire(building))
 	_hud.dismiss_pressed.connect(func(building: Building) -> void: Airport.dismiss(building))
 	TouchGestures.tapped.connect(_on_tapped)
+	Airport.restructured.connect(_on_restructured)
 	_set_view(View.MANAGER)
 
 
@@ -54,9 +55,16 @@ func _on_showcase_confirmed() -> void:
 
 func _process(_delta: float) -> void:
 	_hud.set_money(Airport.economy.balance, Airport.economy.profit_per_minute())
+	var economy := Airport.economy
+	_hud.set_loan(economy.debt(), economy.interest_per_minute(), Airport.credit_limit(), Airport.restructure_in())
 	_hud.set_rating(Airport.stars(), Airport.passenger_flow.satisfaction.average, Airport.reputation.on_time_rate)
 	_hud.set_status(Airport.passenger_flow.status_text())
 	_hud.set_departures(Airport.passenger_flow.departures_text())
+
+
+func _on_restructured(sold: PackedStringArray) -> void:
+	var what := "Sold: %s." % ", ".join(sold) if not sold.is_empty() else "Nothing was left to sell."
+	_hud.notify("The bank restructured your airport to cover the debt. %s The rest was written off. Reputation −1 star." % what)
 
 
 # Manager view: tapping a building opens its station panel; tapping elsewhere closes it.
