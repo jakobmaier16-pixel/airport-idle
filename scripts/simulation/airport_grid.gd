@@ -3,7 +3,8 @@ extends RefCounted
 ## The building grid as pure simulation data: no nodes, no visuals.
 ## Converts between world positions and grid cells, and stores what occupies each cell.
 ## Cell (0, 0) is the map corner at `origin`; cell x grows along world +X, cell y along world +Z.
-## Every cell also has a zone (design doc §7.2), landside by default, and may be walkway floor (§7.1b).
+## Every cell also has a zone (design doc §7.2), landside by default, and may be walkway floor (§7.1b)
+## or taxiway for planes (§7.5a), never both.
 
 enum Zone { LANDSIDE, AIRSIDE }
 
@@ -20,6 +21,8 @@ var _contents: Dictionary[Vector2i, Variant] = {}
 var _zones: PackedByteArray = PackedByteArray()
 # One byte per cell (row by row): 1 = walkway floor.
 var _walkways: PackedByteArray = PackedByteArray()
+# One byte per cell (row by row): 1 = taxiway.
+var _taxiways: PackedByteArray = PackedByteArray()
 
 
 func _init(size_in_cells: Vector2i, cell_size_meters: float) -> void:
@@ -28,6 +31,7 @@ func _init(size_in_cells: Vector2i, cell_size_meters: float) -> void:
 	origin = Vector3(-size.x * cell_size * 0.5, 0.0, -size.y * cell_size * 0.5)
 	_zones.resize(size.x * size.y)
 	_walkways.resize(size.x * size.y)
+	_taxiways.resize(size.x * size.y)
 
 
 ## The cell that contains `world_position`. May be outside the map; check with `is_inside()`.
@@ -108,6 +112,25 @@ func is_walkway(cell: Vector2i) -> bool:
 func set_walkway(cell: Vector2i, walkway: bool) -> void:
 	assert(is_inside(cell), "Cell %s is outside the map" % cell)
 	_walkways[cell.y * size.x + cell.x] = 1 if walkway else 0
+
+
+func is_taxiway(cell: Vector2i) -> bool:
+	return _taxiways[cell.y * size.x + cell.x] == 1
+
+
+func set_taxiway(cell: Vector2i, taxiway: bool) -> void:
+	assert(is_inside(cell), "Cell %s is outside the map" % cell)
+	_taxiways[cell.y * size.x + cell.x] = 1 if taxiway else 0
+
+
+## All taxiway flags, one byte per cell, row by row (for the ground and save games).
+func get_taxiway_data() -> PackedByteArray:
+	return _taxiways
+
+
+func set_taxiway_data(data: PackedByteArray) -> void:
+	if data.size() == _taxiways.size():
+		_taxiways = data
 
 
 ## True if passengers can stand on `cell`: walkway floor without a building on it.

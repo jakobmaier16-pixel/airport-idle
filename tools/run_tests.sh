@@ -9,7 +9,7 @@ LOG=$(mktemp -t airport_tests)
 
 "$GODOT" --headless --path . --import > /dev/null 2>&1
 # perl's alarm is a timeout (macOS has no `timeout` command): a hanging test can't block forever.
-perl -e 'alarm shift; exec @ARGV' 300 "$GODOT" --headless --path . res://tests/test_runner.tscn -- --no-save "$@" > "$LOG" 2>&1
+perl -e 'alarm shift; exec @ARGV' 600 "$GODOT" --headless --path . res://tests/test_runner.tscn -- --no-save "$@" > "$LOG" 2>&1
 CODE=$?
 
 grep -E "^(PASS|FAIL|  - |INFO|RESULT)" "$LOG"

@@ -4,11 +4,12 @@ extends TestCase
 
 
 func test_build_airport_by_touch_and_fly_passengers() -> void:
+	Airport.reset()  # a real new game: an empty field with the starting runway
 	await start_game()
 	await open_build_view()
 	await show_whole_map()
 
-	await paint("AirsideButton", Vector2i(8, 31), Vector2i(56, 55))
+	await paint("AirsideButton", Vector2i(8, 31), Vector2i(55, 56))
 	await paint("WalkwayButton", Vector2i(18, 21), Vector2i(45, 27))
 	await paint("WalkwayButton", Vector2i(10, 31), Vector2i(53, 33))
 
@@ -20,10 +21,14 @@ func test_build_airport_by_touch_and_fly_passengers() -> void:
 	check(await place("Gate", Vector2i(42, 34)), "gate 2")
 	check(await place("Stand", Vector2i(10, 39)), "stand 1")
 	check(await place("Stand", Vector2i(38, 39)), "stand 2")
+	check(not Airport.passenger_flow.route_problem.is_empty(), "stands without a taxiway get no planes")
+	# Taxiways from both stands down to the runway (design doc §7.5a).
+	await paint("TaxiwayButton", Vector2i(15, 51), Vector2i(16, 56))
+	await paint("TaxiwayButton", Vector2i(43, 51), Vector2i(44, 56))
 	check(not Airport.passenger_flow.route_problem.is_empty(), "without a baggage claim arrivals have no way out")
 	check(await place("Baggage claim", Vector2i(37, 27)), "baggage claim on the border")
 
-	check_eq(Airport.buildings.size(), 9, "all buildings placed")
+	check_eq(Airport.buildings.size(), 10, "all buildings placed (and the runway)")
 	await frames(1)
 	var layer := main.get_node("Buildings")
 	var unconnected: Array = layer._hints.values().filter(func(l: Label3D) -> bool: return l.visible and l.text != "Needs staff")

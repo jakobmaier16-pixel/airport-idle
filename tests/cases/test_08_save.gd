@@ -11,7 +11,7 @@ func test_state_round_trip() -> void:
 	var zones := Airport.grid.get_zone_data().duplicate()
 	var walkways := Airport.grid.get_walkway_data().duplicate()
 	Airport.reset()
-	check_eq(Airport.buildings.size(), 0, "reset clears buildings")
+	check_eq(Airport.buildings.size(), 1, "reset leaves only the starting runway")
 	var skipped := Airport.load_state(state)
 	check_eq(skipped, 0, "nothing skipped")
 	check_eq(Airport.buildings.size(), building_count, "buildings restored")
@@ -54,7 +54,7 @@ func test_outdated_building_is_skipped() -> void:
 		],
 	}
 	check_eq(Airport.load_state(state), 2, "unknown type and overlapping building skipped")
-	check_eq(Airport.buildings.size(), 1, "the valid building loads")
+	check_eq(Airport.buildings.size(), 2, "the valid building loads (and the old save gets a runway)")
 
 
 func test_reset_button_needs_two_taps() -> void:

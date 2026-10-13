@@ -70,6 +70,24 @@ func _ready() -> void:
 	await _shot("build_view")
 	await show_whole_map()
 	await _shot("build_view_whole_map")
+	# A plane taxiing in from the runway, and one taking off (design doc §7.5a).
+	for i in 3000:
+		var taxiing := Airport.passenger_flow.schedule.flights.any(func(f: Flight) -> bool:
+			var left := f.departs_at() - Airport.passenger_flow.time
+			return f.phase == Flight.Phase.ARRIVING and left < FlightSchedule.PLANE_ARRIVES - 7.0)
+		if taxiing:
+			break
+		Airport.step(Airport.SIM_STEP)
+	build_camera().center_on(Airport.grid.cell_to_world(Vector2i(32, 52)))
+	await _shot("plane_taxiing")
+	for i in 3000:
+		var leaving := Airport.passenger_flow.schedule.flights.any(func(f: Flight) -> bool:
+			return f.phase == Flight.Phase.DEPARTING and Airport.passenger_flow.time - f.departs_at() > 11.0)
+		if leaving:
+			break
+		Airport.step(Airport.SIM_STEP)
+	build_camera().center_on(Airport.grid.cell_to_world(Vector2i(32, 52)))
+	await _shot("plane_taking_off")
 	# A regional airport only owns the middle of the map (design doc §14.1).
 	Airport.progression.tier = Progression.Tier.REGIONAL
 	Airport.land_changed.emit()

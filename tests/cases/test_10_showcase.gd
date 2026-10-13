@@ -46,7 +46,7 @@ func test_new_export_replaces_map_with_showcase() -> void:
 	SaveGame.build_stamp = "def5678 · new"
 	Airport.reset()
 	SaveGame.load_game()
-	check_eq(Airport.buildings.size(), 1, "own save loads first")
+	check_eq(Airport.buildings.size(), 2, "own save loads first (plus the runway old saves get)")
 	check(SaveGame.load_showcase_if_new_build(), "new export loads the showcase")
 	check_eq(Airport.buildings.size(), SHOWCASE_BUILDINGS, "showcase replaced the map")
 
@@ -67,7 +67,7 @@ func test_editor_runs_never_replace_the_map() -> void:
 	Airport.reset()
 	SaveGame.load_game()
 	check(not SaveGame.load_showcase_if_new_build(), "'dev' never loads the showcase")
-	check_eq(Airport.buildings.size(), 1, "own map kept")
+	check_eq(Airport.buildings.size(), 2, "own map kept (plus the runway old saves get)")
 	_restore_save_settings()
 
 

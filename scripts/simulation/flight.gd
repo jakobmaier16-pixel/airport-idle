@@ -33,6 +33,9 @@ var delay: float = 0.0
 var weather_delay: float = 0.0
 ## Seconds of de-icing done (snow, design doc §12.2).
 var deiced: float = 0.0
+## Runway slots booked for landing and take-off (design doc §7.5a).
+var landing_booked: bool = false
+var takeoff_booked: bool = false
 var seats: int
 var booked: int
 ## When each booked passenger arrives at the entrance (simulation time, ascending) and their type.

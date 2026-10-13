@@ -12,7 +12,7 @@ const STEPS: Array = [
 	["Paint walkways (Walkway) and build an Entrance with its back on one", "_has_entrance"],
 	["Build a Check-in facing the entrance's walkway", "_has_check_in"],
 	["Build Security on the border: front landside, back airside", "_has_security"],
-	["Build a Gate on airside with a Stand behind it", "_has_gate"],
+	["Build a Gate with a Stand behind it, and paint a Taxiway from the stand to the runway", "_has_gate"],
 	["Build a Baggage claim for arriving passengers", "_has_claim"],
 	["Hire staff: tap check-in and security in the manager view", "_has_staff"],
 	["Wait for your first departure (watch the departures board)", "_has_departure"],

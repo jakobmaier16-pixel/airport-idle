@@ -9,7 +9,7 @@ const INTERVAL: float = 180.0
 ## A newly usable gate's first departure is this far in the future (after the arrival window).
 const FIRST_DEPARTURE_DELAY: float = 270.0
 ## Gates that become usable at the same moment are spread out by this much.
-const GATE_STAGGER: float = 45.0
+const GATE_STAGGER: float = 60.0
 ## The earliest any passenger type arrives before departure (see data/passengers/); the next
 ## flight at a gate is planned this long before it departs.
 const ARRIVALS_START: float = 260.0
@@ -18,6 +18,10 @@ const PLANE_ARRIVES: float = 130.0
 ## A flight waits at most this long for passengers who are already airside (checked-in bags would
 ## otherwise have to be unloaded). Fits before the next plane arrives at the same stand.
 const MAX_HOLD: float = 30.0
+## Every landing and take-off occupies a runway this long (design doc §7.5a). A variable, so
+## tests can make runways the bottleneck.
+var runway_seconds: float = RUNWAY_SECONDS
+const RUNWAY_SECONDS: float = 20.0
 ## Seconds to taxi onto the stand, and to push back after departure.
 const TAXI_TIME: float = 15.0
 const BOARDING_OPENS: float = 90.0
@@ -56,6 +60,11 @@ const WIDE_BODY_DEPLANE_RATE: float = 2.0
 ## Every flight that hasn't departed yet. A gate can have two: the one at the stand and the
 ## next one, whose passengers are already arriving (like at a real airport).
 var flights: Array[Flight] = []
+
+# Simulation time from which each runway is free again.
+var _runway_free_at: Dictionary[Building, float] = {}
+## Every runway booking (runway, start time), for tests.
+var runway_bookings: Array = []
 
 # Departure time of the latest flight planned at each gate.
 var _last_planned: Dictionary[Building, float] = {}
@@ -216,6 +225,11 @@ func _advance(flight: Flight, now: float, delta: float, flow: PassengerFlow) -> 
 			flight.delay += delta
 			flight.weather_delay += delta
 			phase = Flight.Phase.BOARDING
+	if phase >= Flight.Phase.DEPARTING and flight.phase < Flight.Phase.DEPARTING and not flight.takeoff_booked:
+		# The take-off slot (design doc §7.5a): the plane pushes back on time and, if the runway is
+		# busy, waits at the holding point. Punctuality counts the push-back, as in real statistics.
+		_book_runway(flight, now, true)
+		flight.takeoff_booked = true
 	if phase >= Flight.Phase.DEPARTING and flight.phase < Flight.Phase.DEPARTING:
 		# Only delays the airport caused count (design doc §12.2).
 		Airport.reputation.record_departure(flight.airport_delay())
@@ -233,6 +247,29 @@ func _advance(flight: Flight, now: float, delta: float, flow: PassengerFlow) -> 
 enum Hold { NONE, WEATHER, AIRPORT }
 
 
+# Books the runway `flight` uses for `runway_seconds`, from now. False if it is busy, unless
+# `queue` is set: then the booking starts when the runway is free again.
+func _book_runway(flight: Flight, now: float, queue: bool = false) -> bool:
+	var runway := _runway_for(flight)
+	if runway == null:
+		return true  # no runway known (tests without one): nothing to wait for
+	var free_at: float = _runway_free_at.get(runway, -INF)
+	if free_at > now and not queue:
+		return false
+	var start := maxf(now, free_at)
+	_runway_free_at[runway] = start + runway_seconds
+	runway_bookings.append([runway, start])
+	return true
+
+
+# The runway at the start of the planes' way to `flight`'s stand.
+func _runway_for(flight: Flight) -> Building:
+	if flight.stand == null:
+		return null
+	var path := Airport.plane_network.path_to_stand(flight.stand)
+	return Airport.plane_network.runway_at(path[0]) if not path.is_empty() else null
+
+
 # Why `flight` must wait this step (design doc §12.2): weather (no landing, no ground work), or
 # its stand is still taken by the previous plane at the same gate (knock-on delay; weather if
 # that plane was held by weather).
@@ -246,6 +283,11 @@ func _hold_reason(flight: Flight, now: float) -> Hold:
 			if other != flight and other.gate == flight.gate and other.is_active() \
 					and other.departure_time < flight.departure_time and other.phase != Flight.Phase.SCHEDULED:
 				return Hold.WEATHER if other.weather_delay > 0.0 else Hold.AIRPORT
+		# A landing slot on the runway (design doc §7.5a).
+		if not flight.landing_booked:
+			if not _book_runway(flight, now):
+				return Hold.AIRPORT
+			flight.landing_booked = true
 	elif flight.phase >= Flight.Phase.ARRIVING and weather.ramp_closed():
 		return Hold.WEATHER
 	return Hold.NONE

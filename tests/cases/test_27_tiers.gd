@@ -10,7 +10,7 @@ func _make_excellent() -> void:
 
 func test_regional_airport_owns_the_middle() -> void:
 	check_eq(Airport.progression.tier, Progression.Tier.REGIONAL, "a new airport is regional")
-	check_eq(Airport.progression.owned_land(Airport.grid.size), Rect2i(8, 8, 48, 48), "48 × 48 cells in the middle")
+	check_eq(Airport.progression.owned_land(Airport.grid.size), Rect2i(8, 8, 48, 56), "the middle columns, down to the runway")
 	check_eq(Airport.check_placement(type_of(&"check_in"), Vector2i(2, 2), 0), "Not your land yet (National airport)", "no building outside")
 	Airport.paint_walkway(cells(Vector2i(0, 20), Vector2i(12, 1)), true)
 	check(not Airport.grid.is_walkway(Vector2i(3, 20)), "no painting outside")
@@ -108,7 +108,7 @@ func test_ground_shows_owned_land() -> void:
 	await start_game()
 	var material := (main.get_node("Ground/MeshInstance3D") as MeshInstance3D).mesh.surface_get_material(0) as ShaderMaterial
 	var rect: Vector4 = material.get_shader_parameter(&"owned_rect")
-	check_eq(rect, Vector4(-48.0, -48.0, 48.0, 48.0), "regional land shaded")
+	check_eq(rect, Vector4(-48.0, -48.0, 48.0, 64.0), "regional land shaded")
 	Airport.progression.tier = Progression.Tier.NATIONAL
 	Airport.land_changed.emit()
 	rect = material.get_shader_parameter(&"owned_rect")
@@ -123,4 +123,4 @@ func test_progression_saved_and_old_buildings_kept() -> void:
 	data["progression"]["tier"] = Progression.Tier.REGIONAL  # e.g. an older save
 	Airport.load_state(data)
 	check_eq(Airport.progression.passengers, 4321, "passengers restored")
-	check_eq(Airport.buildings.size(), 1, "a building on land a regional airport doesn't own still loads")
+	check_eq(Airport.buildings.size(), 2, "a building on land a regional airport doesn't own still loads (plus the runway)")

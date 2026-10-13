@@ -25,7 +25,13 @@ func test_gate_needs_stand_behind() -> void:
 	Airport.place_building(type_of(&"gate"), Vector2i(40, 34), 0)
 	check_eq(Airport.connection_problem(type_of(&"gate"), Vector2i(40, 34), 0), "Needs an aircraft stand behind", "no stand")
 	Airport.place_building(type_of(&"aircraft_stand"), Vector2i(36, 39), 0)
-	check_eq(Airport.connection_problem(type_of(&"gate"), Vector2i(40, 34), 0), "", "stand behind")
+	check_eq(Airport.connection_problem(type_of(&"gate"), Vector2i(40, 34), 0), "Its stand needs a taxiway to a runway", "stand behind, but no way to a runway")
+	# A runway along the south edge and a taxiway from the stand down to it (design doc §7.5a).
+	Airport.add_starting_runway()  # already there, like in a new game
+	check_eq(Airport.connection_problem(type_of(&"aircraft_stand"), Vector2i(36, 39), 0), "Needs a taxiway to a runway", "runway, but no taxiway")
+	Airport.paint_taxiway(cells(Vector2i(41, 51), Vector2i(2, 6)), true)
+	check_eq(Airport.connection_problem(type_of(&"aircraft_stand"), Vector2i(36, 39), 0), "", "taxiway to the runway")
+	check_eq(Airport.connection_problem(type_of(&"gate"), Vector2i(40, 34), 0), "", "the gate works")
 
 
 func test_building_on_walkway_blocks_it() -> void:

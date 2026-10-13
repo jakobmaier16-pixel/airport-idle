@@ -228,6 +228,12 @@ layout_mode = 2
 focus_mode = 0
 text = "Walkway"
 
+[node name="TaxiwayButton" type="Button" parent="SafeArea/BuildMenu/PaintButtons"]
+custom_minimum_size = Vector2(120, 72)
+layout_mode = 2
+focus_mode = 0
+text = "Taxiway"
+
 [node name="RemoveButton" type="Button" parent="SafeArea/BuildMenu/PaintButtons"]
 custom_minimum_size = Vector2(120, 72)
 layout_mode = 2

@@ -21,8 +21,9 @@ static func build(warm_up_seconds: float = 180.0) -> void:
 	Airport.progression.transfers = 400
 	Airport.land_changed.emit()
 
-	# Zones: landside in the north, airside in the south (security sits on the border).
-	Airport.paint_zone(_cells(Vector2i(8, 31), Vector2i(49, 25)), AirportGrid.Zone.AIRSIDE)
+	# Zones: landside in the north, airside in the south (security sits on the border), down to the
+	# runway every airport starts with (design doc §7.5a).
+	Airport.paint_zone(_cells(Vector2i(8, 31), Vector2i(49, 26)), AirportGrid.Zone.AIRSIDE)
 
 	# Walkways: a landside hall and an airside walkway along the gates.
 	Airport.paint_walkway(_cells(Vector2i(18, 21), Vector2i(28, 7)), true)
@@ -42,6 +43,10 @@ static func build(warm_up_seconds: float = 180.0) -> void:
 	Airport.place_building(catalog.find(&"wide_body_stand"), Vector2i(22, 39), 0)
 	# De-icing pad for snowy days (§12.2), beside stand 2.
 	Airport.place_building(catalog.find(&"deicing_pad"), Vector2i(50, 39), 0)
+	# Taxiways (§7.5a): a parallel taxiway along the runway, and short links down from the stands.
+	Airport.paint_taxiway(_cells(Vector2i(8, 55), Vector2i(48, 2)), true)
+	Airport.paint_taxiway(_cells(Vector2i(15, 51), Vector2i(2, 4)), true)
+	Airport.paint_taxiway(_cells(Vector2i(43, 51), Vector2i(2, 4)), true)
 
 	# Arrivals: baggage claim on the border next to security, out into the landside hall (§8.8).
 	Airport.place_building(catalog.find(&"baggage_claim"), Vector2i(37, 27), 0)

@@ -19,8 +19,9 @@ const REWARDS: Array[String] = [
 	"Long-haul flights: build a wide-body stand for big planes.\nOrynth Pacific wants to fly here.",
 	"Hub status: airlines route twice as many connections through you.\nCorvista Airlines wants to fly here.",
 ]
-## Regional airports own this many cells in the middle of the map; from National on, all of it.
-const REGIONAL_LAND: Vector2i = Vector2i(48, 48)
+## Regional airports own this part of the map (the middle columns, from the terminal area down to
+## the runway at the south edge); from National on, all of it.
+const REGIONAL_LAND: Rect2i = Rect2i(8, 8, 48, 56)
 ## Hub status: transfer shares of every route are multiplied by this (design doc §14.1).
 const HUB_TRANSFER_FACTOR: float = 2.0
 
@@ -71,7 +72,7 @@ func progress_text(stars: float) -> String:
 func owned_land(map_size: Vector2i) -> Rect2i:
 	if tier >= Tier.NATIONAL:
 		return Rect2i(Vector2i.ZERO, map_size)
-	return Rect2i((map_size - REGIONAL_LAND) / 2, REGIONAL_LAND)
+	return REGIONAL_LAND.intersection(Rect2i(Vector2i.ZERO, map_size))
 
 
 func save_state() -> Dictionary:

@@ -9,7 +9,7 @@ extends Node3D
 ## With no tool active, tapping a cell highlights it.
 
 enum Tool { NONE, PLACE, PAINT, DEMOLISH }
-enum PaintKind { AIRSIDE, LANDSIDE, WALKWAY, REMOVE_WALKWAY }
+enum PaintKind { AIRSIDE, LANDSIDE, WALKWAY, REMOVE_WALKWAY, TAXIWAY }
 
 ## Emitted whenever the tool, its validity or its hint changes (so the HUD can update).
 ## can_confirm: PLACE = the spot is allowed; PAINT = always true; DEMOLISH = a building is selected.
@@ -23,6 +23,7 @@ signal tool_changed(tool: Tool, can_confirm: bool, hint: String)
 @export var landside_paint_color: Color = Color(0.35, 0.8, 0.35, 0.45)
 @export var walkway_paint_color: Color = Color(0.95, 0.9, 0.7, 0.55)
 @export var remove_paint_color: Color = Color(0.95, 0.3, 0.25, 0.45)
+@export var taxiway_paint_color: Color = Color(0.15, 0.15, 0.17, 0.6)
 @export var demolish_color: Color = Color(0.95, 0.2, 0.15, 0.5)
 ## A drag that starts this many cells around the preview still grabs it (fingers are wide).
 @export var grab_margin_cells: int = 1
@@ -115,7 +116,7 @@ func start_painting(kind: PaintKind) -> void:
 	cancel_tool()
 	_tool = Tool.PAINT
 	_paint_kind = kind
-	var colors: Array[Color] = [airside_paint_color, landside_paint_color, walkway_paint_color, remove_paint_color]
+	var colors: Array[Color] = [airside_paint_color, landside_paint_color, walkway_paint_color, remove_paint_color, taxiway_paint_color]
 	_paint_material.albedo_color = colors[kind]
 	_update_highlight()
 	_emit_paint_hint("")
@@ -352,7 +353,11 @@ func _apply_paint(cells: Array[Vector2i]) -> String:
 		PaintKind.WALKWAY:
 			return Airport.paint_walkway(cells, true)
 		PaintKind.REMOVE_WALKWAY:
+			# Remove clears walkways and taxiways alike.
+			Airport.paint_taxiway(cells, false)
 			return Airport.paint_walkway(cells, false)
+		PaintKind.TAXIWAY:
+			return Airport.paint_taxiway(cells, true)
 	if blocked > 0:
 		return "%d cells kept: a building needs their zone." % blocked
 	return ""
@@ -360,7 +365,8 @@ func _apply_paint(cells: Array[Vector2i]) -> String:
 
 # Shows `problem` if there is one, otherwise how to use the current paint tool.
 func _emit_paint_hint(problem: String) -> void:
-	var actions: Array[String] = ["paint airside", "paint landside", "lay walkway (%s per cell)" % Economy.format(Economy.WALKWAY_COST_PER_CELL), "remove walkway"]
+	var actions: Array[String] = ["paint airside", "paint landside", "lay walkway (%s per cell)" % Economy.format(Economy.WALKWAY_COST_PER_CELL),
+		"remove walkway or taxiway", "lay taxiway from stands to the runway (%s per cell)" % Economy.format(Economy.TAXIWAY_COST_PER_CELL)]
 	var hint := problem
 	if hint.is_empty():
 		hint = "Drag to %s. Two fingers: move and zoom." % actions[_paint_kind]

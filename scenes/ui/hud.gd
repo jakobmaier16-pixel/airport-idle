@@ -108,6 +108,7 @@ func _ready() -> void:
 		^"SafeArea/BuildMenu/PaintButtons/LandsideButton": BuildMode.PaintKind.LANDSIDE,
 		^"SafeArea/BuildMenu/PaintButtons/WalkwayButton": BuildMode.PaintKind.WALKWAY,
 		^"SafeArea/BuildMenu/PaintButtons/RemoveButton": BuildMode.PaintKind.REMOVE_WALKWAY,
+		^"SafeArea/BuildMenu/PaintButtons/TaxiwayButton": BuildMode.PaintKind.TAXIWAY,
 	}
 	for path: NodePath in paint_buttons:
 		(get_node(path) as Button).pressed.connect(paint_tool_selected.emit.bind(paint_buttons[path]))

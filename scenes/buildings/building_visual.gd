@@ -16,6 +16,7 @@ const CAR_COLORS: Array[Color] = [Color(0.8, 0.15, 0.15), Color(0.15, 0.3, 0.7),
 static var _bridge_material: StandardMaterial3D
 static var _marking_material: StandardMaterial3D
 static var _car_material: StandardMaterial3D
+static var _runway_material: StandardMaterial3D
 
 
 ## Builds the meshes. Call once, right after creating the node.
@@ -66,6 +67,28 @@ func _add_details(type: BuildingType, size: Vector3, cast_shadows: bool) -> void
 			_add_mesh(stop_bar, Vector3(0.0, size.y + 0.01, -size.z * 0.5 + 1.2), false)
 		BuildingType.Role.CAR_PARK:
 			_add_cars(size)
+		BuildingType.Role.RUNWAY:
+			_add_runway_markings(size)
+
+
+# White centre line dashes and threshold bars at both ends (along the runway's long side, x).
+func _add_runway_markings(size: Vector3) -> void:
+	if _runway_material == null:
+		_runway_material = _flat_material(Color(0.95, 0.95, 0.95))
+	var dash := BoxMesh.new()
+	dash.size = Vector3(4.0, 0.02, 0.3)
+	dash.material = _runway_material
+	var x := -size.x * 0.5 + 12.0
+	while x < size.x * 0.5 - 10.0:
+		_add_mesh(dash, Vector3(x, size.y + 0.01, 0.0), false)
+		x += 8.0
+	var bar := BoxMesh.new()
+	bar.size = Vector3(3.0, 0.02, 0.5)
+	bar.material = _runway_material
+	for end in [-1.0, 1.0]:
+		for i in 6:
+			var z := (i - 2.5) * size.z / 7.0
+			_add_mesh(bar, Vector3(end * (size.x * 0.5 - 3.0), size.y + 0.01, z), false)
 
 
 # Rows of parked cars on the deck: one MultiMesh, so a full car park is a single draw call.

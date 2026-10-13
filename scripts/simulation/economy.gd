@@ -15,6 +15,9 @@ const ARRIVAL_FEE: float = 5.0
 const CONCESSION_SHARE: float = 0.3
 const WALKWAY_COST_PER_CELL: float = 20.0
 const WALKWAY_RUNNING_COST_PER_CELL: float = 0.05
+## Taxiways for planes (design doc §7.5a).
+const TAXIWAY_COST_PER_CELL: float = 30.0
+const TAXIWAY_RUNNING_COST_PER_CELL: float = 0.05
 ## Bank loan (design doc §11.6): a negative balance is a loan with this interest per minute.
 const LOAN_INTEREST_PER_MINUTE: float = 0.01
 ## The bank lends up to this much, plus a share of what the airport is worth.
