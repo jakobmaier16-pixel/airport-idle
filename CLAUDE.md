@@ -81,15 +81,18 @@ scenes/<feature>/     one folder per feature: <name>.tscn + <name>.gd side by si
   buildings/          building visuals: BuildingLayer draws every simulated building
   passengers/         PassengerLayer: draws passengers near the camera (one MultiMesh)
   planes/             PlaneLayer + PlaneVisual: planes taxiing in, parked, pushing back
+  day_night/          DayNight: sun and ambient light by the time of day
+  weather/            WeatherLayer: rain, snow and fog around the camera
   ground/             map ground, sized from the grid
-  ui/                 HUD, view button, joystick, safe area container
+  ui/                 HUD, view button, joystick, safe area container, AirlinesPanel, StarRating
 scripts/autoload/     global singletons:
                         Airport       -> simulation root: grid, zones, buildings (cell size lives here)
                         SaveGame      -> autosave / load of the airport (user://savegame.json)
                         TouchGestures -> touch / mouse / trackpad -> drag, tap, pinch signals
 scripts/simulation/   pure simulation data classes (no nodes, no visuals): AirportGrid, Building,
                       PassengerFlow, Passenger, Station, WalkwayNetwork, FlightSchedule, Flight,
-                      Economy, Employee, Satisfaction, Reputation, Airlines (+ Airline, AirlineOffer).
+                      Economy, Employee, Satisfaction, Reputation, Airlines (+ Airline, AirlineOffer),
+                      Progression (tiers), Goals, Clock, Weather.
                       Advance everything with `Airport.step(delta)`.
 scripts/resources/    custom Resource classes (data definitions), e.g. BuildingType
 data/buildings/       one BuildingType .tres per building (edit footprint, name, look in the Inspector)
