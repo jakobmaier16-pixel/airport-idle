@@ -11,11 +11,31 @@ const EXPERT_TIME_FACTOR: float = 0.85
 ## Experience levels: passengers served -> name.
 const LEVELS: Array = [[0, "New"], [30, "Trained"], [80, "Experienced"], [150, "Expert"]]
 
+## Training (design doc §9.2): cost, time away from the counter, experience gained.
+const TRAINING_COST: float = 400.0
+const TRAINING_SECONDS: float = 45.0
+const TRAINING_EXPERIENCE: int = 40
+## A supervisor earns this much more per minute; everyone else at the station needs this share
+## of their usual time.
+const SUPERVISOR_RAISE: float = 4.0
+const SUPERVISOR_TEAM_FACTOR: float = 0.95
+
 var name: String
 var workplace: Building
 var salary_per_minute: float
 ## Passengers served per station type (BuildingType.Role -> count). Experience grows per station.
 var served: Dictionary[int, int] = {}
+## Seconds left in a training course; while > 0 the employee isn't at a counter.
+var training_left: float = 0.0
+var is_supervisor: bool = false
+
+
+func is_training() -> bool:
+	return training_left > 0.0
+
+
+func is_expert() -> bool:
+	return experience() >= EXPERT_AFTER
 
 
 ## Passengers served at the current workplace's station type.
@@ -34,4 +54,8 @@ func level_name() -> String:
 	for entry: Array in LEVELS:
 		if experience() >= entry[0]:
 			level = entry[1]
+	if is_supervisor:
+		level = "Supervisor"
+	if is_training():
+		level += " · in training %ds" % ceili(training_left)
 	return level

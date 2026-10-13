@@ -98,6 +98,12 @@ func step(delta: float) -> void:
 	airlines.tick(delta, stars(), not passenger_flow.usable_gates().is_empty(), progression.tier)
 	progression.check(stars())
 	_check_loan(delta)
+	for employee in staff:
+		if employee.is_training():
+			employee.training_left -= delta
+			if not employee.is_training():
+				var role := employee.workplace.type.role
+				employee.served[role] = employee.served.get(role, 0) + Employee.TRAINING_EXPERIENCE
 	for building in buildings:
 		if building.is_upgrading():
 			building.upgrade_seconds_left -= delta
@@ -345,6 +351,70 @@ func dismiss(building: Building) -> bool:
 	return true
 
 
+## Staff at `building` who are at their counters right now (not in training). Counter i is run
+## by the i-th of them.
+func staff_working_at(building: Building) -> Array[Employee]:
+	return staff_at(building).filter(func(e: Employee) -> bool: return not e.is_training())
+
+
+## The employee at `building` who would go to training next (least experienced), or null.
+func next_trainee(building: Building) -> Employee:
+	var best: Employee = null
+	for employee in staff_at(building):
+		if not employee.is_expert() and (best == null or employee.experience() < best.experience()):
+			best = employee
+	return best
+
+
+## Why nobody at `building` can be trained right now, or "" if someone can.
+func train_problem(building: Building) -> String:
+	if staff_at(building).is_empty():
+		return "Nobody to train"
+	if staff_at(building).any(func(e: Employee) -> bool: return e.is_training()):
+		return "Training in progress"
+	if next_trainee(building) == null:
+		return "Everyone is an expert"
+	if not economy.can_afford(Employee.TRAINING_COST):
+		return "Not enough money (%s)" % Economy.format(Employee.TRAINING_COST)
+	return ""
+
+
+## Sends the least experienced employee at `building` to training (design doc §9.2).
+func train(building: Building) -> Employee:
+	if not train_problem(building).is_empty():
+		return null
+	var trainee := next_trainee(building)
+	economy.pay_construction(Employee.TRAINING_COST)
+	trainee.training_left = Employee.TRAINING_SECONDS
+	staff_changed.emit(building)
+	return trainee
+
+
+## Why nobody at `building` can be promoted right now, or "" if someone can.
+func promote_problem(building: Building) -> String:
+	var working := staff_at(building)
+	if working.any(func(e: Employee) -> bool: return e.is_supervisor):
+		return "Has a supervisor"
+	if not working.any(func(e: Employee) -> bool: return e.is_expert()):
+		return "Needs an expert"
+	return ""
+
+
+## Promotes the most experienced expert at `building` to supervisor (design doc §9.2).
+func promote(building: Building) -> Employee:
+	if not promote_problem(building).is_empty():
+		return null
+	var best: Employee = null
+	for employee in staff_at(building):
+		if employee.is_expert() and (best == null or employee.experience() > best.experience()):
+			best = employee
+	best.is_supervisor = true
+	best.salary_per_minute += Employee.SUPERVISOR_RAISE
+	_update_running_cost()
+	staff_changed.emit(building)
+	return best
+
+
 ## Hires staff until every counter / lane of `building` is staffed.
 func staff_fully(building: Building) -> void:
 	while hire(building) != null:
@@ -518,6 +588,8 @@ func save_state() -> Dictionary:
 			"name": employee.name,
 			"building": buildings.find(employee.workplace),
 			"served": employee.served,
+			"training_left": employee.training_left,
+			"supervisor": employee.is_supervisor,
 		})
 	return {
 		"staff": saved_staff,
@@ -573,6 +645,10 @@ func load_state(data: Dictionary) -> int:
 			employee.name = str(entry.get("name", "Employee"))
 			employee.workplace = workplace
 			employee.salary_per_minute = SALARIES[workplace.type.role]
+			employee.training_left = float(entry.get("training_left", 0.0))
+			employee.is_supervisor = bool(entry.get("supervisor", false))
+			if employee.is_supervisor:
+				employee.salary_per_minute += Employee.SUPERVISOR_RAISE
 			var served: Dictionary = entry.get("served", {})
 			for role in served:
 				employee.served[int(role)] = int(served[role])

@@ -316,7 +316,7 @@ Placeholder numbers, tunable.
 - **Individual employees** with names, skills and experience.
 - **Experience grows per station:** someone who has worked check-in for a long time is faster there than a new hire.
 - Staff is assigned to stations; staff count and quality affect throughput.
-- Upgrading staff (training, promotion, pay, specialization): concrete mechanics **(open)**.
+- Upgrading staff (training, promotion, pay, specialization): §9.2.
 
 
 ### 9.1 First staff system
@@ -325,7 +325,14 @@ Placeholder numbers, tunable.
 - **Employees** are individuals with fictional names. Salary: check-in agent €8/min, security officer €10/min. Salaries replace most of the stations' running costs (check-in €6/min, security €10/min for the building itself).
 - **Experience per station type:** a new employee is 25 % slower than the standard time; every passenger served at that station type makes them faster, up to 15 % faster (expert) after 150 passengers. Levels: New · Trained · Experienced · Expert.
 - **Managing** happens in the station panel (manager view), on the spot (§15.1): staff list with levels, *Hire* and *Dismiss*. Unstaffed stations show "Needs staff".
-- Training, promotion, pay and specialization are still **(open)** (§19 Q6).
+- Training and promotion: §9.2.
+
+### 9.2 Training and promotion (first version)
+Decided 2026-10-13 (closes §19 Q6 for now). Placeholder numbers, tunable.
+- **Specialization** is the experience per station type (§9.1): an expert at security is a beginner at check-in.
+- **Training** (station panel, on the spot): sends the least experienced employee there to a course. €400, 45 seconds away from the counter (it stays closed meanwhile), then +40 passengers of experience at that station type (about one level). One trainee per station at a time; experts don't need it.
+- **Promotion:** an expert can be promoted to **supervisor** (+€4/min salary). A supervisor still runs a counter, and everyone else at that station works 5 % faster. One supervisor per station.
+- **Pay** stays fixed per job for now; pay raises only come with promotion.
 
 ---
 
@@ -579,12 +586,12 @@ After that, features grow with play time and milestones: shops, staff, passenger
 2. What does the player's own airport start with: empty field, small airstrip, or run-down regional airport?
 
 ### Progression
-3. What are the airport tiers called, and what unlocks each one?
-4. Which specific special reward goes with which milestone?
+3. ~~What are the airport tiers called, and what unlocks each one?~~ Decided: §14.1.
+4. ~~Which specific special reward goes with which milestone?~~ Decided for the four tiers: §14.1 (more special events later).
 5. ~~How does the second currency (reputation?) work and what does it unlock?~~ Decided: star rating, §11.7.
 
 ### Systems
-6. Staff upgrades: training, promotion, pay, specialization — which, and how?
+6. ~~Staff upgrades: training, promotion, pay, specialization — which, and how?~~ Decided: §9.2.
 7. ~~Bankruptcy: game over, loan, or restructuring?~~ Decided: loan, then restructuring, §11.6.
 8. ~~Negotiations: how do dialogue choices and deal terms interact in detail?~~ Decided: offer cards + sliders + tone, §10.1.
 

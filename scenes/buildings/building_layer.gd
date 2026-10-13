@@ -11,6 +11,8 @@ const UPGRADE_COLOR: Color = Color(1.0, 0.75, 0.25)
 const MANAGER_COLOR: Color = Color(0.5, 1.0, 0.55)
 ## Metadata key on collision bodies: the Building they belong to (used to find tapped buildings).
 const BUILDING_META: StringName = &"building"
+## Hint size on screen (Label3D.pixel_size with fixed_size: share of the screen height per font pixel).
+const HINT_PIXEL_SIZE: float = 0.0008
 ## How far above the roof the "not connected" hint floats, in meters.
 const HINT_HEIGHT: float = 1.5
 
@@ -48,8 +50,11 @@ func _add_visual(building: Building) -> void:
 	hint.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 	# Always readable, even behind other buildings.
 	hint.no_depth_test = true
+	# The same size on screen however close the camera is: in the manager view the camera can be
+	# right next to a building, and a world-sized label would cover the screen.
+	hint.fixed_size = true
 	hint.font_size = 48
-	hint.pixel_size = 0.03
+	hint.pixel_size = HINT_PIXEL_SIZE
 	hint.outline_size = 12
 	hint.modulate = HINT_COLOR
 	hint.position.y = building.type.height + HINT_HEIGHT
@@ -87,9 +92,13 @@ func _process(_delta: float) -> void:
 			hint.text = "Upgrading… %d:%02d" % [seconds / 60, seconds % 60]
 			hint.modulate = UPGRADE_COLOR
 		elif Airport.needs_staff(building) and Airport.is_manager_near(building):
-			# The manager's presence helps (design doc §15.1).
+			# The manager's presence helps (design doc §15.1). Shown on the facade, not above the
+			# roof: the manager stands right in front, so a roof label would sit under the HUD.
 			hint.text = "Manager here · +10 %"
 			hint.modulate = MANAGER_COLOR
+			hint.position.y = building.type.height * 0.5
+		if hint.text != "Manager here · +10 %":
+			hint.position.y = building.type.height + HINT_HEIGHT
 		hint.visible = not problem.is_empty() or building.is_upgrading() \
 			or (Airport.needs_staff(building) and (Airport.staff_at(building).is_empty() or Airport.is_manager_near(building)))
 

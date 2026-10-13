@@ -19,6 +19,8 @@ signal showcase_confirmed
 signal upgrade_pressed(building: Building)
 signal hire_pressed(building: Building)
 signal dismiss_pressed(building: Building)
+signal train_pressed(building: Building)
+signal promote_pressed(building: Building)
 
 const MONEY_COLOR: Color = Color(1.0, 1.0, 1.0)
 const DEBT_COLOR: Color = Color(1.0, 0.4, 0.35)
@@ -85,6 +87,9 @@ var _notice_left: float = 0.0
 @onready var _staff_buttons: Control = $SafeArea/StationPanel/Content/StaffButtons
 @onready var _hire_button: Button = $SafeArea/StationPanel/Content/StaffButtons/HireButton
 @onready var _dismiss_button: Button = $SafeArea/StationPanel/Content/StaffButtons/DismissButton
+@onready var _team_buttons: Control = $SafeArea/StationPanel/Content/TeamButtons
+@onready var _train_button: Button = $SafeArea/StationPanel/Content/TeamButtons/TrainButton
+@onready var _promote_button: Button = $SafeArea/StationPanel/Content/TeamButtons/PromoteButton
 
 
 func _ready() -> void:
@@ -111,6 +116,8 @@ func _ready() -> void:
 	_upgrade_button.pressed.connect(func() -> void: upgrade_pressed.emit(shown_station))
 	_hire_button.pressed.connect(func() -> void: hire_pressed.emit(shown_station))
 	_dismiss_button.pressed.connect(func() -> void: dismiss_pressed.emit(shown_station))
+	_train_button.pressed.connect(func() -> void: train_pressed.emit(shown_station))
+	_promote_button.pressed.connect(func() -> void: promote_pressed.emit(shown_station))
 	$SafeArea/StationPanel/Content/CloseButton.pressed.connect(hide_station)
 	_stats_button.pressed.connect(func() -> void: hide_stats() if _stats_panel.visible else show_stats())
 	$SafeArea/StatsPanel/Content/CloseButton.pressed.connect(hide_stats)
@@ -445,6 +452,15 @@ func _update_station_panel() -> void:
 		_hire_button.disabled = not hire_problem.is_empty()
 		_hire_button.text = "Hire · %s/min" % Economy.format(Airport.SALARIES[role]) if hire_problem.is_empty() else hire_problem
 		_dismiss_button.disabled = Airport.staff_at(building).is_empty() or not manage_problem.is_empty()
+	# Training and promotion (design doc §9.2).
+	_team_buttons.visible = staffed
+	if staffed:
+		var train_problem := Airport.train_problem(building)
+		_train_button.text = "Train · %s" % Economy.format(Employee.TRAINING_COST) if train_problem.is_empty() else train_problem
+		_train_button.disabled = not train_problem.is_empty() or not manage_problem.is_empty()
+		var promote_problem := Airport.promote_problem(building)
+		_promote_button.text = "Promote to supervisor" if promote_problem.is_empty() else promote_problem
+		_promote_button.disabled = not promote_problem.is_empty() or not manage_problem.is_empty()
 
 	var upgrade := building.next_upgrade()
 	var problem := Airport.upgrade_problem(building)

@@ -43,6 +43,12 @@ func _ready() -> void:
 	_hud.dismiss_pressed.connect(func(building: Building) -> void:
 		if Airport.manage_problem(building).is_empty():
 			Airport.dismiss(building))
+	_hud.train_pressed.connect(func(building: Building) -> void:
+		if Airport.manage_problem(building).is_empty():
+			Airport.train(building))
+	_hud.promote_pressed.connect(func(building: Building) -> void:
+		if Airport.manage_problem(building).is_empty():
+			Airport.promote(building))
 	TouchGestures.tapped.connect(_on_tapped)
 	Airport.restructured.connect(_on_restructured)
 	Airport.progression.tier_reached.connect(_on_tier_reached)

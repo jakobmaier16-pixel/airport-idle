@@ -206,7 +206,7 @@ mouse_filter = 2
 
 [node name="StationPanel" type="PanelContainer" parent="SafeArea"]
 visible = false
-custom_minimum_size = Vector2(440, 0)
+custom_minimum_size = Vector2(500, 0)
 layout_mode = 2
 size_flags_horizontal = 8
 size_flags_vertical = 4
@@ -242,6 +242,25 @@ size_flags_horizontal = 3
 focus_mode = 0
 theme_override_font_sizes/font_size = 22
 text = "Dismiss"
+
+[node name="TeamButtons" type="HBoxContainer" parent="SafeArea/StationPanel/Content"]
+layout_mode = 2
+
+[node name="TrainButton" type="Button" parent="SafeArea/StationPanel/Content/TeamButtons"]
+custom_minimum_size = Vector2(0, 64)
+layout_mode = 2
+size_flags_horizontal = 3
+focus_mode = 0
+theme_override_font_sizes/font_size = 20
+text = "Train"
+
+[node name="PromoteButton" type="Button" parent="SafeArea/StationPanel/Content/TeamButtons"]
+custom_minimum_size = Vector2(0, 64)
+layout_mode = 2
+size_flags_horizontal = 3
+focus_mode = 0
+theme_override_font_sizes/font_size = 20
+text = "Promote"
 
 [node name="UpgradeButton" type="Button" parent="SafeArea/StationPanel/Content"]
 custom_minimum_size = Vector2(0, 72)
