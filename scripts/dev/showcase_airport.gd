@@ -81,6 +81,9 @@ static func build(warm_up_seconds: float = 180.0) -> void:
 	airlines.sign_deal(Airlines.CATALOG.find(&"norvane"), 14, 20.0)
 	airlines.sign_deal(Airlines.CATALOG.find(&"orynth"), 10, 32.0)
 	airlines.sign_deal(Airlines.CATALOG.find(&"paqet"), 10, 20.0)
+	# These have flown here for a while: no first-landing cutscene for them.
+	for airline in airlines.signed:
+		airline.first_landing_seen = true
 	airlines.offers.append(AirlineOffer.new(Airlines.CATALOG.find(&"sunkiss"), 10, 13.0))
 
 	# Staff for every counter and lane, with a mix of new and experienced employees (§9.1).

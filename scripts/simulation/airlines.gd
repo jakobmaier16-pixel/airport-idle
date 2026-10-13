@@ -234,6 +234,7 @@ func save_state() -> Dictionary:
 			"id": String(airline.type.id), "flights": airline.flights_per_hour, "fee": airline.fee,
 			"credit": airline.credit, "happiness": airline.happiness, "flown": airline.flown,
 			"refused": airline.refused, "complained": airline.complained, "late": airline.late,
+			"first_landing": airline.first_landing_seen,
 		})
 	var saved_offers: Array[Dictionary] = []
 	for offer in offers:
@@ -261,6 +262,7 @@ func load_state(data: Dictionary) -> void:
 		airline.flown = int(entry.get("flown", 0))
 		airline.refused = int(entry.get("refused", 0))
 		airline.late = int(entry.get("late", 0))
+		airline.first_landing_seen = bool(entry.get("first_landing", airline.flown > 0))
 		airline.complained = bool(entry.get("complained", false))
 		signed.append(airline)
 	for entry: Dictionary in data.get("offers", []):

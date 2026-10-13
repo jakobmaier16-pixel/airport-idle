@@ -109,6 +109,20 @@ func _ready() -> void:
 	var shop: Building = Airport.buildings.filter(func(b: Building) -> bool: return b.type.role == BuildingType.Role.SHOP)[0]
 	tap(screen_of_cell(shop.origin_cell + Vector2i(1, 1)))
 	await _shot("demolish_selected")
+	# A new airline's first landing (design doc §14).
+	await close_build_view()
+	var newcomer := Airport.airlines.sign_deal(Airlines.CATALOG.find(&"corvista"), 20, 24.0)
+	var landed := false
+	for i in 4000:
+		Airport.step(Airport.SIM_STEP)
+		await frames(0)
+		if Airport.passenger_flow.schedule.flights.any(func(f: Flight) -> bool: return f.airline == newcomer and f.phase == Flight.Phase.ARRIVING):
+			landed = true
+			break
+	for i in 25:
+		Airport.step(Airport.SIM_STEP)
+		await frames(1)
+	await _shot("first_landing")
 	get_tree().quit()
 
 

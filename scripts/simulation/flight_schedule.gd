@@ -64,6 +64,9 @@ const ROUTES: Dictionary = {
 const WIDE_BODY_FACTOR: float = 2.0
 const WIDE_BODY_DEPLANE_RATE: float = 2.0
 
+## A plane starts its final approach (the visuals may celebrate a new airline's first landing).
+signal plane_arriving(flight: Flight)
+
 ## Every flight that hasn't departed yet. A gate can have two: the one at the stand and the
 ## next one, whose passengers are already arriving (like at a real airport).
 var flights: Array[Flight] = []
@@ -281,6 +284,8 @@ func _advance(flight: Flight, now: float, delta: float, flow: PassengerFlow) -> 
 			Airport.economy.earn(flight.boarded * flight.fee_per_passenger + Economy.FLIGHT_FEE)
 		var missed_share := float(flight.missed) / maxi(flight.booked, 1)
 		Airport.airlines.record_flight(flight.airline, flight.airport_delay() > Reputation.ON_TIME_LIMIT, missed_share)
+	if phase == Flight.Phase.ARRIVING and flight.phase == Flight.Phase.SCHEDULED:
+		plane_arriving.emit(flight)
 	flight.phase = phase
 
 

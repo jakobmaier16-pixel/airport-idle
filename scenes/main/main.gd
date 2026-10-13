@@ -8,12 +8,16 @@ var current_view: View = View.MANAGER
 
 # How the last building_at() call decided, for the test-build tap diagnosis line.
 var _last_pick: String = ""
+# A new airline's first flight, waiting for its plane to appear for the cutscene.
+var _first_landing: Flight = null
 
 @onready var _manager: Manager = $Manager
 @onready var _manager_camera: ManagerCamera = $ManagerCamera
 @onready var _build_camera: BuildCamera = $BuildCamera
 @onready var _build_mode: BuildMode = $BuildMode
 @onready var _hud: Hud = $HUD
+@onready var _cinematic: CinematicCamera = $CinematicCamera
+@onready var _planes: PlaneLayer = $Planes
 
 
 func _ready() -> void:
@@ -57,6 +61,8 @@ func _ready() -> void:
 	Airport.progression.tier_reached.connect(_on_tier_reached)
 	Airport.weather.changed.connect(_on_weather_changed)
 	Airport.incident_started.connect(_on_incident_started)
+	Airport.passenger_flow.schedule.plane_arriving.connect(_on_plane_arriving)
+	_cinematic.finished.connect(func() -> void: _manager.input_enabled = current_view == View.MANAGER)
 	Airport.airlines.offer_arrived.connect(_on_offer_arrived)
 	Airport.airlines.airline_unhappy.connect(_on_airline_unhappy)
 	Airport.airlines.airline_left.connect(_on_airline_left)
@@ -80,6 +86,8 @@ func _on_showcase_confirmed() -> void:
 
 
 func _process(_delta: float) -> void:
+	if _first_landing != null:
+		_start_first_landing()
 	_hud.set_money(Airport.economy.balance, Airport.economy.profit_per_minute())
 	var economy := Airport.economy
 	_hud.set_loan(economy.debt(), economy.interest_per_minute(), Airport.credit_limit(), Airport.restructure_in())
@@ -97,6 +105,27 @@ func _on_tier_reached(tier: Progression.Tier) -> void:
 	_hud.show_milestone("%s airport!" % Airport.progression.name_of(tier), Progression.REWARDS[tier])
 	# Newly unlocked buildings lose their "(National)" note.
 	_hud.setup_build_menu(Airport.CATALOG.types)
+
+
+# A new airline's first landing gets a short cutscene (design doc §14), in the manager view.
+# The plane's visual appears a frame later, so the cutscene starts from _process.
+func _on_plane_arriving(flight: Flight) -> void:
+	var airline := flight.airline
+	if airline == null or airline.first_landing_seen or airline.type.id == Airlines.STARTER:
+		return
+	airline.first_landing_seen = true
+	if current_view == View.MANAGER and not _cinematic.is_playing():
+		_first_landing = flight
+
+
+func _start_first_landing() -> void:
+	var flight := _first_landing
+	if not _planes.has_plane(flight):
+		return
+	_first_landing = null
+	_manager.input_enabled = false
+	_cinematic.play(_planes.plane_of(flight))
+	_hud.notify("First landing: %s comes to your airport!" % flight.airline.type.display_name)
 
 
 func _on_incident_started(building: Building) -> void:

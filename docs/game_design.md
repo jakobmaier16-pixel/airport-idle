@@ -570,6 +570,7 @@ Decided 2026-10-13 (closes §19 Q3 and Q4 for now). Placeholder numbers, tunable
   | **Hub** | 25,000 passengers, 4 ★ and 600 transfers | **hub status**: airlines route twice as many connections through the airport, and a premium airline (Corvista Airlines) makes an offer |
 
 - Pace (balance check, 2026-10-13): a new one-gate airport with the starter airline serves ~900 passengers per hour and earns ~€100/min, so National comes after 30–60 minutes depending on how quickly the player adds a second airline and gate.
+- **First landing:** when a newly signed airline's first plane comes in, a short cutscene camera follows it down to the runway (8 s, a tap skips it, manager view only), with a notice. The starting airline doesn't get one.
 - Reaching a tier is a **milestone moment**: a big panel names the new tier and lists what it unlocked ("Let's build!").
 - Land the airport doesn't own yet is shaded darker; nothing can be built or painted there ("Unlocked at National airport"). Buildings already standing there (old saves) stay.
 - The tier is shown next to the star rating; the statistics panel shows the progress towards the next tier.

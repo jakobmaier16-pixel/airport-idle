@@ -16,6 +16,8 @@ var happiness: float = Airlines.START_HAPPINESS
 var flown: int = 0
 var late: int = 0
 var refused: int = 0
+## True once its first landing was celebrated (design doc §14).
+var first_landing_seen: bool = false
 ## True after the airline complained, until it is happy again (so it complains once).
 var complained: bool = false
 
