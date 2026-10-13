@@ -67,4 +67,5 @@ func _reset_world() -> void:
 	Airport.incidents_automatic = false
 	TouchGestures._reset()
 	TouchGestures.pinch_cancels_drag = false
+	TouchGestures.independent_drags = false
 	SaveGame.enabled = false

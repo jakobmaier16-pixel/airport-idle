@@ -58,8 +58,9 @@ script = ExtResource("9_passenger_layer")
 [node name="Planes" type="Node3D" parent="."]
 script = ExtResource("10_plane_layer")
 
-[node name="Manager" parent="." node_paths=PackedStringArray("joystick") instance=ExtResource("2_manager")]
+[node name="Manager" parent="." node_paths=PackedStringArray("joystick", "view") instance=ExtResource("2_manager")]
 joystick = NodePath("../HUD/SafeArea/TouchJoystick")
+view = NodePath("../ManagerCamera")
 
 [node name="ManagerCamera" parent="." node_paths=PackedStringArray("target") instance=ExtResource("3_camera")]
 target = NodePath("../Manager")

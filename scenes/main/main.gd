@@ -75,6 +75,11 @@ func _ready() -> void:
 	Airport.airlines.offer_arrived.connect(_on_offer_arrived)
 	Airport.airlines.airline_unhappy.connect(_on_airline_unhappy)
 	Airport.airlines.airline_left.connect(_on_airline_left)
+	# First person: start where the manager was, or inside the entrance (design doc §15).
+	var start: Array = Airport.manager_start()
+	_manager.global_position = start[0]
+	_manager_camera.yaw = start[1]
+	_manager_camera.snap_to_target()
 	_set_view(View.MANAGER)
 	if SaveGame.welcome_back_bonus > 0.0:
 		_hud.notify("Welcome back! You were away %d hours. Your airport earned %s while you were gone." % [
@@ -268,6 +273,7 @@ func _set_view(view: View) -> void:
 	_hud.hide_station()
 	_hud.set_build_view_open(building)
 	# Build view: adding a second finger turns a pan into a pinch.
-	# Manager view: a second finger must never interrupt the joystick.
+	# Manager view: every finger is its own gesture (one walks, the other looks around).
 	TouchGestures.pinch_cancels_drag = building
+	TouchGestures.independent_drags = not building
 	_hud.set_view_button_text("Manager" if building else "Build")

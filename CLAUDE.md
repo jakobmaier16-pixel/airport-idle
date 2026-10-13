@@ -24,17 +24,18 @@ When a decision is made, update the design doc.
   airside (runways, taxiways, aprons) is scaled down so the whole airport fits on a playable map.
   The cell size must stay a single, easy-to-change value.
 - **Two camera views** (a HUD button switches between them):
-  - *Manager view:* fixed tilted camera that follows the manager and **never rotates**
-    (like League of Legends). Do not add camera rotation. Everything except building happens here
-    (walking, passengers, staff, stations, statistics); the camera must always show enough to play.
-    Small pinch zoom (scroll wheel on the Mac): only the distance changes, within tight limits.
+  - *Manager view:* **first person** (changed 2026-10-13, was a fixed tilted camera): the player
+    sees what the manager sees, from eye height, and looks around by dragging on the right half.
+    Everything except building happens here (walking, passengers, staff, stations, statistics).
+    No zoom; the build view gives the overview.
   - *Build view:* top-down / bird's-eye. All building and layout planning happens here, and only here. One-finger drag pans
     (unless a tool uses it, e.g. dragging a building or painting zones), two fingers pan and zoom;
     zoom is limited and the camera stays inside the map.
 - **Simulation keeps running in the build view.** No pause for now.
-- **Input (manager view):** the floating joystick only appears when one finger touches the **left half**
-  of the screen. The right half stays free for tapping things. A two-finger pinch anywhere zooms and
-  must never trigger the joystick. WASD / arrow keys also work for testing on the Mac.
+- **Input (manager view):** every finger is its own gesture (`TouchGestures.independent_drags`).
+  A drag starting on the **left half** is the floating joystick (walk relative to the view); a drag
+  on the **right half** looks around; a short touch anywhere is a tap (opens the station under it).
+  Both thumbs work at once. WASD / arrow keys and mouse-drag look also work for testing on the Mac.
 - **Offline income:** minimal. Nothing for breaks under 36 h; after 36 h+ away, 4 h of income once.
 - **Fictional world:** all airlines and airports are fictional. No real names or logos.
 - **Art:** simple low-poly models.
@@ -76,7 +77,7 @@ Target: smooth on older iPhones. Plan this in from the start (design doc §18).
 scenes/<feature>/     one folder per feature: <name>.tscn + <name>.gd side by side
   main/               entry point (main scene); switches between manager view and build view
   manager/            the manager (player character)
-  camera/             manager_camera (tilted follow) and build_camera (top-down)
+  camera/             manager_camera (first person) and build_camera (top-down)
   build/              build view logic: placing buildings (preview, rotate, place / cancel)
   buildings/          building visuals: BuildingLayer draws every simulated building
   passengers/         PassengerLayer: draws passengers near the camera (one MultiMesh)

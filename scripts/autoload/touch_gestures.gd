@@ -20,6 +20,11 @@ signal tapped(position: Vector2)
 signal pinched(factor: float)
 ## The midpoint between the two pinching fingers moved (two-finger pan).
 signal pinch_moved(relative: Vector2)
+## Manager view (`independent_drags`): every finger drags on its own, identified by `index`, so
+## one thumb can walk (joystick) while the other looks around.
+signal finger_drag_started(index: int, start_position: Vector2, position: Vector2)
+signal finger_dragged(index: int, position: Vector2, relative: Vector2)
+signal finger_drag_ended(index: int, position: Vector2)
 
 enum State {
 	IDLE, ## No finger down.
@@ -47,6 +52,15 @@ const TRACKPAD_SCROLL_ZOOM_SPEED: float = 0.05
 ## while the other thumb taps the right half of the screen).
 var pinch_cancels_drag: bool = false
 
+## If true (manager view), every finger is its own gesture: a finger that moves sends the finger_*
+## drag signals, a short touch is a tap, and there is no pinch. If false (build view), the usual
+## one-finger drag / two-finger pinch rules apply.
+var independent_drags: bool = false:
+	set(value):
+		if value != independent_drags:
+			_end_all_gestures()
+		independent_drags = value
+
 ## Current tap slop in UI pixels (see TAP_SLOP_POINTS); updated when the window size changes.
 var tap_slop: float = MIN_TAP_SLOP
 
@@ -60,6 +74,8 @@ var _positions: Dictionary[int, Vector2] = {}
 var _start_positions: Dictionary[int, Vector2] = {}
 var _start_times: Dictionary[int, float] = {}
 var _moved: Dictionary[int, bool] = {}
+# independent_drags: the fingers that are dragging.
+var _finger_dragging: Dictionary[int, bool] = {}
 
 
 func _ready() -> void:
@@ -106,9 +122,16 @@ func _unhandled_input(event: InputEvent) -> void:
 func _notification(what: int) -> void:
 	# Forget all fingers if the app goes to the background mid-gesture (e.g. a phone call).
 	if what == NOTIFICATION_APPLICATION_FOCUS_OUT:
-		if _state == State.DRAGGING:
-			drag_cancelled.emit()
-		_reset()
+		_end_all_gestures()
+
+
+# Ends whatever is going on (app in the background, or the view changed mid-gesture).
+func _end_all_gestures() -> void:
+	if _state == State.DRAGGING:
+		drag_cancelled.emit()
+	for index in _finger_dragging.keys():
+		finger_drag_ended.emit(index, _positions.get(index, Vector2.ZERO))
+	_reset()
 
 
 func _on_finger_down(index: int, position: Vector2) -> void:
@@ -116,6 +139,8 @@ func _on_finger_down(index: int, position: Vector2) -> void:
 	_start_positions[index] = position
 	_start_times[index] = _now()
 	_moved[index] = false
+	if independent_drags:
+		return
 
 	match _state:
 		State.IDLE:
@@ -137,6 +162,14 @@ func _on_finger_moved(index: int, position: Vector2) -> void:
 	_positions[index] = position
 	if position.distance_to(_start_positions[index]) > tap_slop:
 		_moved[index] = true
+	if independent_drags:
+		if _finger_dragging.has(index):
+			finger_dragged.emit(index, position, relative)
+		elif _moved[index]:
+			_finger_dragging[index] = true
+			finger_drag_started.emit(index, _start_positions[index], position)
+			finger_dragged.emit(index, position, position - _start_positions[index])
+		return
 
 	match _state:
 		State.PENDING:
@@ -168,6 +201,17 @@ func _on_finger_up(index: int, position: Vector2) -> void:
 		and not index in _pinch_indices
 		and _now() - _start_times[index] <= TAP_MAX_DURATION
 	)
+	if independent_drags:
+		if _finger_dragging.has(index):
+			_finger_dragging.erase(index)
+			finger_drag_ended.emit(index, position)
+		_positions.erase(index)
+		_start_positions.erase(index)
+		_start_times.erase(index)
+		_moved.erase(index)
+		if was_tap:
+			tapped.emit(position)
+		return
 
 	match _state:
 		State.DRAGGING:
@@ -206,6 +250,7 @@ func _reset() -> void:
 	_start_positions.clear()
 	_start_times.clear()
 	_moved.clear()
+	_finger_dragging.clear()
 
 
 func _now() -> float:

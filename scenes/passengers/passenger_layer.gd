@@ -89,8 +89,8 @@ func _visible_area(camera: Camera3D) -> Vector3:
 		var viewport_size := get_viewport().get_visible_rect().size
 		var half_diagonal := Vector2(camera.size * viewport_size.x / viewport_size.y, camera.size).length() * 0.5
 		return Vector3(camera.global_position.x, camera.global_position.z, half_diagonal + 2.0)
-	# Manager view: around the point in the middle of the screen.
+	# Manager view (first person): around a point a little ahead of the manager.
 	var forward := -camera.global_basis.z
-	var hit: Variant = Plane(Vector3.UP, 0.0).intersects_ray(camera.global_position, forward)
-	var focus: Vector3 = hit if hit != null else camera.global_position
+	forward.y = 0.0
+	var focus := camera.global_position + forward.normalized() * manager_view_radius * 0.4
 	return Vector3(focus.x, focus.z, manager_view_radius)

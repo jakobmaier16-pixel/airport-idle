@@ -13,8 +13,10 @@ func _ready() -> void:
 	await start_game()
 
 	await _shot("manager_view")
-	manager_camera().distance = manager_camera().max_distance
-	await _shot("manager_view_zoomed_out")
+	# First person in the landside hall, looking at check-in 1 (design doc §15).
+	manager().global_position = Airport.grid.cell_to_world(Vector2i(31, 25))
+	manager_camera().face(Airport.grid.cell_to_world(Vector2i(22, 23)) + Vector3.UP * 1.5)
+	await _shot("manager_view_hall")
 	# Night and evening light (design doc §12.1); back to the morning afterwards.
 	var morning := Airport.clock.game_seconds
 	Airport.clock.game_seconds = 23.0 * 3600.0
@@ -31,20 +33,18 @@ func _ready() -> void:
 
 	# South of gate 1's stand, looking across the plane to the gate, while it boards (first departure at 210 s, boarding from 120 s).
 	sim_seconds(60)
-	manager().global_position = Airport.grid.cell_to_world(Vector2i(16, 50))
-	manager_camera().snap_to_target()
+	manager().global_position = Airport.grid.cell_to_world(Vector2i(25, 52))
+	manager_camera().face(Airport.grid.block_center(Vector2i(10, 39), Vector2i(12, 12)) + Vector3.UP * 2.0)
 	await _shot("manager_at_gate_boarding")
 
 	# The long-haul plane at the wide-body stand behind gate 3 (design doc §10.2).
-	manager().global_position = Airport.grid.cell_to_world(Vector2i(30, 58))
-	manager_camera().distance = manager_camera().max_distance
-	manager_camera().snap_to_target()
+	manager().global_position = Airport.grid.cell_to_world(Vector2i(41, 54))
+	manager_camera().face(Airport.grid.block_center(Vector2i(22, 39), Vector2i(16, 16)) + Vector3.UP * 3.0)
 	await _shot("wide_body_plane")
-	manager_camera().distance = manager_camera().min_distance + (manager_camera().max_distance - manager_camera().min_distance) * 0.5
 
 	# Station panel: security seen from the airside walkway.
 	manager().global_position = Airport.grid.cell_to_world(Vector2i(32, 33))
-	manager_camera().snap_to_target()
+	manager_camera().face(Airport.grid.block_center(Vector2i(30, 28), Vector2i(5, 3)) + Vector3.UP * 1.5)
 	var security: Building = Airport.buildings.filter(func(b: Building) -> bool: return b.type.role == BuildingType.Role.SECURITY)[0]
 	hud().show_station(security)
 	await _shot("station_panel")

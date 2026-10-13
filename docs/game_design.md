@@ -603,8 +603,9 @@ Placeholder numbers, tunable. From **National** on.
 ### Camera
 A button switches between the two views.
 
-- **Manager view:** fixed tilted camera, like *League of Legends*. It follows the manager from a fixed angle and **never rotates**. **Everything except building happens here:** walking, watching passengers, managing staff and stations, statistics. The camera must always show enough to play comfortably.
-  - **Zoom:** a small zoom range — pinch with two fingers (scroll wheel on the Mac). Only the distance changes, within tight limits so it always stays playable. The angle stays fixed.
+- **Manager view: first person** (changed 2026-10-13; before: a fixed tilted camera like *League of Legends*). The player sees what the manager sees, from eye height (1.7 m), and looks around freely. **Everything except building happens here:** walking, watching passengers, managing staff and stations, statistics. The overview of the whole airport is the build view's job.
+  - Looking up and down is limited (70° down to watch queues, 35° up), so the view never flips.
+  - No zoom in the manager view.
 - **Build view:** top-down / bird's-eye. **All** building and layout planning happens here, and only here.
   - Drag with one finger to move, pinch to zoom; two fingers also move the view. While a tool uses one-finger drags (e.g. painting zones), only two fingers move the view. Zoom is limited so the game stays playable; the camera cannot leave the map.
   - When zoomed out, crowds are shown simplified (fewer figures, simple shapes). See §18.
@@ -617,9 +618,10 @@ Placeholder numbers, tunable.
 - Statistics, airlines and building work from anywhere.
 
 ### Controls (manager view, landscape)
-- **Left half of the screen:** one finger shows a floating joystick under the thumb to walk.
-- **Right half of the screen:** stays free for tapping things (stations, staff, passengers — later).
-- **Two-finger pinch anywhere** zooms and **never** triggers the joystick.
+- **Left half of the screen:** one finger shows a floating joystick under the thumb to walk — forward is where the manager looks; sideways steps sideways.
+- **Right half of the screen:** drag to look around (left/right turns, up/down tilts); a short tap still opens the station under the finger.
+- Both thumbs work at the same time (walk and look), like mobile first-person games. Each finger is its own gesture; there is no pinch in the manager view.
+- Mac (testing): WASD / arrow keys walk relative to the view, dragging with the mouse on the right half looks around.
 
 ### Art style
 - Start with **simple, realistic low-poly** models (achievable without 3D experience).

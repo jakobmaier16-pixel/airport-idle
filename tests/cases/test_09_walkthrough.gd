@@ -42,9 +42,7 @@ func test_build_airport_by_touch_and_fly_passengers() -> void:
 			continue
 		var size := Building.rotated_size(building.type.footprint, building.rotation_steps)
 		var center := Airport.grid.block_center(building.origin_cell, size)
-		manager().global_position = center + Vector3(0.0, 0.0, 8.0)
-		manager_camera().snap_to_target()
-		await physics_frames(2)
+		await stand_and_look(Airport.grid.world_to_cell(center + Vector3(0.0, 0.0, 8.0)), building)
 		tap(manager_camera().unproject_position(center + Vector3(0.0, 1.5, 0.0)))
 		await frames(1)
 		check(hud().shown_station == building, "%s panel opened by tap" % building.type.display_name)
@@ -100,9 +98,7 @@ func test_build_airport_by_touch_and_fly_passengers() -> void:
 			break
 		sim_seconds(60)
 	check(Airport.economy.can_afford(security.next_upgrade().cost), "the airport earned enough for the upgrade: %s" % Economy.format(Airport.economy.balance))
-	manager().global_position = Airport.grid.cell_to_world(Vector2i(32, 33))
-	manager_camera().snap_to_target()
-	await physics_frames(2)
+	await stand_and_look(Vector2i(32, 33), security)
 	tap(manager_camera().unproject_position(Airport.grid.block_center(security.origin_cell, Vector2i(5, 3)) + Vector3(0.0, 1.5, 0.0)))
 	await frames(1)
 	await press(ui("StationPanel/Content/UpgradeButton"))

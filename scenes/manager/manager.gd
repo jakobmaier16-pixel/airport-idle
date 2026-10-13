@@ -10,6 +10,8 @@ extends CharacterBody3D
 @export var turn_speed: float = 12.0
 ## On-screen joystick to read touch input from. Optional: the keyboard works without it.
 @export var joystick: TouchJoystick
+## The first-person view: "forward" is where it looks (design doc §15). Optional.
+@export var view: ManagerCamera
 
 ## Turned off in the build view, so WASD moves the build camera instead of the manager.
 var input_enabled: bool = true
@@ -17,9 +19,9 @@ var input_enabled: bool = true
 
 func _physics_process(delta: float) -> void:
 	var input := _get_move_input()
-	# The camera never rotates and always looks along -Z, so "up" on screen is world -Z.
-	# If the camera ever gets a yaw angle, rotate this vector by it.
-	var direction := Vector3(input.x, 0.0, input.y)
+	# Walk relative to the view: stick up = forward (where the manager looks), sideways = strafe.
+	var yaw := view.yaw if view != null else 0.0
+	var direction := Vector3(input.x, 0.0, input.y).rotated(Vector3.UP, yaw)
 
 	# Frame-rate independent smoothing: same feel at 60 Hz and 120 Hz (ProMotion).
 	var accel_weight := 1.0 - exp(-acceleration * delta)
@@ -33,8 +35,12 @@ func _physics_process(delta: float) -> void:
 
 	# The simulation needs to know where the manager is (managing on the spot, design doc §15.1).
 	Airport.manager_position = global_position
+	Airport.manager_yaw = yaw
 
-	if direction.length_squared() > 0.01:
+	# The body faces where the manager looks (others see it in the build view and cutscenes).
+	if view != null:
+		rotation.y = yaw
+	elif direction.length_squared() > 0.01:
 		# Godot's "forward" is -Z, hence the negated arguments.
 		var target_yaw := atan2(-direction.x, -direction.z)
 		rotation.y = lerp_angle(rotation.y, target_yaw, 1.0 - exp(-turn_speed * delta))

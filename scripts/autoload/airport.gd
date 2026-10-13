@@ -74,6 +74,10 @@ var staff: Array[Employee] = []
 ## Where the manager stands (design doc §15.1). Gameplay state, not a visual: it decides which
 ## stations can be managed and where the manager's presence helps. Far away while nobody walks.
 var manager_position: Vector3 = NOBODY_THERE
+## Where the manager looks (first person, design doc §15), saved with the position.
+var manager_yaw: float = 0.0
+## The manager's place from the save game ({"x", "z", "yaw"}), or empty: then they start at the entrance.
+var saved_manager: Dictionary = {}
 ## How far the current frame is between the last and the next simulation step (0..1).
 var sim_alpha: float = 0.0
 
@@ -758,6 +762,7 @@ func reset(with_runway: bool = true) -> void:
 	weather.reset()
 	land_changed.emit()
 	manager_position = NOBODY_THERE
+	saved_manager = {}
 	_next_incident_in = INCIDENT_EVERY_MIN
 	if with_runway:
 		add_starting_runway()
@@ -801,6 +806,7 @@ func save_state() -> Dictionary:
 		"progression": progression.save_state(),
 		"goals_hidden": goals.hidden,
 		"clock": clock.game_seconds,
+		"manager": {"x": manager_position.x, "z": manager_position.z, "yaw": manager_yaw} if manager_position != NOBODY_THERE else {},
 		"weather": weather.save_state(),
 		"buildings": saved_buildings,
 	}
@@ -821,6 +827,7 @@ func load_state(data: Dictionary) -> int:
 	goals.hidden = bool(data.get("goals_hidden", false))
 	clock.game_seconds = float(data.get("clock", Clock.START_HOUR * 3600.0))
 	weather.load_state(data.get("weather", {}))
+	saved_manager = data.get("manager", {})
 	land_changed.emit()
 	var skipped := 0
 	_loading = true
@@ -933,6 +940,26 @@ func _stand_reaches_runway(type: BuildingType, origin_cell: Vector2i, rotation_s
 
 ## The runway every new airport starts with (design doc §7.5a): along the south edge.
 const DEFAULT_RUNWAY_ORIGIN: Vector2i = Vector2i(6, 57)
+
+
+## Where the manager starts (first person, design doc §15): where they were when the game was
+## saved, or just inside the first entrance looking into the terminal, or the middle of the map.
+## Returns [position, yaw].
+func manager_start() -> Array:
+	if saved_manager.has("x"):
+		return [Vector3(float(saved_manager["x"]), 0.0, float(saved_manager["z"])), float(saved_manager.get("yaw", 0.0))]
+	for building in buildings:
+		if building.type.role == BuildingType.Role.ENTRANCE:
+			var size := Building.rotated_size(building.type.footprint, building.rotation_steps)
+			var center := grid.block_center(building.origin_cell, size)
+			var door := Vector3.ZERO
+			var row := Building.outside_row(building.type.footprint, building.origin_cell, building.rotation_steps, false)
+			for cell in row:
+				door += grid.cell_to_world(cell)
+			door /= row.size()
+			var inward := (door - center).normalized()
+			return [door + inward * grid.cell_size * 2.0, atan2(-inward.x, -inward.z)]
+	return [Vector3.ZERO, 0.0]
 
 
 ## Lays the runway a new airport starts with, on airside (design doc §7.5a).

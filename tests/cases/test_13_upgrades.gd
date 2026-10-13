@@ -81,10 +81,8 @@ func test_tap_station_opens_panel_and_upgrades() -> void:
 	var security := _building(&"security")
 	security.level = 2  # the showcase's security is fully upgraded; one step back for this test
 	await start_game()
-	# Stand south of security on the airside walkway; the camera looks north at it.
-	manager().global_position = Airport.grid.cell_to_world(Vector2i(32, 33))
-	manager_camera().snap_to_target()
-	await physics_frames(2)
+	# Stand south of security on the airside walkway, looking at it.
+	await stand_and_look(Vector2i(32, 33), security)
 	var center := Airport.grid.block_center(security.origin_cell, Vector2i(5, 3)) + Vector3(0.0, 1.5, 0.0)
 	# Like a real finger: the tap wobbles a little before it is lifted.
 	var at := manager_camera().unproject_position(center)
@@ -132,9 +130,7 @@ func test_station_found_on_screen_without_physics() -> void:
 	ShowcaseAirport.build(0.0)
 	await start_game()
 	var security := _building(&"security")
-	manager().global_position = Airport.grid.cell_to_world(Vector2i(32, 33))
-	manager_camera().snap_to_target()
-	await physics_frames(2)
+	await stand_and_look(Vector2i(32, 33), security)
 	var center := Airport.grid.block_center(security.origin_cell, Vector2i(5, 3)) + Vector3(0.0, 1.0, 0.0)
 	check(main._station_on_screen(manager_camera().unproject_position(center)) == security, "found by its box on screen")
 	check(main._station_on_screen(Vector2(5, 5)) == null, "nothing in the corner of the screen")
@@ -143,10 +139,8 @@ func test_station_found_on_screen_without_physics() -> void:
 func test_tap_report_line() -> void:
 	ShowcaseAirport.build(0.0)
 	await start_game()
-	manager().global_position = Airport.grid.cell_to_world(Vector2i(32, 33))
-	manager_camera().snap_to_target()
-	await physics_frames(2)
 	var security := _building(&"security")
+	await stand_and_look(Vector2i(32, 33), security)
 	tap(manager_camera().unproject_position(Airport.grid.block_center(security.origin_cell, Vector2i(5, 3)) + Vector3(0.0, 1.5, 0.0)))
 	await frames(1)
 	var feedback := hud().get_node("TapFeedback") as TapFeedback

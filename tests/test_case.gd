@@ -69,6 +69,15 @@ func ui(path: String) -> Control:
 	return hud().get_node("SafeArea/" + path)
 
 
+## Puts the manager at `cell` and turns the first-person view to `building` (design doc §15).
+func stand_and_look(cell: Vector2i, building: Building) -> void:
+	manager().global_position = Airport.grid.cell_to_world(cell)
+	await physics_frames(2)
+	var size := Building.rotated_size(building.type.footprint, building.rotation_steps)
+	manager_camera().face(Airport.grid.block_center(building.origin_cell, size) + Vector3.UP * 1.5)
+	await frames(1)
+
+
 func screen_size() -> Vector2:
 	return get_tree().root.get_visible_rect().size
 
