@@ -323,7 +323,7 @@ Placeholder numbers, tunable.
 - **Every check-in counter and security lane needs one employee**; without staff it stays closed. Gates and baggage claim run without staff for now; shops are run by their tenants.
 - **Employees** are individuals with fictional names. Salary: check-in agent €8/min, security officer €10/min. Salaries replace most of the stations' running costs (check-in €6/min, security €10/min for the building itself).
 - **Experience per station type:** a new employee is 25 % slower than the standard time; every passenger served at that station type makes them faster, up to 15 % faster (expert) after 150 passengers. Levels: New · Trained · Experienced · Expert.
-- **Managing** happens in the station panel (manager view): staff list with levels, *Hire* and *Dismiss*. Unstaffed stations show "Needs staff".
+- **Managing** happens in the station panel (manager view), on the spot (§15.1): staff list with levels, *Hire* and *Dismiss*. Unstaffed stations show "Needs staff".
 - Training, promotion, pay and specialization are still **(open)** (§19 Q6).
 
 ---
@@ -478,6 +478,12 @@ A button switches between the two views.
   - Drag with one finger to move, pinch to zoom; two fingers also move the view. While a tool uses one-finger drags (e.g. painting zones), only two fingers move the view. Zoom is limited so the game stays playable; the camera cannot leave the map.
   - When zoomed out, crowds are shown simplified (fewer figures, simple shapes). See §18.
 - What walking as the manager does in gameplay: decided, see §15.1.
+
+### 15.1 Managing on the spot (first version)
+Placeholder numbers, tunable.
+- Tapping a station opens its panel **from anywhere** (information), but **hiring, dismissing and upgrading need the manager within 10 m** of the building. Far away, the buttons say "Walk closer to manage (34 m away)".
+- **The manager's presence helps:** within 6 m of a staffed station, staff need 10 % less time per passenger, and passengers in its queue lose only half the usual mood (someone keeps them informed). A green "Manager here · +10 %" hint floats above the station; its panel says so too.
+- Statistics, airlines and building work from anywhere.
 
 ### Controls (manager view, landscape)
 - **Left half of the screen:** one finger shows a floating joystick under the thumb to walk.

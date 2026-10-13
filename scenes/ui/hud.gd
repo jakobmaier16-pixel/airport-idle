@@ -410,18 +410,29 @@ func _update_station_panel() -> void:
 		lines.append("Upgrading: %s · %d:%02d left" % [building.next_upgrade().title, seconds / 60, seconds % 60])
 	_station_info.text = "\n".join(lines)
 
+	# Managing happens on the spot (design doc §15.1): far away, the panel only shows information.
+	var manage_problem := Airport.manage_problem(building)
+	if staffed and Airport.is_manager_near(building):
+		lines.append("You're here: staff work 10 % faster, queues stay calmer.")
+		_station_info.text = "\n".join(lines)
 	_staff_buttons.visible = staffed
 	if staffed:
 		var hire_problem := Airport.hire_problem(building)
+		if hire_problem.is_empty():
+			hire_problem = manage_problem
 		_hire_button.disabled = not hire_problem.is_empty()
 		_hire_button.text = "Hire · %s/min" % Economy.format(Airport.SALARIES[role]) if hire_problem.is_empty() else hire_problem
-		_dismiss_button.disabled = Airport.staff_at(building).is_empty()
+		_dismiss_button.disabled = Airport.staff_at(building).is_empty() or not manage_problem.is_empty()
 
 	var upgrade := building.next_upgrade()
 	var problem := Airport.upgrade_problem(building)
+	if problem.is_empty():
+		problem = manage_problem
 	if upgrade != null and not building.is_upgrading():
 		var duration := "" if upgrade.build_seconds <= 0.0 else " · %d min" % ceili(upgrade.build_seconds / 60.0)
 		_upgrade_button.text = "Upgrade: %s · %s%s" % [upgrade.title, Economy.format(upgrade.cost), duration]
+		if not manage_problem.is_empty():
+			_upgrade_button.text = manage_problem
 	else:
 		_upgrade_button.text = problem
 	_upgrade_button.disabled = not problem.is_empty()

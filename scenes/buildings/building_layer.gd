@@ -8,6 +8,7 @@ extends Node3D
 const FRONT_COLOR: Color = Color(0.15, 0.17, 0.2)
 const HINT_COLOR: Color = Color(1.0, 0.45, 0.4)
 const UPGRADE_COLOR: Color = Color(1.0, 0.75, 0.25)
+const MANAGER_COLOR: Color = Color(0.5, 1.0, 0.55)
 ## Metadata key on collision bodies: the Building they belong to (used to find tapped buildings).
 const BUILDING_META: StringName = &"building"
 ## How far above the roof the "not connected" hint floats, in meters.
@@ -85,8 +86,12 @@ func _process(_delta: float) -> void:
 			var seconds := ceili(building.upgrade_seconds_left)
 			hint.text = "Upgrading… %d:%02d" % [seconds / 60, seconds % 60]
 			hint.modulate = UPGRADE_COLOR
+		elif Airport.needs_staff(building) and Airport.is_manager_near(building):
+			# The manager's presence helps (design doc §15.1).
+			hint.text = "Manager here · +10 %"
+			hint.modulate = MANAGER_COLOR
 		hint.visible = not problem.is_empty() or building.is_upgrading() \
-			or (Airport.needs_staff(building) and Airport.staff_at(building).is_empty())
+			or (Airport.needs_staff(building) and (Airport.staff_at(building).is_empty() or Airport.is_manager_near(building)))
 
 
 func _update_hints() -> void:

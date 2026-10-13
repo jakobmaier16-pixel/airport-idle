@@ -85,8 +85,10 @@ func test_flights_earn_money() -> void:
 	var running := Airport.running_cost_per_minute()
 	sim_seconds(0.4)
 	check(flight.phase == Flight.Phase.DEPARTING, "doors closed")
-	var expected := before + flight.boarded * Economy.PASSENGER_FEE + Economy.FLIGHT_FEE - running * 0.4 / 60.0
-	check(absf(Airport.economy.balance - expected) < 0.5, "fees for %d passengers + flight: %s vs %s" % [flight.boarded, Airport.economy.balance, expected])
+	var expected := before + flight.boarded * flight.fee_per_passenger + Economy.FLIGHT_FEE - running * 0.4 / 60.0
+	# An arriving passenger leaving (€5) or a shop customer may pay in the same moment.
+	var other_income := Airport.economy.balance - expected
+	check(other_income > -0.5 and other_income < 30.0, "fees for %d passengers + flight: %s vs %s" % [flight.boarded, Airport.economy.balance, expected])
 
 
 func test_showcase_makes_a_profit() -> void:

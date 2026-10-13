@@ -111,6 +111,9 @@ func test_panel_hire_and_dismiss() -> void:
 	Airport.paint_walkway(cells(Vector2i(28, 19), Vector2i(5, 1)), true)
 	await frames(1)
 	check(label.visible and label.text == "Needs staff", "unstaffed station says so")
+	# Managing happens on the spot: walk over first (design doc §15.1).
+	manager().global_position = Airport.grid.cell_to_world(Vector2i(30, 17))
+	await physics_frames(2)
 	hud().show_station(check_in)
 	await frames(1)
 	check(ui("StationPanel/Content/StaffButtons").visible, "staff buttons shown")
@@ -119,7 +122,7 @@ func test_panel_hire_and_dismiss() -> void:
 	await press(hire)
 	await frames(1)
 	check_eq(Airport.staff_at(check_in).size(), 1, "hired through the panel")
-	check(not label.visible, "hint gone once staffed")
+	check(label.text != "Needs staff", "staff hint gone once staffed")
 	var info := (ui("StationPanel/Content/InfoLabel") as Label).text
 	check(info.contains("Staff: 1 / 3 counters"), "panel shows staffing: '%s'" % info)
 	check(info.contains("· New"), "panel lists the employee's level")

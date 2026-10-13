@@ -53,6 +53,9 @@ var airlines: Airlines = Airlines.new()
 var reputation: Reputation = Reputation.new()
 ## Everyone working at the airport (design doc §9.1).
 var staff: Array[Employee] = []
+## Where the manager stands (design doc §15.1). Gameplay state, not a visual: it decides which
+## stations can be managed and where the manager's presence helps. Far away while nobody walks.
+var manager_position: Vector3 = NOBODY_THERE
 ## How far the current frame is between the last and the next simulation step (0..1).
 var sim_alpha: float = 0.0
 
@@ -94,6 +97,40 @@ func step(delta: float) -> void:
 			building.upgrade_seconds_left -= delta
 			if building.upgrade_seconds_left <= 0.0:
 				_finish_upgrade(building)
+
+
+# --- Manager on the spot (design doc §15.1) ---
+
+## Hiring, dismissing and upgrading need the manager within this many meters of the building.
+const MANAGE_DISTANCE: float = 10.0
+## Within this many meters the manager's presence helps: staff work faster, queues stay calmer.
+const PRESENCE_DISTANCE: float = 6.0
+## manager_position while there is no manager (e.g. simulation-only tests).
+const NOBODY_THERE: Vector3 = Vector3(1.0e9, 0.0, 1.0e9)
+
+
+## Meters from `point` to the nearest edge of `building` (0 inside it), on the ground.
+func distance_to_building(building: Building, point: Vector3) -> float:
+	var size := Building.rotated_size(building.type.footprint, building.rotation_steps)
+	var center := grid.block_center(building.origin_cell, size)
+	var half := Vector2(size) * grid.cell_size * 0.5
+	var outside := Vector2(maxf(absf(point.x - center.x) - half.x, 0.0), maxf(absf(point.z - center.z) - half.y, 0.0))
+	return outside.length()
+
+
+## Why the manager can't manage `building` from where they stand, or "" if they can.
+func manage_problem(building: Building) -> String:
+	var distance := distance_to_building(building, manager_position)
+	if distance <= MANAGE_DISTANCE:
+		return ""
+	if distance > 1000.0:
+		return "Walk here to manage"
+	return "Walk closer to manage (%d m away)" % ceili(distance)
+
+
+## True while the manager stands right at `building`.
+func is_manager_near(building: Building) -> bool:
+	return distance_to_building(building, manager_position) <= PRESENCE_DISTANCE
 
 
 # --- Airline deals (design doc §10.1): player commands from the Airlines panel ---
@@ -429,6 +466,7 @@ func reset() -> void:
 	economy = Economy.new()
 	reputation = Reputation.new()
 	airlines.reset()
+	manager_position = NOBODY_THERE
 	_on_layout_changed()
 
 

@@ -32,6 +32,10 @@ const BAG_PENALTY: float = 0.3
 const WALK_TOLERANCE: float = 150.0
 const WALK_PENALTY: float = 0.1
 const STUCK_PENALTY: float = 1.0
+## The manager standing at a station (design doc §15.1): staff need this share of their usual
+## time, and waiting costs this share of the usual mood (someone keeps the queue informed).
+const PRESENCE_TIME_FACTOR: float = 0.9
+const PRESENCE_CALM: float = 0.5
 ## Mood gained by a visit to a shop or café.
 const SHOP_BONUS: float = 5.0
 ## Unhappy customers spend less: spending at mood 0 and at mood 100 (share of the normal amount).
@@ -516,6 +520,7 @@ func _tick_station(station: Station, delta: float) -> void:
 	station.sync_slots()
 	# One employee per counter (design doc §9.1): counter i is open only if employee i exists.
 	var working := Airport.staff_at(station.building)
+	var manager_here := Airport.is_manager_near(station.building)
 	for i in station.serving.size():
 		var served := station.serving[i]
 		if served != null:
@@ -535,10 +540,11 @@ func _tick_station(station: Station, delta: float) -> void:
 			station.serving[i] = next
 			station.record_wait(time, time - next.queued_since)
 			var patience := next.type.queue_patience if next.type != null else 60.0
-			_lose_mood(next, Satisfaction.LONG_QUEUES, (time - next.queued_since - patience) * QUEUE_PENALTY)
+			_lose_mood(next, Satisfaction.LONG_QUEUES, (time - next.queued_since - patience) * QUEUE_PENALTY \
+				* (PRESENCE_CALM if manager_here else 1.0))
 			# Some passengers are quicker than others; experienced staff are faster.
 			station.service_left[i] = station.building.service_time() * _type_factor(next, station) \
-				* working[i].time_factor() * _rng.randf_range(0.75, 1.25)
+				* working[i].time_factor() * _rng.randf_range(0.75, 1.25) * (PRESENCE_TIME_FACTOR if manager_here else 1.0)
 
 	for k in station.queue.size():
 		_move_towards(station.queue[k], _queue_spot(station, k), delta)

@@ -31,10 +31,21 @@ func _physics_process(delta: float) -> void:
 	move_and_slide()
 	_stay_inside_map()
 
+	# The simulation needs to know where the manager is (managing on the spot, design doc §15.1).
+	Airport.manager_position = global_position
+
 	if direction.length_squared() > 0.01:
 		# Godot's "forward" is -Z, hence the negated arguments.
 		var target_yaw := atan2(-direction.x, -direction.z)
 		rotation.y = lerp_angle(rotation.y, target_yaw, 1.0 - exp(-turn_speed * delta))
+
+
+func _ready() -> void:
+	Airport.manager_position = global_position
+
+
+func _exit_tree() -> void:
+	Airport.manager_position = Airport.NOBODY_THERE
 
 
 # The map has no walls yet, so keep the manager from walking off the edge.

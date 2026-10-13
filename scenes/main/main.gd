@@ -33,9 +33,16 @@ func _ready() -> void:
 	_build_mode.tool_changed.connect(_hud.set_tool_state)
 	_hud.reset_confirmed.connect(_on_reset_confirmed)
 	_hud.showcase_confirmed.connect(_on_showcase_confirmed)
-	_hud.upgrade_pressed.connect(func(building: Building) -> void: Airport.start_upgrade(building))
-	_hud.hire_pressed.connect(func(building: Building) -> void: Airport.hire(building))
-	_hud.dismiss_pressed.connect(func(building: Building) -> void: Airport.dismiss(building))
+	# Managing a station needs the manager on the spot (design doc §15.1).
+	_hud.upgrade_pressed.connect(func(building: Building) -> void:
+		if Airport.manage_problem(building).is_empty():
+			Airport.start_upgrade(building))
+	_hud.hire_pressed.connect(func(building: Building) -> void:
+		if Airport.manage_problem(building).is_empty():
+			Airport.hire(building))
+	_hud.dismiss_pressed.connect(func(building: Building) -> void:
+		if Airport.manage_problem(building).is_empty():
+			Airport.dismiss(building))
 	TouchGestures.tapped.connect(_on_tapped)
 	Airport.restructured.connect(_on_restructured)
 	Airport.airlines.offer_arrived.connect(_on_offer_arrived)
