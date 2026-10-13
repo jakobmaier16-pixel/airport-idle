@@ -314,10 +314,11 @@ func is_milestone_open() -> bool:
 
 
 ## Star rating and what it is made of, under the money (design doc §11.7).
-func set_rating(stars: float, satisfaction_percent: float, on_time_rate: float, tier_name: String) -> void:
+## Short, so it never runs under the top buttons on an iPad; satisfaction and punctuality are in
+## the statistics panel.
+func set_rating(stars: float, tier_name: String) -> void:
 	_stars.value = stars
-	_rating_label.text = "%.1f   ·   %s airport   ·   Satisfaction %d %%   ·   On time %d %%" % [
-		Reputation.shown_stars(stars), tier_name, roundi(satisfaction_percent), roundi(on_time_rate * 100.0)]
+	_rating_label.text = "%.1f   ·   %s airport" % [Reputation.shown_stars(stars), tier_name]
 
 
 ## Passenger status line in the top left (both views).
@@ -386,7 +387,8 @@ func _update_stats_panel() -> void:
 		parts.append("%d %s" % [counts.get(type_name, 0), type_name])
 	_types_label.text = "In the airport: " + "  ·  ".join(parts) \
 		+ "     Transfers: %d now  ·  %d connected" % [flow.transferring_count(), flow.transferred_count]
-	_satisfaction_label.text = satisfaction_text(flow.satisfaction)
+	_satisfaction_label.text = satisfaction_text(flow.satisfaction) \
+		+ "     On time: %d %%" % roundi(Airport.reputation.on_time_rate * 100.0)
 	_progress_label.text = Airport.progression.progress_text(Airport.stars())
 	_bottleneck_label.visible = stats_tab == StatsTab.STATIONS
 	if bottleneck != null:

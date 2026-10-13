@@ -94,4 +94,8 @@ func test_hud_shows_stars() -> void:
 	var stars := ui("InfoPanel/RatingRow/Stars") as StarRating
 	check_eq(stars.value, Reputation.shown_stars(Airport.stars()), "stars drawn")
 	var text := (ui("InfoPanel/RatingRow/RatingLabel") as Label).text
-	check(text.contains("Satisfaction") and text.contains("On time"), "rating line: '%s'" % text)
+	check(text.ends_with("Regional airport"), "rating line with the tier: '%s'" % text)
+	hud().show_stats()
+	await frames(1)
+	var stats := (ui("StatsPanel/Content/SatisfactionLabel") as Label).text
+	check(stats.contains("Satisfaction") and stats.contains("On time"), "details in the statistics: '%s'" % stats)
