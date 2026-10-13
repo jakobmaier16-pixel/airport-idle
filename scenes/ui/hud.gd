@@ -47,6 +47,7 @@ var _stats_refresh_in: float = 0.0
 var shown_station: Building = null
 var _tool: BuildMode.Tool = BuildMode.Tool.NONE
 var _notice_left: float = 0.0
+var _goal_refresh_in: float = 0.0
 
 @onready var joystick: TouchJoystick = $SafeArea/TouchJoystick
 @onready var _view_button: Button = $SafeArea/TopButtons/ViewButton
@@ -60,6 +61,8 @@ var _notice_left: float = 0.0
 @onready var _satisfaction_label: Label = $SafeArea/StatsPanel/Content/SatisfactionLabel
 @onready var _progress_label: Label = $SafeArea/StatsPanel/Content/ProgressLabel
 @onready var _milestone_panel: Control = $SafeArea/MilestonePanel
+@onready var _goal_panel: Control = $SafeArea/GoalPanel
+@onready var _goal_label: Label = $SafeArea/GoalPanel/Row/GoalLabel
 @onready var _build_menu: Control = $SafeArea/BuildMenu
 @onready var _building_buttons: HBoxContainer = $SafeArea/BuildMenu/BuildingButtons
 @onready var _tool_panel: Control = $SafeArea/ToolPanel
@@ -122,12 +125,19 @@ func _ready() -> void:
 	_stats_button.pressed.connect(func() -> void: hide_stats() if _stats_panel.visible else show_stats())
 	$SafeArea/StatsPanel/Content/CloseButton.pressed.connect(hide_stats)
 	$SafeArea/MilestonePanel/Content/OkButton.pressed.connect(func() -> void: _milestone_panel.visible = false)
+	$SafeArea/GoalPanel/Row/HideButton.pressed.connect(func() -> void: Airport.goals.hidden = true)
 	_airlines_button.pressed.connect(func() -> void: hide_airlines() if airlines_panel.visible else show_airlines())
 	_update_visibility()
 	_show_build_info()
 
 
 func _process(delta: float) -> void:
+	_goal_refresh_in -= delta
+	if _goal_refresh_in <= 0.0:
+		_goal_refresh_in = STATS_REFRESH
+		_goal_label.text = Airport.goals.text()
+	_goal_panel.visible = not _goal_label.text.is_empty() and not Airport.goals.hidden and not _station_panel.visible \
+		and not airlines_panel.visible and not _stats_panel.visible and not _milestone_panel.visible
 	var offer_count := Airport.airlines.offers.size()
 	_airlines_button.text = "Airlines (%d)" % offer_count if offer_count > 0 else "Airlines"
 	if _notice_left > 0.0:
@@ -141,6 +151,12 @@ func _process(delta: float) -> void:
 		if _stats_refresh_in <= 0.0:
 			_stats_refresh_in = STATS_REFRESH
 			_update_stats_panel()
+
+
+## The next "getting started" goal (design doc §6.1) shown under the top buttons; hidden while
+## a panel on the right is open, so they never overlap.
+func goal_text() -> String:
+	return _goal_label.text if _goal_panel.visible else ""
 
 
 ## Opens the airlines panel (design doc §10.1).

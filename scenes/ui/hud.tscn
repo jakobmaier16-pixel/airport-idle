@@ -78,6 +78,41 @@ layout_mode = 2
 focus_mode = 0
 text = "Build"
 
+[node name="GoalPanel" type="VBoxContainer" parent="SafeArea"]
+visible = false
+layout_mode = 2
+size_flags_horizontal = 8
+size_flags_vertical = 0
+mouse_filter = 2
+
+[node name="Spacer" type="Control" parent="SafeArea/GoalPanel"]
+custom_minimum_size = Vector2(0, 80)
+layout_mode = 2
+mouse_filter = 2
+
+[node name="Row" type="HBoxContainer" parent="SafeArea/GoalPanel"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 10
+
+[node name="GoalLabel" type="Label" parent="SafeArea/GoalPanel/Row"]
+custom_minimum_size = Vector2(420, 0)
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.7, 0.95, 1, 1)
+theme_override_font_sizes/font_size = 20
+label_settings = SubResource("LabelSettings_hint")
+horizontal_alignment = 2
+autowrap_mode = 3
+
+[node name="HideButton" type="Button" parent="SafeArea/GoalPanel/Row"]
+custom_minimum_size = Vector2(90, 52)
+layout_mode = 2
+size_flags_vertical = 0
+focus_mode = 0
+theme_override_font_sizes/font_size = 18
+text = "Hide"
+
 [node name="BuildLabel" type="Label" parent="SafeArea"]
 modulate = Color(1, 1, 1, 0.6)
 layout_mode = 2

@@ -47,27 +47,18 @@ func test_promotion() -> void:
 
 
 func test_supervisor_speeds_up_the_team() -> void:
-	var served_with := func(supervisor: bool) -> int:
-		ShowcaseAirport.build(0.0)
-		var security: Building = Airport.buildings.filter(func(b: Building) -> bool: return b.type.role == BuildingType.Role.SECURITY)[0]
-		while Airport.dismiss(security):
-			pass
-		var boss := Airport.hire(security)
-		var officer := Airport.hire(security)
-		for employee in [boss, officer]:
-			employee.served[BuildingType.Role.SECURITY] = Employee.EXPERT_AFTER
-		if supervisor:
-			Airport.promote(security)
-		security.type.service_time *= 3.0  # two slow lanes: a queue all the time
-		sim_seconds(120)
-		var before: int = officer.served[BuildingType.Role.SECURITY]
-		sim_seconds(900)
-		security.type.service_time /= 3.0
-		return officer.served[BuildingType.Role.SECURITY] - before
-	var without: int = served_with.call(false)
-	var with_boss: int = served_with.call(true)
-	check(without > 40, "a busy lane: %d" % without)
-	check(with_boss > without, "the officer works faster under a supervisor: %d vs %d" % [with_boss, without])
+	var check_in := _staffed_check_in()
+	var team := Airport.staff_at(check_in)
+	for employee in team:
+		employee.served[BuildingType.Role.CHECK_IN] = Employee.EXPERT_AFTER
+	var expert := Employee.EXPERT_TIME_FACTOR
+	check(is_equal_approx(PassengerFlow.staff_time_factor(team[1], team, false), expert), "no supervisor yet")
+	Airport.promote(check_in)
+	var boss: Employee = team.filter(func(e: Employee) -> bool: return e.is_supervisor)[0]
+	var colleague: Employee = team.filter(func(e: Employee) -> bool: return not e.is_supervisor)[0]
+	check(is_equal_approx(PassengerFlow.staff_time_factor(colleague, team, false), expert * Employee.SUPERVISOR_TEAM_FACTOR), "colleagues 5 % faster")
+	check(is_equal_approx(PassengerFlow.staff_time_factor(boss, team, false), expert), "the supervisor at the usual speed")
+	check(is_equal_approx(PassengerFlow.staff_time_factor(boss, team, true), expert * PassengerFlow.PRESENCE_TIME_FACTOR), "the manager's presence on top")
 
 
 func test_training_and_promotion_saved() -> void:

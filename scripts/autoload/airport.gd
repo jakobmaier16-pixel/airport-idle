@@ -51,6 +51,8 @@ var economy: Economy = Economy.new()
 ## Signed airlines and their offers (design doc §10.1). Kept for the whole game (reset, not
 ## replaced), so the HUD's signal connections stay valid.
 var airlines: Airlines = Airlines.new()
+## "Getting started" goals (design doc §6.1).
+var goals: Goals = Goals.new()
 ## Airport tiers and lifetime passenger counts (design doc §14.1). Reset, not replaced.
 var progression: Progression = Progression.new()
 ## Star rating from satisfaction and punctuality (design doc §11.7).
@@ -566,6 +568,7 @@ func reset() -> void:
 	reputation = Reputation.new()
 	airlines.reset()
 	progression.reset()
+	goals.hidden = false
 	land_changed.emit()
 	manager_position = NOBODY_THERE
 	_on_layout_changed()
@@ -603,6 +606,7 @@ func save_state() -> Dictionary:
 		"reputation": reputation.save_state(),
 		"airlines": airlines.save_state(),
 		"progression": progression.save_state(),
+		"goals_hidden": goals.hidden,
 		"buildings": saved_buildings,
 	}
 
@@ -618,6 +622,7 @@ func load_state(data: Dictionary) -> int:
 		grid.set_zone_data(Marshalls.base64_to_raw(data.get("zones", "")))
 		grid.set_walkway_data(Marshalls.base64_to_raw(data.get("walkways", "")))
 	progression.load_state(data.get("progression", {}))
+	goals.hidden = bool(data.get("goals_hidden", false))
 	land_changed.emit()
 	var skipped := 0
 	_loading = true

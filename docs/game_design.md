@@ -91,6 +91,12 @@ Inspirations: *Builderment*, *Idle Train Empire*, *Airplane Inc.*, *TheoTown*.
 - After the intro, the player builds their own airport.
 - Role in the tutorial, length, starting site and anything that carries over: **(open)** — we will design this once the core game exists.
 
+### 6.1 Getting started goals (first version)
+Decided 2026-10-13. The story intro above stays open; until it exists, a short goal line guides a new player through their first airport.
+- **The player's own airport starts as an empty field** (closes §19 Q2 for now): 48 × 48 cells of land (§14.1), €50,000 and one airline deal (§10.1).
+- One line under the top buttons shows the next goal, e.g. "Goal 3/10: Build a Check-in facing the entrance's walkway". Goals, in order: paint airside · entrance on a walkway · check-in · security on the border · gate with a stand · baggage claim · hire staff · first departure · sign a second airline · reach National.
+- The line always shows the first goal that isn't met (a goal undone by demolishing comes back). "Hide" removes it for good (saved). It disappears when all goals are done, and while a panel on the right is open.
+
 ---
 
 ## 7. Building System
@@ -583,7 +589,7 @@ After that, features grow with play time and milestones: shops, staff, passenger
 
 ### Intro & start
 1. Tutorial: what is the player's role, how long is it, does anything carry over?
-2. What does the player's own airport start with: empty field, small airstrip, or run-down regional airport?
+2. ~~What does the player's own airport start with: empty field, small airstrip, or run-down regional airport?~~ For now: empty field, §6.1.
 
 ### Progression
 3. ~~What are the airport tiers called, and what unlocks each one?~~ Decided: §14.1.

@@ -531,7 +531,6 @@ func _tick_station(station: Station, delta: float) -> void:
 	# One employee per counter (design doc §9.1): counter i is open only if employee i exists.
 	var working := Airport.staff_working_at(station.building)
 	var manager_here := Airport.is_manager_near(station.building)
-	var has_supervisor := working.any(func(e: Employee) -> bool: return e.is_supervisor)
 	for i in station.serving.size():
 		var served := station.serving[i]
 		if served != null:
@@ -555,8 +554,7 @@ func _tick_station(station: Station, delta: float) -> void:
 				* (PRESENCE_CALM if manager_here else 1.0))
 			# Some passengers are quicker than others; experienced staff are faster.
 			station.service_left[i] = station.building.service_time() * _type_factor(next, station) \
-				* working[i].time_factor() * _rng.randf_range(0.75, 1.25) * (PRESENCE_TIME_FACTOR if manager_here else 1.0) \
-				* (Employee.SUPERVISOR_TEAM_FACTOR if has_supervisor and not working[i].is_supervisor else 1.0)
+				* staff_time_factor(working[i], working, manager_here) * _rng.randf_range(0.75, 1.25)
 
 	for k in station.queue.size():
 		_move_towards(station.queue[k], _queue_spot(station, k), delta)
@@ -579,6 +577,17 @@ func _finish_service(station: Station, passenger: Passenger) -> void:
 			passenger.position = _cell_point(exit, passenger)
 			passenger.previous_position = passenger.position
 			_plan(passenger)
+
+
+## How long `employee` needs compared to the standard time: experience (§9.1), a supervisor
+## among `team` (§9.2) and the manager standing there (§15.1).
+static func staff_time_factor(employee: Employee, team: Array[Employee], manager_here: bool) -> float:
+	var factor := employee.time_factor()
+	if manager_here:
+		factor *= PRESENCE_TIME_FACTOR
+	if not employee.is_supervisor and team.any(func(e: Employee) -> bool: return e.is_supervisor):
+		factor *= Employee.SUPERVISOR_TEAM_FACTOR
+	return factor
 
 
 # --- Shops and cafés (design doc §8.6) ---
