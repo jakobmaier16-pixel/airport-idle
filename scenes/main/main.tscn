@@ -11,6 +11,7 @@
 [ext_resource type="Script" path="res://scenes/passengers/passenger_layer.gd" id="9_passenger_layer"]
 [ext_resource type="Script" path="res://scenes/planes/plane_layer.gd" id="10_plane_layer"]
 [ext_resource type="Script" path="res://scenes/day_night/day_night.gd" id="11_day_night"]
+[ext_resource type="Script" path="res://scenes/weather/weather_layer.gd" id="12_weather_layer"]
 
 [sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_sky"]
 
@@ -39,6 +40,10 @@ directional_shadow_max_distance = 50.0
 [node name="DayNight" type="Node" parent="." node_paths=PackedStringArray("sun", "world_environment")]
 script = ExtResource("11_day_night")
 sun = NodePath("../Sun")
+world_environment = NodePath("../WorldEnvironment")
+
+[node name="Weather" type="Node3D" parent="." node_paths=PackedStringArray("world_environment")]
+script = ExtResource("12_weather_layer")
 world_environment = NodePath("../WorldEnvironment")
 
 [node name="Ground" parent="." instance=ExtResource("1_ground")]

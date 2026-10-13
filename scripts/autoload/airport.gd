@@ -53,6 +53,8 @@ var economy: Economy = Economy.new()
 var airlines: Airlines = Airlines.new()
 ## Time of day (design doc §12.1). Reset, not replaced.
 var clock: Clock = Clock.new()
+## Seasons and weather events (design doc §12.2). Reset, not replaced.
+var weather: Weather = Weather.new()
 ## "Getting started" goals (design doc §6.1).
 var goals: Goals = Goals.new()
 ## Airport tiers and lifetime passenger counts (design doc §14.1). Reset, not replaced.
@@ -97,6 +99,7 @@ func _process(delta: float) -> void:
 ## Advances the whole simulation by one step: passengers, flights and money.
 func step(delta: float) -> void:
 	clock.tick(delta)
+	weather.tick(delta, season())
 	passenger_flow.tick(delta)
 	economy.tick(delta, _running_cost_per_minute)
 	reputation.tick(delta)
@@ -256,6 +259,16 @@ func _next_to_sell() -> Building:
 			if buildings[j].type.role == role:
 				return buildings[i]
 	return null
+
+
+## The current season (design doc §12.2).
+func season() -> Weather.Season:
+	return Weather.season_of(clock.day())
+
+
+## True if a de-icing pad exists: de-icing in snow is much faster (design doc §12.2).
+func has_deicing_pad() -> bool:
+	return buildings.any(func(b: Building) -> bool: return b.type.id == &"deicing_pad")
 
 
 ## The airport's star rating, 1.0 to 5.0 (design doc §11.7).
@@ -597,6 +610,7 @@ func reset() -> void:
 	progression.reset()
 	goals.hidden = false
 	clock.game_seconds = Clock.START_HOUR * 3600.0
+	weather.reset()
 	land_changed.emit()
 	manager_position = NOBODY_THERE
 	_on_layout_changed()
@@ -637,6 +651,7 @@ func save_state() -> Dictionary:
 		"progression": progression.save_state(),
 		"goals_hidden": goals.hidden,
 		"clock": clock.game_seconds,
+		"weather": weather.save_state(),
 		"buildings": saved_buildings,
 	}
 
@@ -654,6 +669,7 @@ func load_state(data: Dictionary) -> int:
 	progression.load_state(data.get("progression", {}))
 	goals.hidden = bool(data.get("goals_hidden", false))
 	clock.game_seconds = float(data.get("clock", Clock.START_HOUR * 3600.0))
+	weather.load_state(data.get("weather", {}))
 	land_changed.emit()
 	var skipped := 0
 	_loading = true

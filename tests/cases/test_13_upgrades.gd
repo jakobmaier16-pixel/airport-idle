@@ -73,13 +73,14 @@ func test_level_and_running_upgrade_are_saved() -> void:
 	var loaded := _building(&"check_in")
 	check_eq(loaded.level, 2, "level restored")
 	check(absf(loaded.upgrade_seconds_left - left) < 0.01, "upgrade time left restored")
-	check_eq(_building(&"security").level, 2, "security level restored")
+	check_eq(_building(&"security").level, 3, "security level restored")
 
 
 func test_tap_station_opens_panel_and_upgrades() -> void:
 	ShowcaseAirport.build(0.0)
-	await start_game()
 	var security := _building(&"security")
+	security.level = 2  # the showcase's security is fully upgraded; one step back for this test
+	await start_game()
 	# Stand south of security on the airside walkway; the camera looks north at it.
 	manager().global_position = Airport.grid.cell_to_world(Vector2i(32, 33))
 	manager_camera().snap_to_target()

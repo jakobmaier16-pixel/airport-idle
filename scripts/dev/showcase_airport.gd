@@ -40,6 +40,8 @@ static func build(warm_up_seconds: float = 180.0) -> void:
 	# Long-haul (§10.2): gate 3 in the middle with a wide-body stand behind it.
 	Airport.place_building(catalog.find(&"gate"), Vector2i(27, 34), 0)
 	Airport.place_building(catalog.find(&"wide_body_stand"), Vector2i(22, 39), 0)
+	# De-icing pad for snowy days (§12.2), beside stand 2.
+	Airport.place_building(catalog.find(&"deicing_pad"), Vector2i(50, 39), 0)
 
 	# Arrivals: baggage claim on the border next to security, out into the landside hall (§8.8).
 	Airport.place_building(catalog.find(&"baggage_claim"), Vector2i(37, 27), 0)
@@ -57,8 +59,11 @@ static func build(warm_up_seconds: float = 180.0) -> void:
 	Airport.place_building(catalog.find(&"lounge"), Vector2i(37, 34), 0)
 	Airport.place_building(catalog.find(&"car_park"), Vector2i(46, 21), 3)
 
-	# Station upgrades (design doc §7.8): security already at level 2.
+	# Station upgrades (design doc §7.8): security fully upgraded (3 lanes, faster scanners) for
+	# the morning rush.
 	Airport.start_upgrade(_first(BuildingType.Role.SECURITY))
+	_first(BuildingType.Role.SECURITY).upgrade_seconds_left = 0.0
+	_first(BuildingType.Role.SECURITY).level = 3
 	Airport.buy_fast_track(_first(BuildingType.Role.SECURITY))
 
 	# Airlines (§10.1): the starter deal, two more and a long-haul airline, together as many

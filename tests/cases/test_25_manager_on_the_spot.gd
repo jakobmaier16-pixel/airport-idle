@@ -34,6 +34,7 @@ func test_panel_needs_the_manager_nearby() -> void:
 	ShowcaseAirport.build(0.0)
 	await start_game()
 	var security := _building(BuildingType.Role.SECURITY)
+	security.level = 2  # so there is an upgrade left to buy
 	await _stand_near(security, 30.0)
 	hud().show_station(security)
 	await frames(1)

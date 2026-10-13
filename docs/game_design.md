@@ -474,7 +474,19 @@ Placeholder numbers, tunable.
 - **Clock:** one real second is 15 game seconds (a 3-minute gate turnaround stands for ~45 minutes), so a day lasts 96 real minutes. A new airport opens at 06:00 on day 1. The HUD shows "Day 3 · 06:45" next to the top buttons; the clock is saved.
 - **Demand by hour:** passengers per flight follow the day: a morning rush (06–09, up to 130 %), a normal day, an evening rush (17–20), and a quiet night (00–04, 40 %). Flights keep their schedule at night (night curfews come later, possibly as a tier rule).
 - **Light:** the sun climbs and sets (warm low light in the morning and evening), nights are dim and blue but still readable. The sun keeps its compass direction, like the camera.
-- Seasons, weather and incidents: later.
+- Seasons and weather: §12.2. Security incidents: later.
+
+### 12.2 Seasons and weather (first version)
+Placeholder numbers, tunable.
+- **Seasons** last 2 game days each (~3 real hours): Spring → Summer → Autumn → Winter. A new airport starts in spring. Demand by route type: Holiday 100 / **135** / 100 / **75 %**, Low-cost 100 / 115 / 100 / 90 %, Business 100 / 90 / 105 / 105 %, Long-haul 100 %.
+- **Weather events** come every 8–15 real minutes, by season (spring: rain, fog, storms; summer: storms, rain; autumn: fog, rain; winter: snow, fog):
+  - **Rain** (3 min): only looks wet.
+  - **Thunderstorm** (1½ min): lightning stops all ground work: no boarding, no deplaning, planes stay where they are, nothing lands.
+  - **Fog** (2 min): no landings; planes waiting to arrive hold.
+  - **Snow** (4 min): every departure needs de-icing first: 20 s, or 5 s with a **de-icing pad** (Airside, 6 × 6, €7,000 · €10/min, place it anywhere airside).
+- **Knock-on delays:** a plane can only arrive at a stand once the previous plane has left it, so one late flight can delay the next one at that gate.
+- **Weather delays don't count against the airport** (as in real punctuality statistics): the on-time rate and airline happiness only count delays the airport caused (holding for late passengers). Knock-on delays from weather count as weather.
+- The HUD shows the season and the weather next to the clock; a notice explains a storm or snow when it starts. Rain and snow fall around the camera, fog is visible fog, storms darken the sky with lightning.
 
 ---
 

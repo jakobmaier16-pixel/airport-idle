@@ -62,4 +62,4 @@ func test_day_and_night_light() -> void:
 	Airport.clock.game_seconds = 7.0 * 3600.0
 	await frames(1)
 	check(-sun.rotation.x < noon_elevation, "the morning sun is lower than at noon")
-	check((ui("TopButtons/ClockLabel") as Label).text == "Day 1 · 07:00", "clock in the HUD")
+	check((ui("TopButtons/ClockLabel") as Label).text == "Day 1 · 07:00 · Spring", "clock and season in the HUD")

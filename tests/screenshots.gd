@@ -22,6 +22,11 @@ func _ready() -> void:
 	Airport.clock.game_seconds = 19.5 * 3600.0
 	await _shot("evening")
 	Airport.clock.game_seconds = morning
+	# Weather (design doc §12.2).
+	for kind in [Weather.Kind.RAIN, Weather.Kind.SNOW, Weather.Kind.FOG]:
+		Airport.weather.start(kind)
+		await _shot("weather_" + Weather.KIND_NAMES[kind].to_lower())
+	Airport.weather.start(Weather.Kind.CLEAR)
 
 	# South of gate 1's stand, looking across the plane to the gate, while it boards (first departure at 210 s, boarding from 120 s).
 	sim_seconds(60)

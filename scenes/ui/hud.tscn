@@ -175,16 +175,25 @@ layout_mode = 2
 mouse_filter = 2
 label_settings = SubResource("LabelSettings_departures")
 
-[node name="NoticePanel" type="PanelContainer" parent="SafeArea"]
-visible = false
-custom_minimum_size = Vector2(600, 0)
+[node name="NoticeBox" type="VBoxContainer" parent="SafeArea"]
 layout_mode = 2
 size_flags_horizontal = 4
 size_flags_vertical = 0
 mouse_filter = 2
+
+[node name="Spacer" type="Control" parent="SafeArea/NoticeBox"]
+custom_minimum_size = Vector2(0, 140)
+layout_mode = 2
+mouse_filter = 2
+
+[node name="NoticePanel" type="PanelContainer" parent="SafeArea/NoticeBox"]
+visible = false
+custom_minimum_size = Vector2(600, 0)
+layout_mode = 2
+mouse_filter = 2
 theme_override_styles/panel = SubResource("StyleBox_station_panel")
 
-[node name="NoticeLabel" type="Label" parent="SafeArea/NoticePanel"]
+[node name="NoticeLabel" type="Label" parent="SafeArea/NoticeBox/NoticePanel"]
 custom_minimum_size = Vector2(600, 0)
 layout_mode = 2
 theme_override_font_sizes/font_size = 24

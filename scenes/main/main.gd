@@ -55,6 +55,7 @@ func _ready() -> void:
 	TouchGestures.tapped.connect(_on_tapped)
 	Airport.restructured.connect(_on_restructured)
 	Airport.progression.tier_reached.connect(_on_tier_reached)
+	Airport.weather.changed.connect(_on_weather_changed)
 	Airport.airlines.offer_arrived.connect(_on_offer_arrived)
 	Airport.airlines.airline_unhappy.connect(_on_airline_unhappy)
 	Airport.airlines.airline_left.connect(_on_airline_left)
@@ -96,6 +97,16 @@ func _on_tier_reached(tier: Progression.Tier) -> void:
 	_hud.show_milestone("%s airport!" % Airport.progression.name_of(tier), Progression.REWARDS[tier])
 	# Newly unlocked buildings lose their "(National)" note.
 	_hud.setup_build_menu(Airport.CATALOG.types)
+
+
+func _on_weather_changed(kind: Weather.Kind) -> void:
+	match kind:
+		Weather.Kind.STORM:
+			_hud.notify("Thunderstorm: ground crews stop work and nothing lands until it passes. Weather delays don't count against your on-time rate.")
+		Weather.Kind.FOG:
+			_hud.notify("Fog: no landings until it lifts. Planes waiting to arrive hold.")
+		Weather.Kind.SNOW:
+			_hud.notify("Snow: every departure needs de-icing first (much faster with a de-icing pad).")
 
 
 func _on_offer_arrived(offer: AirlineOffer) -> void:

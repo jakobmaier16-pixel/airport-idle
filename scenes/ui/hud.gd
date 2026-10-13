@@ -77,8 +77,8 @@ var _goal_refresh_in: float = 0.0
 @onready var _build_label: Label = $SafeArea/BuildLabel
 @onready var _money_label: Label = $SafeArea/InfoPanel/MoneyLabel
 @onready var _loan_label: Label = $SafeArea/InfoPanel/LoanLabel
-@onready var _notice_panel: Control = $SafeArea/NoticePanel
-@onready var _notice_label: Label = $SafeArea/NoticePanel/NoticeLabel
+@onready var _notice_panel: Control = $SafeArea/NoticeBox/NoticePanel
+@onready var _notice_label: Label = $SafeArea/NoticeBox/NoticePanel/NoticeLabel
 @onready var _status_label: Label = $SafeArea/InfoPanel/StatusLabel
 @onready var _stars: StarRating = $SafeArea/InfoPanel/RatingRow/Stars
 @onready var _rating_label: Label = $SafeArea/InfoPanel/RatingRow/RatingLabel
@@ -142,7 +142,7 @@ func _process(delta: float) -> void:
 		_goal_label.text = Airport.goals.text()
 	_goal_panel.visible = not _goal_label.text.is_empty() and not Airport.goals.hidden and not _station_panel.visible \
 		and not airlines_panel.visible and not _stats_panel.visible and not _milestone_panel.visible
-	_clock_label.text = Airport.clock.text()
+	_clock_label.text = "%s · %s" % [Airport.clock.text(), Airport.weather.text(Airport.season())]
 	var offer_count := Airport.airlines.offers.size()
 	_airlines_button.text = "Airlines (%d)" % offer_count if offer_count > 0 else "Airlines"
 	if _notice_left > 0.0:
