@@ -62,6 +62,8 @@ var _tool: BuildMode.Tool = BuildMode.Tool.NONE
 @onready var _build_label: Label = $SafeArea/BuildLabel
 @onready var _money_label: Label = $SafeArea/InfoPanel/MoneyLabel
 @onready var _status_label: Label = $SafeArea/InfoPanel/StatusLabel
+@onready var _stars: StarRating = $SafeArea/InfoPanel/RatingRow/Stars
+@onready var _rating_label: Label = $SafeArea/InfoPanel/RatingRow/RatingLabel
 @onready var _departures_label: Label = $SafeArea/InfoPanel/DeparturesLabel
 @onready var _reset_button: Button = $SafeArea/BuildMenu/PaintButtons/ResetButton
 @onready var _demo_button: Button = $SafeArea/BuildMenu/PaintButtons/DemoButton
@@ -190,6 +192,13 @@ func set_money(balance: float, profit_per_minute: float) -> void:
 	var plus := "+" if roundi(profit_per_minute) >= 0 else ""
 	_money_label.text = "%s   %s%s/min" % [Economy.format(balance), plus, Economy.format(profit_per_minute)]
 	_money_label.modulate = DEBT_COLOR if balance < 0.0 else MONEY_COLOR
+
+
+## Star rating and what it is made of, under the money (design doc §11.7).
+func set_rating(stars: float, satisfaction_percent: float, on_time_rate: float) -> void:
+	_stars.value = stars
+	_rating_label.text = "%.1f   ·   Satisfaction %d %%   ·   On time %d %%" % [
+		Reputation.shown_stars(stars), roundi(satisfaction_percent), roundi(on_time_rate * 100.0)]
 
 
 ## Passenger status line in the top left (both views).

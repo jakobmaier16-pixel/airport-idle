@@ -54,6 +54,7 @@ func _on_showcase_confirmed() -> void:
 
 func _process(_delta: float) -> void:
 	_hud.set_money(Airport.economy.balance, Airport.economy.profit_per_minute())
+	_hud.set_rating(Airport.stars(), Airport.passenger_flow.satisfaction.average, Airport.reputation.on_time_rate)
 	_hud.set_status(Airport.passenger_flow.status_text())
 	_hud.set_departures(Airport.passenger_flow.departures_text())
 

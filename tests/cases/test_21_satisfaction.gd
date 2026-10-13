@@ -18,6 +18,7 @@ func test_running_average_follows_journeys() -> void:
 	check(satisfaction.by_type["Families"] < 25.0, "per type too")
 	satisfaction.record("Business", 150.0)
 	check(satisfaction.by_type["Business"] <= 100.0, "mood is capped at 100")
+	check(satisfaction.by_type["Families"] < satisfaction.average, "overall lies between the types")
 
 
 func test_complaints_fade() -> void:
@@ -72,11 +73,13 @@ func test_missed_flight_ruins_the_trip() -> void:
 
 
 func test_satisfaction_is_saved() -> void:
-	Airport.passenger_flow.satisfaction.average = 42.0
-	Airport.passenger_flow.satisfaction.by_type["Business"] = 33.0
+	for i in 80:  # more than the memory, so the ring buffer wraps
+		Airport.passenger_flow.satisfaction.record("Business", 33.0)
+		Airport.passenger_flow.satisfaction.record("Families", 51.0)
 	var data := JSON.parse_string(JSON.stringify(Airport.save_state())) as Dictionary
 	Airport.load_state(data)
 	check_eq(roundi(Airport.passenger_flow.satisfaction.average), 42, "average restored")
+	check_eq(Airport.passenger_flow.satisfaction.journeys, 160, "journeys restored")
 	check_eq(roundi(Airport.passenger_flow.satisfaction.by_type.get("Business", 0.0)), 33, "per type restored")
 
 

@@ -304,7 +304,7 @@ Placeholder numbers, tunable.
   - **No way through:** −1 per second while they can't find a way to their next station.
   - **Missed flight:** mood 0, and the journey counts three times (people remember the trip that went wrong).
 - A visit to a shop or café **cheers them up** (+5). Unhappy customers **spend less**: from 50 % of the normal amount at mood 0 to 110 % at mood 100.
-- When a journey ends (boarded, left the airport, missed the flight), the mood goes into the airport's **satisfaction**: a running average over roughly the last 60 passengers, also per passenger type. A new airport starts at 75 %.
+- When a journey ends (boarded, left the airport, missed the flight), the mood goes into the airport's **satisfaction**: the average of the last 60 journeys, also per passenger type. A new airport starts at 75 % (the first journeys are blended with that).
 - **Statistics** show satisfaction overall and per type, and the **main complaint** (the reason that cost the most mood over the last few minutes).
 - Satisfaction feeds the airport's **reputation** (§11.7).
 
@@ -374,6 +374,15 @@ Currency: **euro (€)**. All numbers are placeholders, tunable per building (co
 - **Display:** balance and profit per minute (last 60 s) at the top of the info panel; red when negative.
 - **Negative balance** is allowed for now: what bankruptcy means is still open (§11.3, §19).
 - **Not in the MVP yet:** shop income, parking, salaries per employee, upgrades (§16 item 7).
+
+
+### 11.7 Reputation (first version)
+Placeholder numbers, tunable.
+- **Star rating, 1–5** (shown in half stars under the money, with satisfaction and on-time rate next to it).
+- Score = 70 % satisfaction (§8.10) + 30 % on-time rate. Score 0.5 or less = 1 star, 0.95 or more = 5 stars, linear in between. A new airport has about 3½ stars.
+- **On-time rate:** share of recent departures (about the last 10) that left at most 10 s late (compressed time).
+- **Delays:** at departure time a flight **holds its doors** for its passengers who are already airside (walking to the gate, in a shop, at transfer security) or still boarding, at most 30 s; then it leaves without them. Passengers still landside are not waited for. The departures board shows "Delayed".
+- **Effect now:** passengers per flight scale with the rating, from 60 % at 1 star to 140 % at 5 stars (people avoid badly run airports). Later: airlines and deals (§10.1) and airport tiers (§14) depend on it.
 
 ---
 

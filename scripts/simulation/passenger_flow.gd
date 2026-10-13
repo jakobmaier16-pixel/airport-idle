@@ -90,9 +90,12 @@ func departures_text(max_lines: int = 4) -> String:
 	}
 	var lines: PackedStringArray = []
 	for flight in schedule.upcoming().slice(0, max_lines):
-		var seconds := maxi(ceili(flight.departure_time - time), 0)
+		var seconds := maxi(ceili(flight.departs_at() - time), 0)
+		var status: String = phase_names[flight.phase]
+		if flight.delay > 0.0 and flight.phase == Flight.Phase.BOARDING:
+			status = "Delayed"
 		lines.append("%s   Gate %d   %s   %s   %d:%02d" % [
-			flight.number, gate_number(flight.gate), flight.route, phase_names[flight.phase], seconds / 60, seconds % 60])
+			flight.number, gate_number(flight.gate), flight.route, status, seconds / 60, seconds % 60])
 	return "\n".join(lines)
 
 
@@ -251,6 +254,18 @@ func board(flight: Flight, max_count: int) -> int:
 	flight.boarded += boarding.size()
 	transferred_count += boarding.filter(func(p: Passenger) -> bool: return p.is_transfer).size()
 	return boarding.size()
+
+
+## True while passengers of departing `flight` are airside on their way to its gate, or waiting
+## there to board: the flight holds its doors for them (design doc §11.7).
+func is_anyone_coming(flight: Flight) -> bool:
+	for passenger in passengers:
+		if passenger.flight != flight or passenger.is_arriving:
+			continue
+		if passenger.goal == Role.GATE or passenger.goal == Role.TRANSFER_SECURITY \
+				or (passenger.goal == Role.SHOP and passenger.after_shop == Role.GATE):
+			return true
+	return false
 
 
 ## Re-checks the passenger route (and whether connections can be sold), e.g. after hiring.
@@ -689,7 +704,7 @@ func _lose_mood(passenger: Passenger, reason: String, points: float) -> void:
 	satisfaction.complain(reason, points)
 
 
-func _finish_journey(passenger: Passenger, weight: float = 1.0) -> void:
+func _finish_journey(passenger: Passenger, weight: int = 1) -> void:
 	satisfaction.record(passenger.type.display_name if passenger.type != null else "Other", passenger.mood, weight)
 
 

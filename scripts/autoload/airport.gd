@@ -44,6 +44,8 @@ var grid: AirportGrid = AirportGrid.new(MAP_SIZE_CELLS, CELL_SIZE)
 var buildings: Array[Building] = []
 var passenger_flow: PassengerFlow = PassengerFlow.new()
 var economy: Economy = Economy.new()
+## Star rating from satisfaction and punctuality (design doc §11.7).
+var reputation: Reputation = Reputation.new()
 ## Everyone working at the airport (design doc §9.1).
 var staff: Array[Employee] = []
 ## How far the current frame is between the last and the next simulation step (0..1).
@@ -79,11 +81,17 @@ func _process(delta: float) -> void:
 func step(delta: float) -> void:
 	passenger_flow.tick(delta)
 	economy.tick(delta, _running_cost_per_minute)
+	reputation.tick(delta)
 	for building in buildings:
 		if building.is_upgrading():
 			building.upgrade_seconds_left -= delta
 			if building.upgrade_seconds_left <= 0.0:
 				_finish_upgrade(building)
+
+
+## The airport's star rating, 1.0 to 5.0 (design doc §11.7).
+func stars() -> float:
+	return reputation.stars(passenger_flow.satisfaction.average)
 
 
 ## Why `building` can't be upgraded right now, as a short hint, or "" if it can.
@@ -322,6 +330,7 @@ func reset() -> void:
 	staff.clear()
 	passenger_flow = PassengerFlow.new()
 	economy = Economy.new()
+	reputation = Reputation.new()
 	_on_layout_changed()
 
 
@@ -350,6 +359,7 @@ func save_state() -> Dictionary:
 		"walkways": Marshalls.raw_to_base64(grid.get_walkway_data()),
 		"money": economy.balance,
 		"satisfaction": passenger_flow.satisfaction.save_state(),
+		"reputation": reputation.save_state(),
 		"buildings": saved_buildings,
 	}
 
@@ -401,6 +411,7 @@ func load_state(data: Dictionary) -> int:
 				staff_fully(building)
 	economy.balance = float(data.get("money", Economy.STARTING_MONEY))
 	passenger_flow.satisfaction.load_state(data.get("satisfaction", {}))
+	reputation.load_state(data.get("reputation", {}))
 	zones_changed.emit()
 	walkways_changed.emit()
 	layout_changed.emit()

@@ -45,7 +45,7 @@ func plane_count() -> int:
 func _pose(flight: Flight, now: float) -> Variant:
 	if flight.stand == null or flight.phase == Flight.Phase.CANCELLED:
 		return null
-	var time_left := flight.departure_time - now
+	var time_left := flight.departs_at() - now
 	var taxi := FlightSchedule.TAXI_TIME
 	if time_left > FlightSchedule.PLANE_ARRIVES or time_left < -taxi:
 		return null

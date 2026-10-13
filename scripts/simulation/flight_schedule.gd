@@ -15,6 +15,9 @@ const GATE_STAGGER: float = 45.0
 const ARRIVALS_START: float = 260.0
 ## The plane starts taxiing onto the stand this long before departure.
 const PLANE_ARRIVES: float = 130.0
+## A flight waits at most this long for passengers who are already airside (checked-in bags would
+## otherwise have to be unloaded). Fits before the next plane arrives at the same stand.
+const MAX_HOLD: float = 30.0
 ## Seconds to taxi onto the stand, and to push back after departure.
 const TAXI_TIME: float = 15.0
 const BOARDING_OPENS: float = 90.0
@@ -97,7 +100,7 @@ func _schedule(gate: Building, departure_time: float) -> void:
 	flight.gate = gate
 	flight.stand = Airport.stand_behind(gate)
 	flight.seats = SEATS
-	flight.booked = _rng.randi_range(BOOKED_MIN, BOOKED_MAX)
+	flight.booked = _passenger_count()
 	flight.departure_time = departure_time
 	# Random route for now; later airlines and deals decide (design doc §10).
 	flight.route = ROUTES.keys()[_rng.randi() % ROUTES.size()]
@@ -105,10 +108,15 @@ func _schedule(gate: Building, departure_time: float) -> void:
 	# The inbound leg: the same plane brings passengers before it takes new ones (turnaround).
 	var mix := PackedFloat32Array(ROUTES[flight.route])
 	var types: Array[PassengerType] = [FAMILY, LOW_COST, BUSINESS]
-	for i in _rng.randi_range(BOOKED_MIN, BOOKED_MAX):
+	for i in _passenger_count():
 		flight.inbound_types.append(types[_rng.rand_weighted(mix)])
 	_last_planned[gate] = departure_time
 	flights.append(flight)
+
+
+# Passengers on one leg: a well-rated airport attracts more of them (design doc §11.7).
+func _passenger_count() -> int:
+	return roundi(_rng.randi_range(BOOKED_MIN, BOOKED_MAX) * Airport.reputation.demand_factor(Airport.stars()))
 
 
 # Decides type and arrival time of every booked passenger, from the route's mix.
@@ -127,7 +135,7 @@ func _plan_arrivals(flight: Flight) -> void:
 
 
 func _advance(flight: Flight, now: float, delta: float, flow: PassengerFlow) -> void:
-	var time_left := flight.departure_time - now
+	var time_left := flight.departs_at() - now
 
 	# Passengers arrive at the entrance at their planned times.
 	while flight.spawned < flight.booked and flight.arrival_times[flight.spawned] <= now:
@@ -163,7 +171,13 @@ func _advance(flight: Flight, now: float, delta: float, flow: PassengerFlow) -> 
 		flight.boarding_credit -= boarded
 		# Unused capacity doesn't pile up while nobody is waiting.
 		flight.boarding_credit = minf(flight.boarding_credit, 1.0)
+	if phase >= Flight.Phase.DEPARTING and flight.phase == Flight.Phase.BOARDING \
+			and flight.delay < MAX_HOLD and flow.is_anyone_coming(flight):
+		# Hold the doors for passengers who are airside or still boarding: a delay (design doc §11.7).
+		flight.delay = minf(now - flight.departure_time, MAX_HOLD)
+		phase = Flight.Phase.BOARDING
 	if phase >= Flight.Phase.DEPARTING and flight.phase < Flight.Phase.DEPARTING:
+		Airport.reputation.record_departure(flight.delay)
 		# Doors close: whoever isn't on board has missed the flight.
 		flight.missed = flow.remove_flight_passengers(flight, true)
 		flow.departed_count += flight.boarded

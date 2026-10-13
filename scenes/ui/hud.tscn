@@ -4,6 +4,7 @@
 [ext_resource type="Script" path="res://scenes/ui/safe_area_container.gd" id="2_safe_area"]
 [ext_resource type="PackedScene" path="res://scenes/ui/touch_joystick.tscn" id="3_joystick"]
 [ext_resource type="Script" path="res://scenes/ui/tap_feedback.gd" id="4_tap_feedback"]
+[ext_resource type="Script" path="res://scenes/ui/star_rating.gd" id="5_star_rating"]
 
 [sub_resource type="Theme" id="Theme_hud"]
 default_font_size = 28
@@ -90,6 +91,22 @@ theme_override_constants/separation = 4
 layout_mode = 2
 mouse_filter = 2
 label_settings = SubResource("LabelSettings_money")
+
+[node name="RatingRow" type="HBoxContainer" parent="SafeArea/InfoPanel"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 12
+
+[node name="Stars" type="Control" parent="SafeArea/InfoPanel/RatingRow"]
+custom_minimum_size = Vector2(150, 30)
+layout_mode = 2
+mouse_filter = 2
+script = ExtResource("5_star_rating")
+
+[node name="RatingLabel" type="Label" parent="SafeArea/InfoPanel/RatingRow"]
+layout_mode = 2
+mouse_filter = 2
+label_settings = SubResource("LabelSettings_hint")
 
 [node name="StatusLabel" type="Label" parent="SafeArea/InfoPanel"]
 layout_mode = 2
