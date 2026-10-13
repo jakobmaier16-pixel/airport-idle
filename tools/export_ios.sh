@@ -6,10 +6,14 @@ cd "$(dirname "$0")/.."
 GODOT=/Applications/Godot.app/Contents/MacOS/Godot
 
 # Never ship a build that fails the walkthrough tests.
-if ! ./tools/run_tests.sh > /dev/null; then
-	echo "Tests failed: not exporting. Run tools/run_tests.sh to see why."
+TEST_LOG=$(mktemp -t airport_export_tests)
+if ! ./tools/run_tests.sh > "$TEST_LOG"; then
+	echo "Tests failed: not exporting."
+	grep -E "^FAIL|^  - |Engine errors|SCRIPT ERROR|^ERROR|did not finish" -A2 "$TEST_LOG"
+	rm -f "$TEST_LOG"
 	exit 1
 fi
+rm -f "$TEST_LOG"
 echo "All tests passed."
 
 COMMIT=$(git rev-parse --short HEAD)
