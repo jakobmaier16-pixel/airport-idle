@@ -114,7 +114,9 @@ func step(delta: float) -> void:
 	passenger_flow.tick(delta)
 	economy.tick(delta, _running_cost_per_minute - _salaries_per_minute, _salaries_per_minute)
 	reputation.tick(delta)
-	var operating := not passenger_flow.usable_gates().is_empty() or not passenger_flow.usable_cargo_terminals().is_empty()
+	# Airlines don't count flights as owed during the curfew (design doc §12.4).
+	var operating := (not passenger_flow.usable_gates().is_empty() or not passenger_flow.usable_cargo_terminals().is_empty()) \
+		and not curfew_at() and not curfew_at(FlightSchedule.ARRIVALS_START)  # slots are planned that far ahead
 	airlines.tick(delta, stars(), operating, progression.tier, has_cargo_terminal())
 	progression.check(stars())
 	_check_loan(delta)
@@ -351,6 +353,12 @@ func _next_to_sell() -> Building:
 			if buildings[j].type.role == role:
 				return buildings[i]
 	return null
+
+
+## True if no plane may land or take off `real_seconds_ahead` from now (night curfew, §12.4).
+## A Hub airport flies all night.
+func curfew_at(real_seconds_ahead: float = 0.0) -> bool:
+	return progression.tier < Progression.Tier.HUB and Clock.is_curfew_hour(clock.hour_at(real_seconds_ahead))
 
 
 ## The current season (design doc §12.2).

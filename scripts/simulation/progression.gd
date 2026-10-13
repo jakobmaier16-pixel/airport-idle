@@ -17,7 +17,7 @@ const REWARDS: Array[String] = [
 	"",
 	"New land: the whole map is yours.\nTransfer security: sell connecting flights.\nCargo: build a cargo terminal for freighters.\nNorvane Airways wants to fly here.",
 	"Long-haul flights: build a wide-body stand for big planes.\nOrynth Pacific wants to fly here.",
-	"Hub status: airlines route twice as many connections through you.\nCorvista Airlines wants to fly here.",
+	"Hub status: airlines route twice as many connections through you.\nNight flights: no more curfew.\nCorvista Airlines wants to fly here.",
 ]
 ## Regional airports own this part of the map (the middle columns, from the terminal area down to
 ## the runway at the south edge); from National on, all of it.

@@ -122,6 +122,11 @@ func upcoming() -> Array[Flight]:
 
 # A gate's turnaround slot: the airline owed the most flights gets it; with no demand it stays empty.
 func _plan_slot(gate: Building, departure_time: float) -> void:
+	# Night curfew (design doc §12.4): no landing or take-off in the quiet hours.
+	var now := Airport.passenger_flow.time
+	if Airport.curfew_at(departure_time - now) or Airport.curfew_at(departure_time - PLANE_ARRIVES - now):
+		_last_planned[gate] = departure_time
+		return
 	var stand := Airport.stand_behind(gate)
 	var cargo := gate.type.role == BuildingType.Role.CARGO_TERMINAL
 	var airline := Airport.airlines.next_airline(stand != null and stand.type.wide_body, cargo)

@@ -498,7 +498,7 @@ Placeholder numbers, tunable.
 - **Clock:** one real second is 15 game seconds (a 3-minute gate turnaround stands for ~45 minutes), so a day lasts 96 real minutes. A new airport opens at 06:00 on day 1. The HUD shows "Day 3 · 06:45" next to the top buttons; the clock is saved.
 - **Demand by hour:** passengers per flight follow the day: a morning rush (06–09, up to 130 %), a normal day, an evening rush (17–20), and a quiet night (00–04, 40 %). Flights keep their schedule at night (night curfews come later, possibly as a tier rule).
 - **Light:** the sun climbs and sets (warm low light in the morning and evening), nights are dim and blue but still readable. The sun keeps its compass direction, like the camera.
-- Seasons and weather: §12.2. Security incidents: §12.3.
+- Seasons and weather: §12.2. Security incidents: §12.3. Night curfews: §12.4.
 
 ### 12.2 Seasons and weather (first version)
 Placeholder numbers, tunable.
@@ -511,6 +511,11 @@ Placeholder numbers, tunable.
 - **Knock-on delays:** a plane can only arrive at a stand once the previous plane has left it, so one late flight can delay the next one at that gate.
 - **Weather delays don't count against the airport** (as in real punctuality statistics): the on-time rate and airline happiness only count delays the airport caused (holding for late passengers). Knock-on delays from weather count as weather.
 - The HUD shows the season and the weather next to the clock; a notice explains a storm or snow when it starts. Rain and snow fall around the camera, fog is visible fog, storms darken the sky with lightning.
+
+### 12.4 Night curfew (first version)
+- Until the airport is a **Hub**, no plane lands or takes off between **00:00 and 05:00** (noise rules, 20 real minutes per game day). Gate slots in those hours stay empty, and airlines don't count them as owed flights. Passengers already in the airport finish their journeys.
+- The clock shows "Curfew", and the departures board says when flights start again.
+- **Hub** status brings **night flights**: the curfew ends (§14.1).
 
 ### 12.3 Security incidents (first version)
 Placeholder numbers, tunable.
@@ -567,7 +572,7 @@ Decided 2026-10-13 (closes §19 Q3 and Q4 for now). Placeholder numbers, tunable
   | **Regional** | start | 48 columns of land in the middle of the map, from the north edge of the terminal area down to the runway; every basic building |
   | **National** | 1,000 passengers and 3 ★ | **new land** (the whole 64 × 64 map), **transfer security** (connections, §8.9), **cargo** (§10.3), and a major airline (Norvane Airways) makes an offer at once |
   | **International** | 6,000 passengers and 3½ ★ | **long-haul flights**: a wide-body stand and long-haul airlines with big planes (§10.2) |
-  | **Hub** | 25,000 passengers, 4 ★ and 600 transfers | **hub status**: airlines route twice as many connections through the airport, and a premium airline (Corvista Airlines) makes an offer |
+  | **Hub** | 25,000 passengers, 4 ★ and 600 transfers | **hub status**: airlines route twice as many connections through the airport, **night flights** (no curfew, §12.4), and a premium airline (Corvista Airlines) makes an offer |
 
 - Pace (balance check, 2026-10-13): a new one-gate airport with the starter airline serves ~900 passengers per hour and earns ~€100/min, so National comes after 30–60 minutes depending on how quickly the player adds a second airline and gate.
 - **First landing:** when a newly signed airline's first plane comes in, a short cutscene camera follows it down to the runway (8 s, a tap skips it, manager view only), with a notice. The starting airline doesn't get one.

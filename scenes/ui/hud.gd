@@ -149,6 +149,8 @@ func _process(delta: float) -> void:
 	_goal_panel.visible = not _goal_label.text.is_empty() and not Airport.goals.hidden and not _station_panel.visible \
 		and not airlines_panel.visible and not _stats_panel.visible and not _milestone_panel.visible
 	_clock_label.text = "%s · %s" % [Airport.clock.text(), Airport.weather.text(Airport.season())]
+	if Airport.curfew_at():
+		_clock_label.text += " · Curfew"
 	var offer_count := Airport.airlines.offers.size()
 	_airlines_button.text = "Airlines (%d)" % offer_count if offer_count > 0 else "Airlines"
 	if _notice_left > 0.0:

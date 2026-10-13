@@ -7,6 +7,9 @@ extends RefCounted
 const GAME_SECONDS_PER_SECOND: float = 15.0
 ## A new airport opens at this hour of its first day.
 const START_HOUR: float = 6.0
+## Night curfew (design doc §12.4): no flights from CURFEW_START to CURFEW_END (hours) until Hub.
+const CURFEW_START: float = 0.0
+const CURFEW_END: float = 5.0
 ## Passengers per flight compared to the daily average, for every hour 0..23 (morning and evening
 ## peaks, a quiet night). Between two hours the value is interpolated.
 const DEMAND_BY_HOUR: Array[float] = [
@@ -46,6 +49,10 @@ func text() -> String:
 static func demand_factor(at_hour: float) -> float:
 	var index := int(at_hour) % 24
 	return lerpf(DEMAND_BY_HOUR[index], DEMAND_BY_HOUR[(index + 1) % 24], at_hour - floorf(at_hour))
+
+
+static func is_curfew_hour(at_hour: float) -> bool:
+	return at_hour >= CURFEW_START and at_hour < CURFEW_END
 
 
 ## 1 at noon, 0 at night, smooth in between (for the lighting).

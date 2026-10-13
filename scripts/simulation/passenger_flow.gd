@@ -108,6 +108,8 @@ func departures_text(max_lines: int = 4) -> String:
 		Flight.Phase.DEPARTING: "Departed",
 	}
 	var lines: PackedStringArray = []
+	if schedule.flights.is_empty() and Airport.curfew_at():
+		lines.append("Night curfew: no flights until %02d:00" % int(Clock.CURFEW_END))
 	for flight in schedule.upcoming().slice(0, max_lines):
 		var seconds := maxi(ceili(flight.departs_at() - time), 0)
 		var status: String = phase_names[flight.phase]
