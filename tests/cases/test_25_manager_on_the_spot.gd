@@ -55,27 +55,27 @@ func test_panel_needs_the_manager_nearby() -> void:
 
 
 func test_presence_speeds_up_staff() -> void:
-	# A single, slow security lane with a long queue: throughput shows the service speed.
-	var served_with := func(manager_near: bool) -> int:
-		ShowcaseAirport.build(0.0)
-		var security := _building(BuildingType.Role.SECURITY)
-		while Airport.dismiss(security):
-			pass
-		var officer := Airport.hire(security)
-		officer.served[BuildingType.Role.SECURITY] = Employee.EXPERT_AFTER  # a constant speed
-		security.type.service_time *= 1.5  # slower than arrivals, but few enough miss their flight
-		var far := Airport.NOBODY_THERE
-		var near := Airport.grid.block_center(security.origin_cell, Vector2i(5, 3))
-		sim_seconds(120)  # a queue builds up
-		var before: int = officer.served[BuildingType.Role.SECURITY]
-		Airport.manager_position = near if manager_near else far
-		sim_seconds(900)
-		security.type.service_time /= 1.5
-		return officer.served[BuildingType.Role.SECURITY] - before
-	var without: int = served_with.call(false)
-	var with_manager: int = served_with.call(true)
-	check(without > 90, "a busy lane: %d served" % without)
-	check(with_manager > without * 1.05, "about 10 %% more with the manager there: %d vs %d" % [with_manager, without])
+	# The same passenger served twice with the same random numbers: once alone, once with the
+	# manager there. The service time must be exactly 10 % shorter (no luck involved).
+	ShowcaseAirport.build(0.0)
+	var flow := Airport.passenger_flow
+	var security := _building(BuildingType.Role.SECURITY)
+	var station := flow.station_for(security)
+	var service_time := func(manager_near: bool) -> float:
+		Airport.manager_position = Airport.grid.block_center(security.origin_cell, Vector2i(5, 3)) if manager_near else Airport.NOBODY_THERE
+		var passenger := Passenger.new()
+		passenger.position = Airport.grid.cell_to_world(Vector2i(32, 27))
+		station.queue.append(passenger)
+		flow._rng.seed = 42
+		flow._tick_station(station, Airport.SIM_STEP)
+		var slot := station.serving.find(passenger)
+		var seconds: float = station.service_left[slot]
+		station.serving[slot] = null
+		return seconds
+	var alone: float = service_time.call(false)
+	var with_manager: float = service_time.call(true)
+	check(alone > 0.0, "the passenger was served")
+	check(is_equal_approx(with_manager, alone * PassengerFlow.PRESENCE_TIME_FACTOR), "10 %% faster: %.3f vs %.3f s" % [with_manager, alone])
 
 
 func test_hint_shows_presence() -> void:
