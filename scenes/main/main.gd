@@ -153,6 +153,10 @@ func _on_weather_changed(kind: Weather.Kind) -> void:
 
 
 func _on_offer_arrived(offer: AirlineOffer) -> void:
+	if offer.is_renewal:
+		_hud.notify("%s's contract ends in 10 minutes. They offer to renew: %d flights/h at %s. Tap Airlines; without a renewal they leave." % [
+			offer.type.display_name, offer.flights_per_hour, Economy.format(offer.fee)])
+		return
 	_hud.notify("New offer: %s (%s) wants %d flights per hour. Tap Airlines to negotiate." % [
 		offer.type.display_name, offer.type.route, offer.flights_per_hour])
 

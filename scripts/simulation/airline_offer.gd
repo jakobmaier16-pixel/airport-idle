@@ -10,9 +10,14 @@ var fee: float
 var expires_in: float = Airlines.OFFER_LIFETIME
 ## A counter-offer after the player's terms were turned down: sign or decline, no more haggling.
 var is_counter: bool = false
+## A signed airline asking to renew its contract (design doc §10.4).
+var is_renewal: bool = false
+## The fee the airline thinks fair (the negotiation's reference); `fee` may change in a counter-offer.
+var base_fee: float
 
 
 func _init(airline_type: AirlineType, flights: int, fee_per_passenger: float) -> void:
 	type = airline_type
 	flights_per_hour = flights
 	fee = fee_per_passenger
+	base_fee = fee_per_passenger

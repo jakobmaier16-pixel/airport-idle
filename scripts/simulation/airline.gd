@@ -16,6 +16,9 @@ var happiness: float = Airlines.START_HAPPINESS
 var flown: int = 0
 var late: int = 0
 var refused: int = 0
+## Seconds until the contract ends (design doc §10.4), and whether the airline already asked to renew.
+var contract_left: float = Airlines.CONTRACT_SECONDS
+var renewal_offered: bool = false
 ## True once its first landing was celebrated (design doc §14).
 var first_landing_seen: bool = false
 ## True after the airline complained, until it is happy again (so it complains once).

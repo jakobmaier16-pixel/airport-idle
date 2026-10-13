@@ -32,6 +32,15 @@ const LATE_SCORE: float = 50.0
 const COMPLAIN_BELOW: float = 40.0
 const CALM_ABOVE: float = 50.0
 const LEAVE_BELOW: float = 25.0
+## Contracts (design doc §10.4): length, how early the airline asks to renew, and how its
+## happiness changes the terms it asks for.
+const CONTRACT_SECONDS: float = 5760.0
+const RENEWAL_NOTICE: float = 600.0
+const HAPPY_RENEWAL: float = 70.0
+const UNHAPPY_RENEWAL: float = 45.0
+const HAPPY_FEE_FACTOR: float = 1.1
+const UNHAPPY_FEE_FACTOR: float = 0.85
+const HAPPY_EXTRA_FLIGHTS: int = 2
 ## Limits of the terms the player can propose.
 const FEE_MIN: float = 4.0
 const FEE_MAX: float = 40.0
@@ -88,6 +97,7 @@ func tick(delta: float, stars: float, operating: bool, tier: int = 0, has_cargo_
 		offer.expires_in -= delta
 		if offer.expires_in <= 0.0:
 			offers.erase(offer)
+	_tick_contracts(delta)
 	for id in _cooldowns.keys():
 		_cooldowns[id] -= delta
 		if _cooldowns[id] <= 0.0:
@@ -155,7 +165,7 @@ func next_airline(wide_stand: bool = false, cargo_slot: bool = false) -> Airline
 ## How likely the airline agrees to `fee` and `flights` said in `tone`, 0..1.
 func chance(offer: AirlineOffer, fee: float, flights: int, tone: AirlineType.Tone, stars: float) -> float:
 	var type := offer.type
-	var result := BASE_CHANCE - (fee / type.expected_fee - 1.0) * CHANCE_PER_FEE_SHARE
+	var result := BASE_CHANCE - (fee / offer.base_fee - 1.0) * CHANCE_PER_FEE_SHARE
 	result -= (1.0 - float(flights) / offer.flights_per_hour) * CHANCE_PER_MISSING_FLIGHTS
 	result += maxf(stars - type.min_stars, 0.0) * CHANCE_PER_STAR
 	if tone == type.likes:
@@ -176,7 +186,7 @@ func propose(offer: AirlineOffer, fee: float, flights: int, tone: AirlineType.To
 		return Answer.ACCEPTED
 	if agree_chance >= COUNTER_MIN_CHANCE:
 		offer.is_counter = true
-		offer.fee = roundf((fee + offer.type.expected_fee) * 0.5)
+		offer.fee = roundf((fee + offer.base_fee) * 0.5)
 		offer.flights_per_hour = flights
 		return Answer.COUNTER
 	decline(offer)
@@ -191,9 +201,52 @@ func accept_counter(offer: AirlineOffer) -> Airline:
 
 
 ## Turns an offer down (or the airline walked away): no new offer from them for a while.
+## A turned-down renewal: the airline keeps flying until its contract ends, then leaves.
 func decline(offer: AirlineOffer) -> void:
 	offers.erase(offer)
-	_cooldowns[offer.type.id] = COOLDOWN
+	if not offer.is_renewal:
+		_cooldowns[offer.type.id] = COOLDOWN
+
+
+## The renewal offer of `airline`, or null.
+func renewal_of(airline: Airline) -> AirlineOffer:
+	for offer in offers:
+		if offer.is_renewal and offer.type == airline.type:
+			return offer
+	return null
+
+
+# Contracts run out (design doc §10.4): the airline asks to renew shortly before, on terms set by
+# its happiness, and leaves when the contract ends without a renewal.
+func _tick_contracts(delta: float) -> void:
+	for airline in signed.duplicate():
+		airline.contract_left -= delta
+		if airline.contract_left <= RENEWAL_NOTICE and not airline.renewal_offered:
+			airline.renewal_offered = true
+			var offer := renewal_terms(airline)
+			offer.expires_in = airline.contract_left
+			offers.append(offer)
+			offer_arrived.emit(offer)
+		if airline.contract_left <= 0.0:
+			var pending := renewal_of(airline)
+			if pending != null:
+				offers.erase(pending)
+			end_deal(airline)
+			airline_left.emit(airline)
+
+
+## What `airline` asks for to renew: more flights and a higher fee when happy, a discount when not.
+func renewal_terms(airline: Airline) -> AirlineOffer:
+	var flights := airline.flights_per_hour
+	var fee := airline.fee
+	if airline.happiness >= HAPPY_RENEWAL:
+		flights += HAPPY_EXTRA_FLIGHTS
+		fee = roundf(fee * HAPPY_FEE_FACTOR)
+	elif airline.happiness < UNHAPPY_RENEWAL:
+		fee = roundf(fee * UNHAPPY_FEE_FACTOR)
+	var offer := AirlineOffer.new(airline.type, flights, fee)
+	offer.is_renewal = true
+	return offer
 
 
 ## The player ends a deal.
@@ -235,12 +288,14 @@ func save_state() -> Dictionary:
 			"credit": airline.credit, "happiness": airline.happiness, "flown": airline.flown,
 			"refused": airline.refused, "complained": airline.complained, "late": airline.late,
 			"first_landing": airline.first_landing_seen,
+			"contract_left": airline.contract_left, "renewal_offered": airline.renewal_offered,
 		})
 	var saved_offers: Array[Dictionary] = []
 	for offer in offers:
 		saved_offers.append({
 			"id": String(offer.type.id), "flights": offer.flights_per_hour, "fee": offer.fee,
 			"expires_in": offer.expires_in, "counter": offer.is_counter,
+			"renewal": offer.is_renewal, "base_fee": offer.base_fee,
 		})
 	return {"signed": saved_signed, "offers": saved_offers, "next_offer_in": _next_offer_in, "cooldowns": _cooldowns}
 
@@ -263,6 +318,8 @@ func load_state(data: Dictionary) -> void:
 		airline.refused = int(entry.get("refused", 0))
 		airline.late = int(entry.get("late", 0))
 		airline.first_landing_seen = bool(entry.get("first_landing", airline.flown > 0))
+		airline.contract_left = float(entry.get("contract_left", CONTRACT_SECONDS))
+		airline.renewal_offered = bool(entry.get("renewal_offered", false))
 		airline.complained = bool(entry.get("complained", false))
 		signed.append(airline)
 	for entry: Dictionary in data.get("offers", []):
@@ -272,6 +329,8 @@ func load_state(data: Dictionary) -> void:
 		var offer := AirlineOffer.new(type, int(entry.get("flights", type.flights_min)), float(entry.get("fee", type.expected_fee)))
 		offer.expires_in = float(entry.get("expires_in", OFFER_LIFETIME))
 		offer.is_counter = bool(entry.get("counter", false))
+		offer.is_renewal = bool(entry.get("renewal", false))
+		offer.base_fee = float(entry.get("base_fee", offer.fee))
 		offers.append(offer)
 	_next_offer_in = float(data.get("next_offer_in", FIRST_OFFER_AFTER))
 	var cooldowns: Dictionary = data.get("cooldowns", {})
@@ -288,6 +347,14 @@ func sign_deal(type: AirlineType, flights: int, fee: float) -> Airline:
 
 func _sign(offer: AirlineOffer, fee: float, flights: int) -> Airline:
 	offers.erase(offer)
+	var current := find_signed(offer.type)
+	if offer.is_renewal and current != null:
+		# A renewal: the same airline, new terms and a new contract.
+		current.fee = fee
+		current.flights_per_hour = flights
+		current.contract_left = CONTRACT_SECONDS
+		current.renewal_offered = false
+		return current
 	return sign_deal(offer.type, flights, fee)
 
 

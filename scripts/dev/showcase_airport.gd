@@ -81,9 +81,12 @@ static func build(warm_up_seconds: float = 180.0) -> void:
 	airlines.sign_deal(Airlines.CATALOG.find(&"norvane"), 14, 20.0)
 	airlines.sign_deal(Airlines.CATALOG.find(&"orynth"), 10, 32.0)
 	airlines.sign_deal(Airlines.CATALOG.find(&"paqet"), 10, 20.0)
-	# These have flown here for a while: no first-landing cutscene for them.
+	# These have flown here for a while: no first-landing cutscene for them, and contracts that
+	# run out at different times (Zippa asks to renew in about 5 minutes, §10.4).
 	for airline in airlines.signed:
 		airline.first_landing_seen = true
+		airline.contract_left = Airlines.CONTRACT_SECONDS * (0.4 + 0.1 * airlines.signed.find(airline))
+	airlines.signed[1].contract_left = Airlines.RENEWAL_NOTICE + 300.0
 	airlines.offers.append(AirlineOffer.new(Airlines.CATALOG.find(&"sunkiss"), 10, 13.0))
 
 	# Staff for every counter and lane, with a mix of new and experienced employees (§9.1).

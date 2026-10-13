@@ -95,8 +95,9 @@ func negotiate(offer: AirlineOffer) -> void:
 	_negotiation_view.visible = true
 	_result_label.text = ""
 	var type := offer.type
-	_airline_label.text = "%s · %s · asks for %d flights/h at %s per passenger" % [
-		type.display_name, type.route, offer.flights_per_hour, Economy.format(offer.fee)]
+	_airline_label.text = "%s · %s · %s %d flights/h at %s per %s" % [
+		type.display_name, type.route, "wants to renew:" if offer.is_renewal else "asks for",
+		offer.flights_per_hour, Economy.format(offer.fee), "tonne" if type.cargo else "passenger"]
 	_pitch_label.text = "\"%s\"" % type.pitch
 	_update_negotiation()
 
@@ -139,15 +140,17 @@ func _update_list() -> void:
 		_rebuild_list()
 	for i in airlines.signed.size():
 		var airline := airlines.signed[i]
-		_row_labels[i].text = "%s · %s · %d flights/h · %s per passenger · happy %d %%" % [
-			airline.type.display_name, airline.type.route, airline.flights_per_hour,
-			Economy.format(airline.fee), roundi(airline.happiness)]
+		var minutes := ceili(airline.contract_left / 60.0)
+		_row_labels[i].text = "%s · %d/h · %s per %s · happy %d %% · contract %d:%02d h" % [
+			airline.type.display_name, airline.flights_per_hour,
+			Economy.format(airline.fee), "tonne" if airline.type.cargo else "passenger", roundi(airline.happiness),
+			minutes / 60, minutes % 60]
 		_row_labels[i].add_theme_color_override(&"font_color", UNHAPPY_COLOR if airline.happiness < Airlines.COMPLAIN_BELOW else Color.WHITE)
 	for i in airlines.offers.size():
 		var offer := airlines.offers[i]
 		var seconds := ceili(offer.expires_in)
-		_offer_buttons[i].text = "Offer: %s · %s · %d flights/h · %s%s · %d:%02d left ›" % [
-			offer.type.display_name, offer.type.route, offer.flights_per_hour, Economy.format(offer.fee),
+		_offer_buttons[i].text = "%s: %s · %s · %d flights/h · %s%s · %d:%02d left ›" % [
+			"Renewal" if offer.is_renewal else "Offer", offer.type.display_name, offer.type.route, offer.flights_per_hour, Economy.format(offer.fee),
 			" (counter-offer)" if offer.is_counter else "", seconds / 60, seconds % 60]
 
 

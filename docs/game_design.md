@@ -392,6 +392,14 @@ Placeholder numbers, tunable. All names are fictional.
 - Planes carry their airline's tail color; flight numbers use the airline code (e.g. ZP 214).
 
 
+### 10.4 Contract renewals (first version)
+Placeholder numbers, tunable.
+- Every deal (also the starting one) runs for **one game day** (96 real minutes). **Ten minutes before it ends**, the airline asks to renew; the renewal appears with the offers and is negotiated the same way (fee, flights, tone; the airline's own terms are the reference).
+- The terms follow the airline's **happiness** (§10.1): 70 % or more — 2 more flights per hour and a 10 % higher fee; 45–70 % — the same terms; below 45 % — 15 % lower fee.
+- A renewal keeps the airline's happiness and history and starts a new contract. Turned down or not answered in time, the airline keeps flying until the contract ends, then **leaves**.
+- The airlines panel shows each contract's remaining time.
+
+
 ### 10.2 Long-haul flights (first version)
 Placeholder numbers, tunable. Unlocked at **International** (§14.1).
 - **Wide-body stand** (Airside, 16 × 16 cells, €15,000 · €35/min): the only stand big enough for wide-body planes. Narrow-body planes can use it too, but a wide-body airline gets it first.
