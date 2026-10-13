@@ -474,7 +474,7 @@ Placeholder numbers, tunable.
 - **Clock:** one real second is 15 game seconds (a 3-minute gate turnaround stands for ~45 minutes), so a day lasts 96 real minutes. A new airport opens at 06:00 on day 1. The HUD shows "Day 3 · 06:45" next to the top buttons; the clock is saved.
 - **Demand by hour:** passengers per flight follow the day: a morning rush (06–09, up to 130 %), a normal day, an evening rush (17–20), and a quiet night (00–04, 40 %). Flights keep their schedule at night (night curfews come later, possibly as a tier rule).
 - **Light:** the sun climbs and sets (warm low light in the morning and evening), nights are dim and blue but still readable. The sun keeps its compass direction, like the camera.
-- Seasons and weather: §12.2. Security incidents: later.
+- Seasons and weather: §12.2. Security incidents: §12.3.
 
 ### 12.2 Seasons and weather (first version)
 Placeholder numbers, tunable.
@@ -487,6 +487,12 @@ Placeholder numbers, tunable.
 - **Knock-on delays:** a plane can only arrive at a stand once the previous plane has left it, so one late flight can delay the next one at that gate.
 - **Weather delays don't count against the airport** (as in real punctuality statistics): the on-time rate and airline happiness only count delays the airport caused (holding for late passengers). Knock-on delays from weather count as weather.
 - The HUD shows the season and the weather next to the clock; a notice explains a storm or snow when it starts. Rain and snow fall around the camera, fog is visible fog, storms darken the sky with lightning.
+
+### 12.3 Security incidents (first version)
+Placeholder numbers, tunable.
+- Every 12–20 real minutes an **unattended bag** is found at a random staffed check-in, security or transfer security. That station **closes for 90 seconds** while the police clear it: passengers being served finish, nobody new is served, the queue grows.
+- **Walk there:** while the manager stands at the station (§15.1), the clearing goes three times as fast.
+- A red hint with a countdown floats above the station, and a notice says where it is. A second checkpoint keeps passengers moving meanwhile (redundancy pays).
 
 ---
 

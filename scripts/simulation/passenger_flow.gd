@@ -576,7 +576,8 @@ func _tick_station(station: Station, delta: float) -> void:
 					var role := station.role()
 					working[i].served[role] = working[i].served.get(role, 0) + 1
 				_finish_service(station, served)
-		if station.serving[i] == null and not station.queue.is_empty() and i < working.size():
+		# An unattended bag (design doc §12.3): nobody new is served until it's cleared.
+		if station.serving[i] == null and not station.queue.is_empty() and i < working.size() and not station.building.is_closed():
 			var next: Passenger = station.queue.pop_front()
 			next.state = Passenger.State.IN_SERVICE
 			station.serving[i] = next

@@ -62,6 +62,7 @@ func _reset_world() -> void:
 	Airport.reset()
 	# No random weather in tests: it would make results depend on luck (design doc §12.2).
 	Airport.weather.automatic = false
+	Airport.incidents_automatic = false
 	TouchGestures._reset()
 	TouchGestures.pinch_cancels_drag = false
 	SaveGame.enabled = false

@@ -144,7 +144,8 @@ UI controls (buttons) consume their touches first, so taps on buttons never reac
   **Every new feature must be added to the showcase** (a test checks every building type is in it).
   The tests and screenshots use the same layout. The "Demo" button (debug builds) reloads it.
 - Tests run with `-- --no-save` and never touch the real save game. The runner turns random
-  weather off (`Airport.weather.automatic = false`); weather tests call `Airport.weather.start()`.
+  weather and incidents off (`Airport.weather.automatic`, `Airport.incidents_automatic`); their
+  tests start them with `Airport.weather.start()` / `Airport.start_incident()`.
 - Make small, focused commits with descriptive messages.
 - Do not commit the `.godot/` folder or export builds. **Do** commit the `*.uid` files next to
   scripts and shaders; Godot uses them to keep references stable.

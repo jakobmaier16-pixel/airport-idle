@@ -7,6 +7,8 @@ extends Node
 signal building_placed(building: Building)
 ## An upgrade started or finished (design doc §7.8).
 signal building_upgraded(building: Building)
+## An unattended bag closed `building` (design doc §12.3).
+signal incident_started(building: Building)
 ## The bank sold buildings to cover the debt (design doc §11.6). `sold` names them.
 signal restructured(sold: PackedStringArray)
 ## Someone was hired or dismissed at `building` (design doc §9.1).
@@ -108,6 +110,7 @@ func step(delta: float) -> void:
 	airlines.tick(delta, stars(), not passenger_flow.usable_gates().is_empty(), progression.tier)
 	progression.check(stars())
 	_check_loan(delta)
+	_tick_incidents(delta)
 	for employee in staff:
 		if employee.is_training():
 			employee.training_left -= delta
@@ -119,6 +122,40 @@ func step(delta: float) -> void:
 			building.upgrade_seconds_left -= delta
 			if building.upgrade_seconds_left <= 0.0:
 				_finish_upgrade(building)
+
+
+# --- Security incidents (design doc §12.3) ---
+
+## Seconds between incidents (real time), how long a station stays closed, and how much faster
+## the police clear it with the manager there.
+const INCIDENT_EVERY_MIN: float = 720.0
+const INCIDENT_EVERY_MAX: float = 1200.0
+const INCIDENT_SECONDS: float = 90.0
+const INCIDENT_MANAGER_SPEEDUP: float = 3.0
+
+## False in tests: no random incidents (tests call start_incident()). Not touched by reset().
+var incidents_automatic: bool = true
+var _next_incident_in: float = INCIDENT_EVERY_MIN
+
+
+## Closes `building` for INCIDENT_SECONDS: an unattended bag.
+func start_incident(building: Building) -> void:
+	building.closed_seconds = INCIDENT_SECONDS
+	incident_started.emit(building)
+
+
+func _tick_incidents(delta: float) -> void:
+	for building in buildings:
+		if building.is_closed():
+			var speed := INCIDENT_MANAGER_SPEEDUP if is_manager_near(building) else 1.0
+			building.closed_seconds = maxf(building.closed_seconds - delta * speed, 0.0)
+	_next_incident_in -= delta
+	if _next_incident_in > 0.0 or not incidents_automatic:
+		return
+	_next_incident_in = randf_range(INCIDENT_EVERY_MIN, INCIDENT_EVERY_MAX)
+	var candidates := buildings.filter(func(b: Building) -> bool: return needs_staff(b) and not staff_at(b).is_empty())
+	if not candidates.is_empty():
+		start_incident(candidates[randi() % candidates.size()])
 
 
 # --- Airport tiers (design doc §14.1) ---
@@ -615,6 +652,7 @@ func reset() -> void:
 	weather.reset()
 	land_changed.emit()
 	manager_position = NOBODY_THERE
+	_next_incident_in = INCIDENT_EVERY_MIN
 	_on_layout_changed()
 
 
@@ -629,6 +667,7 @@ func save_state() -> Dictionary:
 			"level": building.level,
 			"upgrade_left": building.upgrade_seconds_left,
 			"fast_track": building.fast_track,
+			"closed": building.closed_seconds,
 		})
 	var saved_staff: Array[Dictionary] = []
 	for employee in staff:
@@ -689,6 +728,7 @@ func load_state(data: Dictionary) -> int:
 		building.level = clampi(int(entry.get("level", 1)), 1, type.upgrades.size() + 1)
 		building.upgrade_seconds_left = float(entry.get("upgrade_left", 0.0)) if building.next_upgrade() != null else 0.0
 		building.fast_track = bool(entry.get("fast_track", false))
+		building.closed_seconds = float(entry.get("closed", 0.0))
 	_loading = false
 	if data.has("staff"):
 		for entry: Dictionary in data["staff"]:
