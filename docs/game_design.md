@@ -1,6 +1,6 @@
 # Game Design — Airport Manager (working title)
 
-> Status: Draft v0.19 · Last updated: 2026-10-12
+> Status: Draft v0.20 · Last updated: 2026-10-13
 > This document is the source of truth for *what* we are building. Code follows the design, not the other way round.
 > Decisions marked **(open)** are not final — see [Open Questions](#19-open-questions).
 
@@ -64,7 +64,7 @@ Inspirations: *Builderment*, *Idle Train Empire*, *Airplane Inc.*, *TheoTown*.
 **Moment to moment** the player:
 - builds, plans and rearranges the airport — **build view** (top-down), the only place where building happens
 - everything else happens in the **manager view** (fixed tilted follow camera):
-  - walks around the airport as the manager (what walking does in gameplay is still **(open)**)
+  - walks around the airport as the manager, managing stations on the spot (§15.1)
   - watches passengers move and spots problems
   - opens statistics to find bottlenecks (security? boarding? marketing?)
   - hires, assigns and develops staff, manages stations
@@ -198,7 +198,7 @@ This is the main strategic layer. Bad layouts cause:
 | Check-in | +1 counter (3 → 4) · €2,500 · +€10/min | +1 counter (4 → 5) · €4,000 · +€10/min |
 | Security | +1 lane (2 → 3) · €4,000 · +€15/min | Faster scanners (−25 % time per passenger) · €6,000 · +€10/min |
 
-- Gates and entrances have no upgrades yet. Whether the manager must walk to a station to manage it is still **(open)** (§19 Q9); for now any visible station can be tapped.
+- Gates and entrances have no upgrades yet. Managing a station (hire, dismiss, upgrade) happens **on the spot**: the manager must walk to it (§15.1).
 
 ---
 
@@ -319,6 +319,7 @@ Placeholder numbers, tunable.
 - The player **attracts airlines** and their flights. The player does **not** own planes.
 - All airlines are **fictional** (inspired by real types: flag carrier, low-cost, holiday charter, long-haul, cargo later).
 - **Negotiations** use **dialogue choices** plus **adjustable deal terms**: fees, slots, gates.
+  Decided 2026-10-13: airlines send **offer cards** (route type, flights per hour, fee per passenger). The player adjusts the terms with **sliders** and picks a **tone** (firm / friendly / flexible). The airline's chance to accept depends on the terms, the airport's reputation and how happy that airline is. Signed airlines complain, and finally leave, when the airport's performance drops. Details: §10.1.
 - Deals are **directly linked to the airport's real performance**: on-time rate, turnaround speed, passenger satisfaction, capacity. A well-run airport gets better deals.
 - **Routes matter**, as in reality:
   - Holiday routes bring families and seasonal peaks
@@ -344,10 +345,10 @@ Placeholder numbers, tunable.
 - Construction and demolition
 
 ### 11.3 Failure
-- **Bankruptcy is possible.** What exactly happens (game over, loan, restructuring) is **(open)**.
+- **Bankruptcy is possible, but there is no hard game over** (decided 2026-10-13). Below €0 the bank covers the gap with a **loan** that costs interest. If the debt grows past the credit limit, the bank **restructures** the airport: it sells buildings until the debt is covered and the airport's reputation drops. Details: §11.6.
 
 ### 11.4 Second currency
-- A second value like **reputation** is likely needed (e.g. to unlock better airlines or airport tiers). Design **(open)**.
+- **Reputation = a 1–5 star rating** (decided 2026-10-13), computed from **passenger satisfaction** (§8.10) and the **on-time rate** of departures. It is not spent: it unlocks better airlines and deals (§10) and, together with passenger numbers, the airport tiers (§14). Details: §11.7.
 
 
 ### 11.5 First economy (MVP, item 6)
@@ -417,7 +418,7 @@ A button switches between the two views.
 - **Build view:** top-down / bird's-eye. **All** building and layout planning happens here, and only here.
   - Drag with one finger to move, pinch to zoom; two fingers also move the view. While a tool uses one-finger drags (e.g. painting zones), only two fingers move the view. Zoom is limited so the game stays playable; the camera cannot leave the map.
   - When zoomed out, crowds are shown simplified (fewer figures, simple shapes). See §18.
-- What walking as the manager does in gameplay: **(open)**.
+- What walking as the manager does in gameplay: decided, see §15.1.
 
 ### Controls (manager view, landscape)
 - **Left half of the screen:** one finger shows a floating joystick under the thumb to walk.
@@ -483,15 +484,15 @@ After that, features grow with play time and milestones: shops, staff, passenger
 ### Progression
 3. What are the airport tiers called, and what unlocks each one?
 4. Which specific special reward goes with which milestone?
-5. How does the second currency (reputation?) work and what does it unlock?
+5. ~~How does the second currency (reputation?) work and what does it unlock?~~ Decided: star rating, §11.7.
 
 ### Systems
 6. Staff upgrades: training, promotion, pay, specialization — which, and how?
-7. Bankruptcy: game over, loan, or restructuring?
-8. Negotiations: how do dialogue choices and deal terms interact in detail?
+7. ~~Bankruptcy: game over, loan, or restructuring?~~ Decided: loan, then restructuring, §11.6.
+8. ~~Negotiations: how do dialogue choices and deal terms interact in detail?~~ Decided: offer cards + sliders + tone, §10.1.
 
 ### Player & feel
-9. What does walking around as the manager actually do in gameplay?
+9. ~~What does walking around as the manager actually do in gameplay?~~ Decided: manage stations on the spot, §15.1.
 10. Who is the target player (casual vs. strategy fan)? This affects difficulty and UI depth.
 11. Working title / final game name.
 
