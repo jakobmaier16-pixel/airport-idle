@@ -51,6 +51,8 @@ var economy: Economy = Economy.new()
 ## Signed airlines and their offers (design doc §10.1). Kept for the whole game (reset, not
 ## replaced), so the HUD's signal connections stay valid.
 var airlines: Airlines = Airlines.new()
+## Time of day (design doc §12.1). Reset, not replaced.
+var clock: Clock = Clock.new()
 ## "Getting started" goals (design doc §6.1).
 var goals: Goals = Goals.new()
 ## Airport tiers and lifetime passenger counts (design doc §14.1). Reset, not replaced.
@@ -94,6 +96,7 @@ func _process(delta: float) -> void:
 
 ## Advances the whole simulation by one step: passengers, flights and money.
 func step(delta: float) -> void:
+	clock.tick(delta)
 	passenger_flow.tick(delta)
 	economy.tick(delta, _running_cost_per_minute)
 	reputation.tick(delta)
@@ -593,6 +596,7 @@ func reset() -> void:
 	airlines.reset()
 	progression.reset()
 	goals.hidden = false
+	clock.game_seconds = Clock.START_HOUR * 3600.0
 	land_changed.emit()
 	manager_position = NOBODY_THERE
 	_on_layout_changed()
@@ -632,6 +636,7 @@ func save_state() -> Dictionary:
 		"airlines": airlines.save_state(),
 		"progression": progression.save_state(),
 		"goals_hidden": goals.hidden,
+		"clock": clock.game_seconds,
 		"buildings": saved_buildings,
 	}
 
@@ -648,6 +653,7 @@ func load_state(data: Dictionary) -> int:
 		grid.set_walkway_data(Marshalls.base64_to_raw(data.get("walkways", "")))
 	progression.load_state(data.get("progression", {}))
 	goals.hidden = bool(data.get("goals_hidden", false))
+	clock.game_seconds = float(data.get("clock", Clock.START_HOUR * 3600.0))
 	land_changed.emit()
 	var skipped := 0
 	_loading = true

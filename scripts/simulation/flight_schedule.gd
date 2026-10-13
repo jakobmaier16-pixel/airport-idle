@@ -118,6 +118,8 @@ func _schedule(gate: Building, departure_time: float, airline: Airline = null) -
 	flight.wide_body = airline != null and airline.type.wide_body
 	var size_factor := WIDE_BODY_FACTOR if flight.wide_body else 1.0
 	flight.seats = roundi(SEATS * size_factor)
+	# Busy mornings and evenings, quiet nights (design doc §12.1).
+	size_factor *= Clock.demand_factor(Airport.clock.hour_at(departure_time - Airport.passenger_flow.time))
 	flight.booked = roundi(_passenger_count() * size_factor)
 	flight.departure_time = departure_time
 	# The airline's route type sets the passenger mix (design doc §10.1); random without one.

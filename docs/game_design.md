@@ -469,6 +469,13 @@ All of these are wanted. They will be added in phases, not all at once:
 - Security incidents
 - Seasons (holiday peaks, quiet months)
 
+### 12.1 Time of day (first version)
+Placeholder numbers, tunable.
+- **Clock:** one real second is 15 game seconds (a 3-minute gate turnaround stands for ~45 minutes), so a day lasts 96 real minutes. A new airport opens at 06:00 on day 1. The HUD shows "Day 3 · 06:45" next to the top buttons; the clock is saved.
+- **Demand by hour:** passengers per flight follow the day: a morning rush (06–09, up to 130 %), a normal day, an evening rush (17–20), and a quiet night (00–04, 40 %). Flights keep their schedule at night (night curfews come later, possibly as a tier rule).
+- **Light:** the sun climbs and sets (warm low light in the morning and evening), nights are dim and blue but still readable. The sun keeps its compass direction, like the camera.
+- Seasons, weather and incidents: later.
+
 ---
 
 ## 13. Statistics & Management UI

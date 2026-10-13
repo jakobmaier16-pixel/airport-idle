@@ -77,6 +77,8 @@ static func build(warm_up_seconds: float = 180.0) -> void:
 
 	# The showcase is a test fixture: start with fresh money, as if it had been there all along.
 	Airport.economy = Economy.new()
+	# The morning rush has just started when the player looks (after the warm-up: about 08:00).
+	Airport.clock.game_seconds = 7.25 * 3600.0
 	for i in int(warm_up_seconds / Airport.SIM_STEP):
 		Airport.step(Airport.SIM_STEP)
 

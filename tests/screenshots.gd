@@ -15,6 +15,13 @@ func _ready() -> void:
 	await _shot("manager_view")
 	manager_camera().distance = manager_camera().max_distance
 	await _shot("manager_view_zoomed_out")
+	# Night and evening light (design doc §12.1); back to the morning afterwards.
+	var morning := Airport.clock.game_seconds
+	Airport.clock.game_seconds = 23.0 * 3600.0
+	await _shot("night")
+	Airport.clock.game_seconds = 19.5 * 3600.0
+	await _shot("evening")
+	Airport.clock.game_seconds = morning
 
 	# South of gate 1's stand, looking across the plane to the gate, while it boards (first departure at 210 s, boarding from 120 s).
 	sim_seconds(60)
