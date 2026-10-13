@@ -72,8 +72,10 @@ var sim_alpha: float = 0.0
 var _sim_time: float = 0.0
 # While loading a save, layout_changed is sent once at the end instead of for every building.
 var _loading: bool = false
-# Running costs of everything built, in euros per minute (recalculated when the layout changes).
+# Running costs of everything built plus salaries, in euros per minute (recalculated when the
+# layout or the staff changes), and the salaries alone.
 var _running_cost_per_minute: float = 0.0
+var _salaries_per_minute: float = 0.0
 
 # Cells whose zone a placed building depends on (cell -> required Zone). They can't be repainted.
 var _zone_locks: Dictionary[Vector2i, int] = {}
@@ -101,7 +103,7 @@ func step(delta: float) -> void:
 	clock.tick(delta)
 	weather.tick(delta, season())
 	passenger_flow.tick(delta)
-	economy.tick(delta, _running_cost_per_minute)
+	economy.tick(delta, _running_cost_per_minute - _salaries_per_minute, _salaries_per_minute)
 	reputation.tick(delta)
 	airlines.tick(delta, stars(), not passenger_flow.usable_gates().is_empty(), progression.tier)
 	progression.check(stars())
@@ -740,8 +742,10 @@ func _update_running_cost() -> void:
 	var cost := 0.0
 	for building in buildings:
 		cost += building.running_cost_per_minute()
+	_salaries_per_minute = 0.0
 	for employee in staff:
-		cost += employee.salary_per_minute
+		_salaries_per_minute += employee.salary_per_minute
+	cost += _salaries_per_minute
 	var walkway_cells := 0
 	for value in grid.get_walkway_data():
 		walkway_cells += value

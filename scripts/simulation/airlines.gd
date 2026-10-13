@@ -201,6 +201,8 @@ func record_flight(airline: Airline, late: bool, missed_share: float) -> void:
 	if airline == null or not signed.has(airline):
 		return
 	airline.flown += 1
+	if late:
+		airline.late += 1
 	_rate(airline, (LATE_SCORE if late else 100.0) - missed_share * 100.0)
 
 
@@ -225,7 +227,7 @@ func save_state() -> Dictionary:
 		saved_signed.append({
 			"id": String(airline.type.id), "flights": airline.flights_per_hour, "fee": airline.fee,
 			"credit": airline.credit, "happiness": airline.happiness, "flown": airline.flown,
-			"refused": airline.refused, "complained": airline.complained,
+			"refused": airline.refused, "complained": airline.complained, "late": airline.late,
 		})
 	var saved_offers: Array[Dictionary] = []
 	for offer in offers:
@@ -252,6 +254,7 @@ func load_state(data: Dictionary) -> void:
 		airline.happiness = float(entry.get("happiness", START_HAPPINESS))
 		airline.flown = int(entry.get("flown", 0))
 		airline.refused = int(entry.get("refused", 0))
+		airline.late = int(entry.get("late", 0))
 		airline.complained = bool(entry.get("complained", false))
 		signed.append(airline)
 	for entry: Dictionary in data.get("offers", []):

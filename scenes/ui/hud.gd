@@ -44,6 +44,9 @@ var _build_view_open: bool = false
 var _building_types: Array[BuildingType] = []
 var _open_category: String = ""
 var _stats_refresh_in: float = 0.0
+## Statistics tabs (design doc §13.2).
+enum StatsTab { STATIONS, MONEY, AIRLINES }
+var stats_tab: StatsTab = StatsTab.STATIONS
 ## The building shown in the station panel, or null.
 var shown_station: Building = null
 var _tool: BuildMode.Tool = BuildMode.Tool.NONE
@@ -128,6 +131,8 @@ func _ready() -> void:
 	$SafeArea/StationPanel/Content/CloseButton.pressed.connect(hide_station)
 	_stats_button.pressed.connect(func() -> void: hide_stats() if _stats_panel.visible else show_stats())
 	$SafeArea/StatsPanel/Content/CloseButton.pressed.connect(hide_stats)
+	for tab: StatsTab in [StatsTab.STATIONS, StatsTab.MONEY, StatsTab.AIRLINES]:
+		_tab_button(tab).pressed.connect(show_stats_tab.bind(tab))
 	$SafeArea/MilestonePanel/Content/OkButton.pressed.connect(func() -> void: _milestone_panel.visible = false)
 	$SafeArea/GoalPanel/Row/HideButton.pressed.connect(func() -> void: Airport.goals.hidden = true)
 	_airlines_button.pressed.connect(func() -> void: hide_airlines() if airlines_panel.visible else show_airlines())
@@ -181,6 +186,18 @@ func show_stats() -> void:
 	hide_airlines()
 	_stats_panel.visible = true
 	_update_stats_panel()
+
+
+## Switches the statistics panel to `tab`.
+func show_stats_tab(tab: StatsTab) -> void:
+	stats_tab = tab
+	for other: StatsTab in [StatsTab.STATIONS, StatsTab.MONEY, StatsTab.AIRLINES]:
+		_tab_button(other).button_pressed = other == tab
+	_update_stats_panel()
+
+
+func _tab_button(tab: StatsTab) -> Button:
+	return get_node("SafeArea/StatsPanel/Content/Tabs/" + ["StationsTab", "MoneyTab", "AirlinesTab"][tab]) as Button
 
 
 func hide_stats() -> void:
@@ -354,7 +371,80 @@ func _update_stats_panel() -> void:
 	var flow := Airport.passenger_flow
 	var bottleneck := flow.bottleneck()
 	for child in _stats_table.get_children():
+		_stats_table.remove_child(child)
 		child.queue_free()
+	match stats_tab:
+		StatsTab.MONEY:
+			_fill_money_table()
+		StatsTab.AIRLINES:
+			_fill_airlines_table()
+		_:
+			_fill_stations_table(bottleneck)
+	var counts := flow.count_by_type()
+	var parts: PackedStringArray = []
+	for type_name in ["Families", "Low-cost", "Business"]:
+		parts.append("%d %s" % [counts.get(type_name, 0), type_name])
+	_types_label.text = "In the airport: " + "  ·  ".join(parts) \
+		+ "     Transfers: %d now  ·  %d connected" % [flow.transferring_count(), flow.transferred_count]
+	_satisfaction_label.text = satisfaction_text(flow.satisfaction)
+	_progress_label.text = Airport.progression.progress_text(Airport.stars())
+	_bottleneck_label.visible = stats_tab == StatsTab.STATIONS
+	if bottleneck != null:
+		_bottleneck_label.text = "Bottleneck: %s · avg wait %d s" % [
+			flow.station_label(bottleneck.building), roundi(bottleneck.average_wait(flow.time))]
+	else:
+		_bottleneck_label.text = "No bottleneck: every queue moves quickly."
+
+
+# Income and costs by source over the last five minutes (design doc §13.2).
+func _fill_money_table() -> void:
+	_stats_table.columns = 3
+	var heading := Color(0.75, 0.78, 0.82)
+	var economy := Airport.economy
+	for text in ["Income", "Last 5 min", "Per minute"]:
+		_add_stats_cell(text, heading)
+	var income := 0.0
+	for source in Economy.INCOME_SOURCES:
+		var amount := economy.source_total(source)
+		income += amount
+		_add_money_row(source, amount, Color.WHITE)
+	_add_money_row("Total income", income, Color(0.6, 1.0, 0.65))
+	for text in ["Costs", "", ""]:
+		_add_stats_cell(text, heading)
+	var costs := 0.0
+	for source in Economy.COST_SOURCES:
+		var amount := economy.source_total(source)
+		costs += amount
+		_add_money_row(source, -amount, Color.WHITE)
+	_add_money_row("Total costs", -costs, DEBT_COLOR)
+	_add_money_row("Profit", income - costs, BOTTLENECK_COLOR)
+
+
+func _add_money_row(label: String, amount: float, color: Color) -> void:
+	_add_stats_cell(label, color)
+	_add_stats_cell(Economy.format(amount), color)
+	_add_stats_cell(Economy.format(amount / (Economy.SOURCE_WINDOW_SECONDS / 60.0)), color)
+
+
+# On-time performance and happiness per airline (design doc §13.2).
+func _fill_airlines_table() -> void:
+	_stats_table.columns = 6
+	for heading in ["Airline", "Flights/h", "Flown", "On time", "Happy", "Fee"]:
+		_add_stats_cell(heading, Color(0.75, 0.78, 0.82))
+	for airline in Airport.airlines.signed:
+		var color := DEBT_COLOR if airline.happiness < Airlines.COMPLAIN_BELOW else Color.WHITE
+		_add_stats_cell(airline.type.display_name, color)
+		_add_stats_cell(str(airline.flights_per_hour), color)
+		_add_stats_cell(str(airline.flown), color)
+		var on_time := "–" if airline.flown == 0 else "%d %%" % roundi(100.0 * (airline.flown - airline.late) / airline.flown)
+		_add_stats_cell(on_time, color)
+		_add_stats_cell("%d %%" % roundi(airline.happiness), color)
+		_add_stats_cell(Economy.format(airline.fee), color)
+
+
+func _fill_stations_table(bottleneck: Station) -> void:
+	var flow := Airport.passenger_flow
+	_stats_table.columns = 5
 	for heading in ["Station", "Queue now", "Longest", "Avg. wait", "Busy"]:
 		_add_stats_cell(heading, Color(0.75, 0.78, 0.82))
 	for station in flow.stations():
@@ -388,19 +478,6 @@ func _update_stats_panel() -> void:
 		_add_stats_cell(str(station.longest_queue()), color)
 		_add_stats_cell("–" if wait < 0.0 else "%d s" % roundi(wait), color)
 		_add_stats_cell("%d %%" % roundi(station.busy_share() * 100.0), color)
-	var counts := flow.count_by_type()
-	var parts: PackedStringArray = []
-	for type_name in ["Families", "Low-cost", "Business"]:
-		parts.append("%d %s" % [counts.get(type_name, 0), type_name])
-	_types_label.text = "In the airport: " + "  ·  ".join(parts) \
-		+ "     Transfers: %d now  ·  %d connected" % [flow.transferring_count(), flow.transferred_count]
-	_satisfaction_label.text = satisfaction_text(flow.satisfaction)
-	_progress_label.text = Airport.progression.progress_text(Airport.stars())
-	if bottleneck != null:
-		_bottleneck_label.text = "Bottleneck: %s · avg wait %d s" % [
-			flow.station_label(bottleneck.building), roundi(bottleneck.average_wait(flow.time))]
-	else:
-		_bottleneck_label.text = "No bottleneck: every queue moves quickly."
 
 
 ## "Satisfaction: 78 %  ·  Families 82 % …" plus the main complaint (design doc §8.10).

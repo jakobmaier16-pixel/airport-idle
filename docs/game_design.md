@@ -508,6 +508,12 @@ This is a core tool, not an extra: the player's thinking happens here.
 - **Bottleneck finder:** the station with the longest average wait is highlighted ("Bottleneck: Security · avg wait 41 s"), so the player sees where an upgrade pays off.
 - Updated twice per second; the simulation records the numbers as data at every station.
 
+### 13.2 Statistics tabs (first version)
+- The statistics panel has three tabs: **Stations** (§13.1), **Money** and **Airlines**. Below them: passengers by type, satisfaction and main complaint (§8.10), and the progress to the next tier (§14.1).
+- **Money:** income by source (airline fees, arrival fees, shops & cafés, lounge, parking, fast track) and costs by source (buildings & walkways, salaries, loan interest) over the last 5 minutes and per minute, with totals and the profit. Construction and refunds are one-offs and not listed.
+- **Airlines:** per signed airline: flights per hour, flights flown, on-time share (only delays the airport caused), happiness and fee.
+- The table scrolls when it is longer than the screen.
+
 ---
 
 ## 14. Progression & Milestones

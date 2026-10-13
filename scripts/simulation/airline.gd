@@ -11,8 +11,10 @@ var fee: float
 var credit: float = 1.0
 ## How happy the airline is with the airport, 0..100.
 var happiness: float = Airlines.START_HAPPINESS
-## Flights flown and flights the airport had no gate slot for.
+## Flights flown (and how many of them the airport made late), and flights the airport had no
+## gate slot for.
 var flown: int = 0
+var late: int = 0
 var refused: int = 0
 ## True after the airline complained, until it is happy again (so it complains once).
 var complained: bool = false

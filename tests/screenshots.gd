@@ -51,6 +51,11 @@ func _ready() -> void:
 
 	hud().show_stats()
 	await _shot("stats_panel")
+	hud().show_stats_tab(Hud.StatsTab.MONEY)
+	await _shot("stats_money")
+	hud().show_stats_tab(Hud.StatsTab.AIRLINES)
+	await _shot("stats_airlines")
+	hud().show_stats_tab(Hud.StatsTab.STATIONS)
 	hud().hide_stats()
 
 	hud().show_airlines()

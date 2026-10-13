@@ -501,10 +501,10 @@ func _arrive(passenger: Passenger) -> void:
 		Airport.progression.passengers += 1
 		if passenger.target != null and _stations.has(passenger.target):
 			# Back from their trip: they pay for parking on the way out (design doc §11.8).
-			Airport.economy.earn(PARKING_FEE)
+			Airport.economy.earn(PARKING_FEE, Economy.PARKING)
 			_stations[passenger.target].record_income(time, PARKING_FEE)
 		_finish_journey(passenger)
-		Airport.economy.earn(Economy.ARRIVAL_FEE)
+		Airport.economy.earn(Economy.ARRIVAL_FEE, Economy.ARRIVAL_FEES)
 		return
 	var station := _stations[passenger.target]
 	if station.role() == Role.GATE:
@@ -533,7 +533,7 @@ func _arrive(passenger: Passenger) -> void:
 			while spot < station.queue.size() and _is_business(station.queue[spot]):
 				spot += 1
 			station.queue.insert(spot, passenger)
-			Airport.economy.earn(FAST_TRACK_FEE)
+			Airport.economy.earn(FAST_TRACK_FEE, Economy.FAST_TRACK)
 			station.record_income(time, FAST_TRACK_FEE)
 		else:
 			station.queue.append(passenger)
@@ -669,7 +669,7 @@ func _tick_shop(station: Station, delta: float) -> void:
 		var income := _rng.randf_range(type.spend_min, type.spend_max) * spend_factor * mood_factor * Economy.CONCESSION_SHARE
 		if type.airport_run:
 			income = type.spend_min  # a fixed price, all of it for the airport
-		Airport.economy.earn(income)
+		Airport.economy.earn(income, Economy.LOUNGE if type.airport_run else Economy.SHOPS)
 		station.record_income(time, income)
 		# Out of the front door and on to the gate.
 		if not station.entry_cells.is_empty():
