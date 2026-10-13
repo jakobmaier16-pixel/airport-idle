@@ -25,7 +25,8 @@ var on_time_rate: float = ON_TIME_START
 ## Departures counted so far, and how many of them were late.
 var departures: int = 0
 var late_departures: int = 0
-## Stars currently taken off (after a restructuring), fading to 0.
+## Stars currently taken off (after a restructuring or an unhappy VIP), fading to 0. Negative
+## after a happy VIP visit: a bonus.
 var penalty: float = 0.0
 
 
@@ -40,13 +41,15 @@ func record_departure(delay: float) -> void:
 func tick(delta: float) -> void:
 	if penalty > 0.0:
 		penalty = maxf(penalty - delta / PENALTY_SECONDS * 2.0, 0.0)
+	elif penalty < 0.0:
+		penalty = minf(penalty + delta / PENALTY_SECONDS * 2.0, 0.0)
 
 
 ## Star rating from 1.0 to 5.0 (continuous), given the current satisfaction in percent.
 func stars(satisfaction_percent: float) -> float:
 	var score := SATISFACTION_WEIGHT * satisfaction_percent / 100.0 + (1.0 - SATISFACTION_WEIGHT) * on_time_rate
 	var rating := 1.0 + 4.0 * clampf((score - ONE_STAR_SCORE) / (FIVE_STAR_SCORE - ONE_STAR_SCORE), 0.0, 1.0)
-	return maxf(rating - penalty, 1.0)
+	return clampf(rating - penalty, 1.0, 5.0)
 
 
 ## How many passengers fly compared to normal, for a star rating.

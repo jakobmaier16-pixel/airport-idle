@@ -22,6 +22,8 @@ var type: PassengerType = null
 var is_arriving: bool = false
 ## Transfer passengers (design doc §8.9) came off an inbound plane; `flight` is their connection.
 var is_transfer: bool = false
+## A VIP on a state visit (design doc §14.2): the airport wants them happy.
+var is_vip: bool = false
 ## Arriving: travels by car and leaves through a car park, if there is one (design doc §11.8).
 var by_car: bool = false
 ## Arriving: whether they wait for a checked bag, and when it comes off the belt.

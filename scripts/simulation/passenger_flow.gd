@@ -72,6 +72,8 @@ var transferred_count: int = 0
 var transfers_possible: bool = false
 ## Tests only: if 0 or more, replaces every route's transfer share.
 var transfer_share_override: float = -1.0
+## A VIP's journey ended (design doc §14.2): `happy` if their mood was good enough.
+signal vip_finished(happy: bool, mood: float)
 ## How happy passengers leave the airport (design doc §8.10).
 var satisfaction: Satisfaction = Satisfaction.new()
 ## What is missing for a complete route, or "" if passengers can flow.
@@ -244,6 +246,11 @@ func spawn_passenger(flight: Flight, type: PassengerType) -> bool:
 	var passenger := Passenger.new()
 	passenger.flight = flight
 	passenger.type = type
+	if flight.vip_pending:
+		# The VIP travels business (design doc §14.2).
+		flight.vip_pending = false
+		passenger.is_vip = true
+		passenger.type = FlightSchedule.BUSINESS
 	passenger.offset = Vector3(_rng.randf_range(-MAX_OFFSET, MAX_OFFSET), 0.0, _rng.randf_range(-MAX_OFFSET, MAX_OFFSET))
 	passenger.color_index = _rng.randi() % COLOR_COUNT
 	passenger.position = _cell_point(cells[_rng.randi() % cells.size()], passenger)
@@ -797,7 +804,13 @@ func _lose_mood(passenger: Passenger, reason: String, points: float) -> void:
 	satisfaction.complain(reason, points)
 
 
+## A VIP leaves happy with at least this mood.
+const VIP_HAPPY_MOOD: float = 80.0
+
+
 func _finish_journey(passenger: Passenger, weight: int = 1) -> void:
+	if passenger.is_vip:
+		vip_finished.emit(passenger.mood >= VIP_HAPPY_MOOD, passenger.mood)
 	satisfaction.record(passenger.type.display_name if passenger.type != null else "Other", passenger.mood, weight)
 
 

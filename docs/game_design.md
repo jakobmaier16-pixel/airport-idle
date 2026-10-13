@@ -575,6 +575,13 @@ Decided 2026-10-13 (closes §19 Q3 and Q4 for now). Placeholder numbers, tunable
 - Land the airport doesn't own yet is shaded darker; nothing can be built or painted there ("Unlocked at National airport"). Buildings already standing there (old saves) stay.
 - The tier is shown next to the star rating; the statistics panel shows the progress towards the next tier.
 
+
+### 14.2 VIP visits (first version)
+Placeholder numbers, tunable. From **National** on.
+- Every 20–30 minutes a **VIP** (a minister, a state visit) is announced on a departure at least 4 minutes ahead: a notice names the flight. The VIP is the first of its passengers to arrive, travels business and is drawn in **gold**.
+- If the VIP's mood is still **80 % or more** when they board, the airport earns **€5,000** and **half a star** for a while (fading over 10 minutes). Below that (long queues, long walks, a missed flight), the press notices: **half a star less** for a while.
+- Fast track, a lounge and short queues are what keeps a VIP happy.
+
 ---
 
 ## 15. Camera, Look & Feel

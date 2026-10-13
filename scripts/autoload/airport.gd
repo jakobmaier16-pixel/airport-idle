@@ -7,6 +7,9 @@ extends Node
 signal building_placed(building: Building)
 ## An upgrade started or finished (design doc §7.8).
 signal building_upgraded(building: Building)
+## A VIP was announced on `flight` (design doc §14.2), and how their visit went.
+signal vip_announced(flight: Flight)
+signal vip_result(happy: bool, mood: float)
 ## An unattended bag closed `building` (design doc §12.3).
 signal incident_started(building: Building)
 ## The bank sold buildings to cover the debt (design doc §11.6). `sold` names them.
@@ -88,6 +91,7 @@ var _zone_locks: Dictionary[Vector2i, int] = {}
 
 func _ready() -> void:
 	layout_changed.connect(_on_layout_changed)
+	passenger_flow.vip_finished.connect(_on_vip_finished)
 	progression.tier_reached.connect(_on_tier_reached)
 	_on_layout_changed()
 
@@ -115,6 +119,7 @@ func step(delta: float) -> void:
 	progression.check(stars())
 	_check_loan(delta)
 	_tick_incidents(delta)
+	_tick_vip(delta)
 	for employee in staff:
 		if employee.is_training():
 			employee.training_left -= delta
@@ -160,6 +165,50 @@ func _tick_incidents(delta: float) -> void:
 	var candidates := buildings.filter(func(b: Building) -> bool: return needs_staff(b) and not staff_at(b).is_empty())
 	if not candidates.is_empty():
 		start_incident(candidates[randi() % candidates.size()])
+
+
+# --- VIP visits (design doc §14.2) ---
+
+const VIP_EVERY_MIN: float = 1200.0
+const VIP_EVERY_MAX: float = 1800.0
+## A VIP is announced on a flight at least this far ahead (seconds), so the player can prepare.
+const VIP_NOTICE: float = 240.0
+const VIP_REWARD: float = 5000.0
+## Stars added (happy) or taken off (unhappy) for a while.
+const VIP_STARS: float = 0.5
+
+var _next_vip_in: float = VIP_EVERY_MIN
+
+
+## Announces a VIP on the next suitable departure. Returns the flight, or null if there is none.
+func announce_vip() -> Flight:
+	var candidates := passenger_flow.schedule.flights.filter(func(f: Flight) -> bool:
+		return not f.cargo and f.phase == Flight.Phase.SCHEDULED and f.spawned == 0 \
+			and f.departure_time - passenger_flow.time >= VIP_NOTICE)
+	if candidates.is_empty():
+		return null
+	var flight: Flight = candidates[0]
+	flight.vip_pending = true
+	vip_announced.emit(flight)
+	return flight
+
+
+func _tick_vip(delta: float) -> void:
+	if progression.tier < Progression.Tier.NATIONAL or not incidents_automatic:
+		return
+	_next_vip_in -= delta
+	if _next_vip_in <= 0.0:
+		_next_vip_in = randf_range(VIP_EVERY_MIN, VIP_EVERY_MAX)
+		announce_vip()
+
+
+func _on_vip_finished(happy: bool, mood: float) -> void:
+	if happy:
+		economy.bonus(VIP_REWARD)
+		reputation.penalty -= VIP_STARS
+	else:
+		reputation.penalty += VIP_STARS
+	vip_result.emit(happy, mood)
 
 
 # --- Airport tiers (design doc §14.1) ---
@@ -691,6 +740,7 @@ func reset(with_runway: bool = true) -> void:
 	_zone_locks.clear()
 	staff.clear()
 	passenger_flow = PassengerFlow.new()
+	passenger_flow.vip_finished.connect(_on_vip_finished)
 	economy = Economy.new()
 	reputation = Reputation.new()
 	airlines.reset()

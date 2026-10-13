@@ -61,6 +61,15 @@ func _ready() -> void:
 	Airport.progression.tier_reached.connect(_on_tier_reached)
 	Airport.weather.changed.connect(_on_weather_changed)
 	Airport.incident_started.connect(_on_incident_started)
+	Airport.vip_announced.connect(func(flight: Flight) -> void:
+		var seconds := ceili(flight.departure_time - Airport.passenger_flow.time)
+		_hud.notify("A VIP flies with %s in %d:%02d (gold). Short queues, fast track and a lounge keep them happy." % [
+			flight.number, seconds / 60, seconds % 60]))
+	Airport.vip_result.connect(func(happy: bool, mood: float) -> void:
+		if happy:
+			_hud.notify("The VIP was delighted (%d %%)! %s and half a star for a while." % [roundi(mood), Economy.format(Airport.VIP_REWARD)])
+		else:
+			_hud.notify("The VIP was unhappy (%d %%). The press noticed: half a star less for a while." % roundi(mood)))
 	Airport.passenger_flow.schedule.plane_arriving.connect(_on_plane_arriving)
 	_cinematic.finished.connect(func() -> void: _manager.input_enabled = current_view == View.MANAGER)
 	Airport.airlines.offer_arrived.connect(_on_offer_arrived)

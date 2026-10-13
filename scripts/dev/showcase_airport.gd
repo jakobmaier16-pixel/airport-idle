@@ -111,6 +111,8 @@ static func build(warm_up_seconds: float = 180.0) -> void:
 		Airport.weather.start(Weather.Kind.RAIN)
 		var check_ins := Airport.buildings.filter(func(b: Building) -> bool: return b.type.role == BuildingType.Role.CHECK_IN)
 		Airport.start_incident(check_ins[1])
+		# And a VIP on an upcoming flight (§14.2): watch for the gold figure.
+		Airport.announce_vip()
 
 
 static func _first(role: BuildingType.Role) -> Building:
