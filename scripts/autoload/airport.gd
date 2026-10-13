@@ -172,7 +172,7 @@ func _tick_incidents(delta: float) -> void:
 const VIP_EVERY_MIN: float = 1200.0
 const VIP_EVERY_MAX: float = 1800.0
 ## A VIP is announced on a flight at least this far ahead (seconds), so the player can prepare.
-const VIP_NOTICE: float = 240.0
+const VIP_NOTICE: float = 150.0
 const VIP_REWARD: float = 5000.0
 ## Stars added (happy) or taken off (unhappy) for a while.
 const VIP_STARS: float = 0.5
@@ -183,7 +183,7 @@ var _next_vip_in: float = VIP_EVERY_MIN
 ## Announces a VIP on the next suitable departure. Returns the flight, or null if there is none.
 func announce_vip() -> Flight:
 	var candidates := passenger_flow.schedule.flights.filter(func(f: Flight) -> bool:
-		return not f.cargo and f.phase == Flight.Phase.SCHEDULED and f.spawned == 0 \
+		return not f.cargo and f.phase == Flight.Phase.SCHEDULED and f.spawned < f.booked and not f.vip_pending \
 			and f.departure_time - passenger_flow.time >= VIP_NOTICE)
 	if candidates.is_empty():
 		return null

@@ -18,7 +18,7 @@ var number: String
 var airline: Airline = null
 ## A wide-body (long-haul) plane (design doc §10.2).
 var wide_body: bool = false
-## A VIP flies with this flight; the first passenger to arrive is them (design doc §14.2).
+## A VIP flies with this flight; the next passenger to arrive is them (design doc §14.2).
 var vip_pending: bool = false
 ## A freighter (design doc §10.3): no passengers, `tonnes` of freight to unload and load.
 var cargo: bool = false
