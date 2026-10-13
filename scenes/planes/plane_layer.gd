@@ -28,6 +28,8 @@ func _process(_delta: float) -> void:
 			var plane := PlaneVisual.new()
 			if flight.airline != null:
 				plane.tail_color = flight.airline.type.color
+			if flight.wide_body:
+				plane.size_factor = PlaneVisual.WIDE_BODY_SIZE
 			add_child(plane)
 			_planes[flight] = plane
 		_planes[flight].transform = pose

@@ -73,7 +73,7 @@ func reset() -> void:
 
 
 ## `operating` is false while no gate can have flights: airlines don't count flights as owed then.
-func tick(delta: float, stars: float, operating: bool) -> void:
+func tick(delta: float, stars: float, operating: bool, tier: int = 0) -> void:
 	for airline in signed.duplicate():
 		if not operating:
 			continue
@@ -96,16 +96,16 @@ func tick(delta: float, stars: float, operating: bool) -> void:
 	_next_offer_in -= delta
 	if _next_offer_in <= 0.0:
 		_next_offer_in = rng.randf_range(OFFER_EVERY_MIN, OFFER_EVERY_MAX)
-		make_offer(stars)
+		make_offer(stars, tier)
 
 
 ## A new offer from an airline that would fly here now, or null if none would (or too many are open).
-func make_offer(stars: float) -> AirlineOffer:
+func make_offer(stars: float, tier: int = 0) -> AirlineOffer:
 	if offers.size() >= MAX_OFFERS:
 		return null
 	var candidates: Array[AirlineType] = []
 	for type in CATALOG.types:
-		if stars >= type.min_stars and find_signed(type) == null and _find_offer(type) == null and not _cooldowns.has(type.id):
+		if stars >= type.min_stars and tier >= type.min_tier and find_signed(type) == null and _find_offer(type) == null and not _cooldowns.has(type.id):
 			candidates.append(type)
 	if candidates.is_empty():
 		return null
@@ -130,10 +130,16 @@ func offer_from(id: StringName) -> AirlineOffer:
 
 
 ## The airline that gets the next free gate slot (the one owed the most flights), or null.
-func next_airline() -> Airline:
+## Wide-body airlines only fit gates with a wide-body stand (`wide_stand`).
+func next_airline(wide_stand: bool = false) -> Airline:
 	var best: Airline = null
 	for airline in signed:
-		if airline.credit >= MIN_CREDIT and (best == null or airline.credit > best.credit):
+		if airline.type.wide_body and not wide_stand:
+			continue
+		# A wide-body stand goes to a wide-body airline first, if one is owed a flight.
+		var better_fit := best != null and wide_stand and airline.type.wide_body and not best.type.wide_body
+		var worse_fit := best != null and wide_stand and best.type.wide_body and not airline.type.wide_body
+		if airline.credit >= MIN_CREDIT and not worse_fit and (best == null or better_fit or airline.credit > best.credit):
 			best = airline
 	if best != null:
 		best.credit -= 1.0

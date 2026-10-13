@@ -494,6 +494,11 @@ func _arrive(passenger: Passenger) -> void:
 		passenger.queued_since = time
 		station.waiting.append(passenger)
 	elif station.role() == Role.SHOP:
+		if time >= passenger.leave_shop_by:
+			# The walk took too long: no time left for the visit, straight on.
+			passenger.goal = passenger.after_shop
+			_plan(passenger)
+			return
 		passenger.state = Passenger.State.IN_SHOP
 		var type := station.building.type
 		passenger.visit_left = _rng.randf_range(type.visit_seconds_min, type.visit_seconds_max)

@@ -38,7 +38,7 @@ const FAMILY: PassengerType = preload("res://data/passengers/family.tres")
 const LOW_COST: PassengerType = preload("res://data/passengers/low_cost.tres")
 const BUSINESS: PassengerType = preload("res://data/passengers/business.tres")
 ## Share of a route's arriving passengers who connect to another flight (design doc §8.9).
-const TRANSFER_SHARES: Dictionary = {"Holiday": 0.1, "Low-cost": 0.05, "Business": 0.25}
+const TRANSFER_SHARES: Dictionary = {"Holiday": 0.1, "Low-cost": 0.05, "Business": 0.25, "Long-haul": 0.3}
 ## A connecting flight must depart at least this long after the transfer passenger deplanes.
 const MIN_CONNECTION: float = 150.0
 ## Route types and their passenger mix: [families, low-cost, business] shares.
@@ -46,7 +46,12 @@ const ROUTES: Dictionary = {
 	"Holiday": [0.7, 0.2, 0.1],
 	"Low-cost": [0.15, 0.8, 0.05],
 	"Business": [0.1, 0.3, 0.6],
+	"Long-haul": [0.35, 0.15, 0.5],
 }
+## Wide-body (long-haul) planes carry this many times the passengers, and deplane through two
+## doors (design doc §10.2).
+const WIDE_BODY_FACTOR: float = 2.0
+const WIDE_BODY_DEPLANE_RATE: float = 2.0
 
 ## Every flight that hasn't departed yet. A gate can have two: the one at the stand and the
 ## next one, whose passengers are already arriving (like at a real airport).
@@ -95,7 +100,8 @@ func upcoming() -> Array[Flight]:
 
 # A gate's turnaround slot: the airline owed the most flights gets it; with no demand it stays empty.
 func _plan_slot(gate: Building, departure_time: float) -> void:
-	var airline := Airport.airlines.next_airline()
+	var stand := Airport.stand_behind(gate)
+	var airline := Airport.airlines.next_airline(stand != null and stand.type.wide_body)
 	if airline != null:
 		_schedule(gate, departure_time, airline)
 	else:
@@ -109,8 +115,10 @@ func _schedule(gate: Building, departure_time: float, airline: Airline = null) -
 	_next_number += 1
 	flight.gate = gate
 	flight.stand = Airport.stand_behind(gate)
-	flight.seats = SEATS
-	flight.booked = _passenger_count()
+	flight.wide_body = airline != null and airline.type.wide_body
+	var size_factor := WIDE_BODY_FACTOR if flight.wide_body else 1.0
+	flight.seats = roundi(SEATS * size_factor)
+	flight.booked = roundi(_passenger_count() * size_factor)
 	flight.departure_time = departure_time
 	# The airline's route type sets the passenger mix (design doc §10.1); random without one.
 	flight.route = airline.type.route if airline != null else ROUTES.keys()[_rng.randi() % ROUTES.size()]
@@ -120,7 +128,7 @@ func _schedule(gate: Building, departure_time: float, airline: Airline = null) -
 	# The inbound leg: the same plane brings passengers before it takes new ones (turnaround).
 	var mix := PackedFloat32Array(ROUTES[flight.route])
 	var types: Array[PassengerType] = [FAMILY, LOW_COST, BUSINESS]
-	for i in _passenger_count():
+	for i in roundi(_passenger_count() * size_factor):
 		flight.inbound_types.append(types[_rng.rand_weighted(mix)])
 	_last_planned[gate] = departure_time
 	flights.append(flight)
@@ -169,7 +177,7 @@ func _advance(flight: Flight, now: float, delta: float, flow: PassengerFlow) -> 
 
 	if phase == Flight.Phase.AT_STAND or (phase == Flight.Phase.BOARDING and flight.deplaned < flight.inbound_types.size()):
 		# Arriving passengers leave the plane first; whoever is left when boarding opens leaves at once.
-		flight.deplane_credit += DEPLANE_RATE * delta
+		flight.deplane_credit += (WIDE_BODY_DEPLANE_RATE if flight.wide_body else DEPLANE_RATE) * delta
 		if phase == Flight.Phase.BOARDING:
 			flight.deplane_credit = flight.inbound_types.size()
 		while flight.deplane_credit >= 1.0 and flight.deplaned < flight.inbound_types.size():

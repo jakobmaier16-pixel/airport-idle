@@ -22,6 +22,13 @@ func _ready() -> void:
 	manager_camera().snap_to_target()
 	await _shot("manager_at_gate_boarding")
 
+	# The long-haul plane at the wide-body stand behind gate 3 (design doc §10.2).
+	manager().global_position = Airport.grid.cell_to_world(Vector2i(30, 58))
+	manager_camera().distance = manager_camera().max_distance
+	manager_camera().snap_to_target()
+	await _shot("wide_body_plane")
+	manager_camera().distance = manager_camera().min_distance + (manager_camera().max_distance - manager_camera().min_distance) * 0.5
+
 	# Station panel: security seen from the airside walkway.
 	manager().global_position = Airport.grid.cell_to_world(Vector2i(32, 33))
 	manager_camera().snap_to_target()

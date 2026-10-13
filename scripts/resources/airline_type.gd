@@ -23,6 +23,10 @@ enum Tone { FIRM, FRIENDLY, FLEXIBLE }
 @export var flights_max: int = 12
 ## Star rating the airport needs before they make an offer.
 @export var min_stars: float = 1.0
+## Airport tier needed before they make an offer (Progression.Tier, design doc §14.1).
+@export_range(0, 3) var min_tier: int = 0
+## Flies wide-body planes: only gates with a wide-body stand can take them (design doc §10.2).
+@export var wide_body: bool = false
 
 @export_group("Personality")
 @export var likes: Tone = Tone.FRIENDLY

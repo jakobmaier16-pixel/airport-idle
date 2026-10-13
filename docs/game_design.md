@@ -369,6 +369,21 @@ Placeholder numbers, tunable. All names are fictional.
 - The player can **end a deal** at any time (two taps).
 - Planes carry their airline's tail color; flight numbers use the airline code (e.g. ZP 214).
 
+
+### 10.2 Long-haul flights (first version)
+Placeholder numbers, tunable. Unlocked at **International** (§14.1).
+- **Wide-body stand** (Airside, 16 × 16 cells, €15,000 · €35/min): the only stand big enough for wide-body planes. Narrow-body planes can use it too, but a wide-body airline gets it first.
+- **Long-haul airlines** fly only wide-body planes, so they need a gate with a wide-body stand behind it; without one, their flights are refused (and they get unhappy).
+
+  | Airline | Expects | From | Likes | Dislikes |
+  |---|---|---|---|---|
+  | Orynth Pacific | €32 | International, 3½ ★ | friendly | firm |
+  | Valtair Intercontinental | €35 | International, 4 ★ | firm | flexible |
+
+- **Wide-body planes** are 1.4 × bigger (four engines), carry **twice the passengers** and deplane through two doors (2 per second).
+- **Long-haul route:** 35 % families, 15 % low-cost, 50 % business; 30 % of arriving passengers connect (§8.9).
+- Reaching International brings an offer from Orynth Pacific at once.
+
 ---
 
 ## 11. Economy

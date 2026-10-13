@@ -37,6 +37,8 @@ enum Role { NONE, ENTRANCE, CHECK_IN, SECURITY, GATE, AIRCRAFT_STAND, SHOP, BAGG
 @export var front_access: Access = Access.NONE
 @export var back_access: Access = Access.NONE
 @export var role: Role = Role.NONE
+## Stands: big enough for wide-body (long-haul) planes (design doc §10.2).
+@export var wide_body: bool = false
 ## The airport tier that unlocks it (Progression.Tier, design doc §14.1); 0 = from the start.
 @export_range(0, 3) var unlocked_at: int = 0
 

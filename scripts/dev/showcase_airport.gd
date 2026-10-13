@@ -14,11 +14,11 @@ static func build(warm_up_seconds: float = 180.0) -> void:
 	# Build on an unlimited test budget, so nothing in the showcase fails for lack of money.
 	# The player gets the normal starting money at the end.
 	Airport.economy.balance = 1.0e9
-	# A National airport (design doc §14.1): the whole map and transfer security are unlocked,
-	# and it is on its way to International.
-	Airport.progression.tier = Progression.Tier.NATIONAL
-	Airport.progression.passengers = 6000
-	Airport.progression.transfers = 150
+	# An International airport (design doc §14.1): the whole map, transfer security and long-haul
+	# flights are unlocked, and it is on its way to Hub.
+	Airport.progression.tier = Progression.Tier.INTERNATIONAL
+	Airport.progression.passengers = 15000
+	Airport.progression.transfers = 400
 	Airport.land_changed.emit()
 
 	# Zones: landside in the north, airside in the south (security sits on the border).
@@ -37,6 +37,9 @@ static func build(warm_up_seconds: float = 180.0) -> void:
 	Airport.place_building(catalog.find(&"gate"), Vector2i(42, 34), 0)
 	Airport.place_building(catalog.find(&"aircraft_stand"), Vector2i(10, 39), 0)
 	Airport.place_building(catalog.find(&"aircraft_stand"), Vector2i(38, 39), 0)
+	# Long-haul (§10.2): gate 3 in the middle with a wide-body stand behind it.
+	Airport.place_building(catalog.find(&"gate"), Vector2i(27, 34), 0)
+	Airport.place_building(catalog.find(&"wide_body_stand"), Vector2i(22, 39), 0)
 
 	# Arrivals: baggage claim on the border next to security, out into the landside hall (§8.8).
 	Airport.place_building(catalog.find(&"baggage_claim"), Vector2i(37, 27), 0)
@@ -48,16 +51,17 @@ static func build(warm_up_seconds: float = 180.0) -> void:
 
 	# Airside shopping between the gates (design doc §8.6).
 	Airport.place_building(catalog.find(&"shop"), Vector2i(22, 34), 0)
-	Airport.place_building(catalog.find(&"cafe"), Vector2i(30, 34), 0)
+	Airport.place_building(catalog.find(&"cafe"), Vector2i(33, 34), 0)
 
 	# Station upgrades (design doc §7.8): security already at level 2.
 	Airport.start_upgrade(_first(BuildingType.Role.SECURITY))
 
-	# Airlines (§10.1): the starter deal plus two more, together a little more than the two gates
-	# can take (40 flights per hour), and an open offer to negotiate.
+	# Airlines (§10.1): the starter deal, two more and a long-haul airline, together as many
+	# flights as the three gates can take (60 per hour), and an open offer to negotiate.
 	var airlines := Airport.airlines
-	airlines.sign_deal(Airlines.CATALOG.find(&"zippa"), 12, 9.0)
-	airlines.sign_deal(Airlines.CATALOG.find(&"norvane"), 10, 20.0)
+	airlines.sign_deal(Airlines.CATALOG.find(&"zippa"), 16, 9.0)
+	airlines.sign_deal(Airlines.CATALOG.find(&"norvane"), 14, 20.0)
+	airlines.sign_deal(Airlines.CATALOG.find(&"orynth"), 10, 32.0)
 	airlines.offers.append(AirlineOffer.new(Airlines.CATALOG.find(&"sunkiss"), 10, 13.0))
 
 	# Staff for every counter and lane, with a mix of new and experienced employees (§9.1).

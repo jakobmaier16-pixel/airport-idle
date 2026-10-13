@@ -16,8 +16,8 @@ func test_one_flight_per_usable_gate() -> void:
 	ShowcaseAirport.build(0.0)
 	sim_seconds(1)
 	var flights := Airport.passenger_flow.schedule.flights
-	check_eq(flights.size(), 2, "one flight planned per gate")
-	check(flights[0].gate != flights[1].gate, "different gates")
+	check_eq(flights.size(), 3, "one flight planned per gate")
+	check(flights[0].gate != flights[1].gate and flights[1].gate != flights[2].gate, "different gates")
 	check(flights.all(func(f: Flight) -> bool: return f.stand != null), "every flight has a stand")
 	check(is_equal_approx(_flight_at(2).departure_time - _flight_at(1).departure_time, FlightSchedule.GATE_STAGGER), "gates are staggered")
 
@@ -39,7 +39,9 @@ func test_three_minutes_between_departures() -> void:
 		var times: Array = departures[gate]
 		check(times.size() >= 3, "gate %d had several flights: %s" % [gate, times])
 		for i in range(1, times.size()):
-			check(is_equal_approx(times[i] - times[i - 1], FlightSchedule.INTERVAL), "gate %d: 3 minutes between departures %s" % [gate, times])
+			# A slot every 3 minutes; a slot stays empty when no airline is owed a flight.
+			var slots: float = (times[i] - times[i - 1]) / FlightSchedule.INTERVAL
+			check(slots >= 0.99 and is_equal_approx(slots, roundf(slots)), "gate %d: departures in 3-minute slots %s" % [gate, times])
 
 
 func test_passengers_go_to_their_flights_gate() -> void:
@@ -104,7 +106,7 @@ func test_departures_board() -> void:
 	sim_seconds(1)
 	var text := Airport.passenger_flow.departures_text()
 	var lines := text.split("\n")
-	check_eq(lines.size(), 2, "one line per upcoming flight")
+	check_eq(lines.size(), 3, "one line per upcoming flight")
 	var columns := lines[0].split("   ")
 	var airline_codes := Airlines.CATALOG.types.map(func(t: AirlineType) -> String: return t.code)
 	check(columns[0].ends_with(" 101") and airline_codes.has(columns[0].left(2)), "flight number with airline code: '%s'" % columns[0])
@@ -114,7 +116,7 @@ func test_departures_board() -> void:
 	check(columns[4].begins_with("4:"), "time to departure: '%s'" % columns[4])
 	await start_game()
 	await frames(2)
-	check_eq((ui("InfoPanel/DeparturesLabel") as Label).text.split("\n").size(), 2, "board shown in the HUD")
+	check_eq((ui("InfoPanel/DeparturesLabel") as Label).text.split("\n").size(), 3, "board shown in the HUD")
 
 
 func test_plane_parks_nose_in_at_the_stand() -> void:

@@ -16,7 +16,7 @@ const TRANSFERS_NEEDED: Array[int] = [0, 0, 0, 1000]
 const REWARDS: Array[String] = [
 	"",
 	"New land: the whole map is yours.\nTransfer security: sell connecting flights.\nNorvane Airways wants to fly here.",
-	"Long-haul flights: build a wide-body stand.\nLong-haul airlines make offers.",
+	"Long-haul flights: build a wide-body stand for big planes.\nOrynth Pacific wants to fly here.",
 	"Hub status: airlines route twice as many connections through you.\nCorvista Airlines wants to fly here.",
 ]
 ## Regional airports own this many cells in the middle of the map; from National on, all of it.

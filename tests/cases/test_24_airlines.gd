@@ -184,15 +184,15 @@ func test_panel_lists_and_ends_deals() -> void:
 	await frames(2)
 	var list := ui("AirlinesPanel/Content/ListView")
 	var rows := list.get_children().filter(func(c: Node) -> bool: return c is HBoxContainer)
-	check_eq(rows.size(), 3, "one row per signed airline")
+	check_eq(rows.size(), 4, "one row per signed airline")
 	check(((rows[0] as Node).get_child(0) as Label).text.begins_with("Velora Regional"), "starter listed first")
 	var capacity := (ui("AirlinesPanel/Content/CapacityLabel") as Label).text
-	check(capacity.contains("40 flights/h") and capacity.contains("Signed: 42"), "capacity line: '%s'" % capacity)
+	check(capacity.contains("60 flights/h") and capacity.contains("Signed: 60"), "capacity line: '%s'" % capacity)
 	var end_button := (rows[2] as Node).get_child(1) as Button
 	await press(end_button)
-	check_eq(Airport.airlines.signed.size(), 3, "first tap only arms the button")
+	check_eq(Airport.airlines.signed.size(), 4, "first tap only arms the button")
 	await press(end_button)
-	check_eq(Airport.airlines.signed.size(), 2, "second tap ends the deal")
+	check_eq(Airport.airlines.signed.size(), 3, "second tap ends the deal")
 
 
 func test_counter_offer_through_the_panel() -> void:

@@ -16,6 +16,8 @@ enum Phase {
 var number: String
 ## The airline flying it (design doc §10.1), or null (tests only).
 var airline: Airline = null
+## A wide-body (long-haul) plane (design doc §10.2).
+var wide_body: bool = false
 ## What the airline pays per departing passenger.
 var fee_per_passenger: float = Economy.PASSENGER_FEE
 ## Route type, e.g. "Holiday" (sets the passenger mix, design doc §8.7).

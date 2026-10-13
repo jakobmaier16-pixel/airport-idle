@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="BuildingType" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/building_type.gd" id="1_type"]
+
+[resource]
+script = ExtResource("1_type")
+id = &"wide_body_stand"
+display_name = "Wide-body stand"
+category = "Airside"
+footprint = Vector2i(16, 16)
+zone_rule = 1
+is_solid = false
+front_access = 0
+back_access = 0
+role = 5
+wide_body = true
+unlocked_at = 2
+build_cost = 15000.0
+running_cost_per_minute = 35.0
+service_slots = 0
+service_time = 0.0
+color = Color(0.27, 0.28, 0.32, 1)
+height = 0.05

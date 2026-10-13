@@ -95,7 +95,7 @@ func step(delta: float) -> void:
 	passenger_flow.tick(delta)
 	economy.tick(delta, _running_cost_per_minute)
 	reputation.tick(delta)
-	airlines.tick(delta, stars(), not passenger_flow.usable_gates().is_empty())
+	airlines.tick(delta, stars(), not passenger_flow.usable_gates().is_empty(), progression.tier)
 	progression.check(stars())
 	_check_loan(delta)
 	for building in buildings:
@@ -117,6 +117,8 @@ func _on_tier_reached(tier: Progression.Tier) -> void:
 	match tier:
 		Progression.Tier.NATIONAL:
 			airlines.offer_from(&"norvane")
+		Progression.Tier.INTERNATIONAL:
+			airlines.offer_from(&"orynth")
 		Progression.Tier.HUB:
 			airlines.offer_from(&"corvista")
 
