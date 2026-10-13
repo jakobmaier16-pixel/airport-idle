@@ -17,6 +17,11 @@ static var _bridge_material: StandardMaterial3D
 static var _marking_material: StandardMaterial3D
 static var _car_material: StandardMaterial3D
 static var _runway_material: StandardMaterial3D
+static var _vertex_color_material: StandardMaterial3D
+const GLASS_COLOR: Color = Color(0.2, 0.3, 0.42)
+const ROOF_EDGE_COLOR: Color = Color(0.85, 0.86, 0.88)
+const CANOPY_COLOR: Color = Color(0.9, 0.9, 0.92)
+const AWNING_COLORS: Array[Color] = [Color(0.85, 0.2, 0.2), Color(0.97, 0.95, 0.9)]
 
 
 ## Builds the meshes. Call once, right after creating the node.
@@ -38,6 +43,8 @@ func setup(type: BuildingType, cell_size: float, body_material: Material, front_
 
 
 func _add_details(type: BuildingType, size: Vector3, cast_shadows: bool) -> void:
+	if type.is_solid and size.y >= 2.0:
+		_add_facade(type, size)
 	if _bridge_material == null:
 		_bridge_material = _flat_material(BRIDGE_COLOR)
 		_marking_material = _flat_material(MARKING_COLOR)
@@ -69,6 +76,55 @@ func _add_details(type: BuildingType, size: Vector3, cast_shadows: bool) -> void
 			_add_cars(size)
 		BuildingType.Role.RUNWAY:
 			_add_runway_markings(size)
+
+
+# Windows, roof edge, canopy and awnings, built into one mesh with vertex colors, so all of a
+# building's details are a single draw call (cheap on older iPhones).
+func _add_facade(type: BuildingType, size: Vector3) -> void:
+	if _vertex_color_material == null:
+		_vertex_color_material = StandardMaterial3D.new()
+		_vertex_color_material.vertex_color_use_as_albedo = true
+	var tool := SurfaceTool.new()
+	tool.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var half := size * 0.5
+	# A band of dark glass round the building, a little proud of the walls.
+	var band_bottom := size.y * 0.35
+	var band_top := size.y * 0.75
+	var band := Vector3(size.x + 0.08, band_top - band_bottom, size.z + 0.08)
+	_box(tool, Vector3(0.0, (band_bottom + band_top) * 0.5, 0.0), band, GLASS_COLOR)
+	# A light roof edge.
+	_box(tool, Vector3(0.0, size.y + 0.1, -half.z + 0.15), Vector3(size.x + 0.1, 0.25, 0.3), ROOF_EDGE_COLOR)
+	_box(tool, Vector3(0.0, size.y + 0.1, half.z - 0.15), Vector3(size.x + 0.1, 0.25, 0.3), ROOF_EDGE_COLOR)
+	_box(tool, Vector3(-half.x + 0.15, size.y + 0.1, 0.0), Vector3(0.3, 0.25, size.z + 0.1), ROOF_EDGE_COLOR)
+	_box(tool, Vector3(half.x - 0.15, size.y + 0.1, 0.0), Vector3(0.3, 0.25, size.z + 0.1), ROOF_EDGE_COLOR)
+	match type.role:
+		BuildingType.Role.ENTRANCE:
+			# A canopy over the doors at the back (where passengers come in from the walkway).
+			_box(tool, Vector3(0.0, size.y * 0.8, half.z + 1.0), Vector3(size.x * 0.8, 0.15, 2.0), CANOPY_COLOR)
+		BuildingType.Role.SHOP:
+			# A striped awning over the shop front.
+			var stripes := 6
+			for i in stripes:
+				var x := -half.x + (i + 0.5) * size.x / stripes
+				_box(tool, Vector3(x, size.y * 0.7, -half.z - 0.6), Vector3(size.x / stripes, 0.12, 1.2), AWNING_COLORS[i % 2])
+	tool.generate_normals()
+	var mesh := tool.commit()
+	mesh.surface_set_material(0, _vertex_color_material)
+	_add_mesh(mesh, Vector3.ZERO, false)
+
+
+# Adds a box (center, size) in one color to `tool`.
+static func _box(tool: SurfaceTool, center: Vector3, box_size: Vector3, color: Color) -> void:
+	var h := box_size * 0.5
+	var corners: Array[Vector3] = []
+	for i in 8:
+		corners.append(center + Vector3(h.x if i & 1 else -h.x, h.y if i & 2 else -h.y, h.z if i & 4 else -h.z))
+	# Each face as two triangles, clockwise seen from outside (Godot's front faces).
+	var faces: Array = [[0, 4, 6, 2], [1, 3, 7, 5], [0, 1, 5, 4], [2, 6, 7, 3], [0, 2, 3, 1], [4, 5, 7, 6]]
+	tool.set_color(color)
+	for face: Array in faces:
+		for index in [0, 2, 1, 0, 3, 2]:
+			tool.add_vertex(corners[face[index]])
 
 
 # White centre line dashes and threshold bars at both ends (along the runway's long side, x).
