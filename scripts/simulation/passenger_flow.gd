@@ -82,6 +82,7 @@ var _stations: Dictionary[Building, Station] = {}
 var _route_entrances: Array[Building] = []
 # Car parks connected to the passenger route (design doc §11.8).
 var _route_car_parks: Array[Building] = []
+var _usable_gates: Array[Building] = []
 var _sample_timer: float = 0.0
 var _rng: RandomNumberGenerator = RandomNumberGenerator.new()
 
@@ -164,7 +165,12 @@ func gate_number(gate: Building) -> int:
 
 ## Gates that can have flights right now: a complete passenger route exists, and the gate has a
 ## walkway in front and a stand behind.
+## Cached: recalculated with the route after layout and staff changes (asked several times per step).
 func usable_gates() -> Array[Building]:
+	return _usable_gates
+
+
+func _find_usable_gates() -> Array[Building]:
 	var gates: Array[Building] = []
 	if not route_problem.is_empty():
 		return gates
@@ -866,8 +872,13 @@ func _cell_point(cell: Vector2i, passenger: Passenger) -> Vector3:
 	return Airport.grid.cell_to_world(cell) + passenger.offset
 
 
-# Checks, step by step like a passenger, whether Entrance -> Check-in -> Security -> Gate works.
 func _update_route() -> void:
+	_check_route()
+	_usable_gates = _find_usable_gates()
+
+
+# Checks, step by step like a passenger, whether Entrance -> Check-in -> Security -> Gate works.
+func _check_route() -> void:
 	_route_entrances.clear()
 	_route_car_parks.clear()
 	transfers_possible = false
