@@ -495,6 +495,7 @@ func save_state() -> Dictionary:
 		"walkways": Marshalls.raw_to_base64(grid.get_walkway_data()),
 		"money": economy.balance,
 		"over_limit": economy.over_limit_seconds,
+		"average_profit": economy.average_profit_per_minute,
 		"satisfaction": passenger_flow.satisfaction.save_state(),
 		"reputation": reputation.save_state(),
 		"airlines": airlines.save_state(),
@@ -549,6 +550,7 @@ func load_state(data: Dictionary) -> int:
 				staff_fully(building)
 	economy.balance = float(data.get("money", Economy.STARTING_MONEY))
 	economy.over_limit_seconds = float(data.get("over_limit", 0.0))
+	economy.average_profit_per_minute = float(data.get("average_profit", 0.0))
 	passenger_flow.satisfaction.load_state(data.get("satisfaction", {}))
 	reputation.load_state(data.get("reputation", {}))
 	airlines.load_state(data.get("airlines", {}))

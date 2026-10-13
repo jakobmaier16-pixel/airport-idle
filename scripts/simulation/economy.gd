@@ -22,10 +22,15 @@ const CREDIT_BASE: float = 20000.0
 const CREDIT_SHARE_OF_VALUE: float = 0.25
 ## Over the credit limit for this long (seconds) and the bank restructures the airport.
 const RESTRUCTURE_AFTER: float = 120.0
+## The long-term average profit follows the last minute's profit with this time constant (seconds).
+## It decides the welcome-back bonus after a long break (design doc §5).
+const AVERAGE_PROFIT_SECONDS: float = 600.0
 ## "Per minute" figures cover this many seconds.
 const WINDOW_SECONDS: int = 60
 
 var balance: float = STARTING_MONEY
+## Profit per minute averaged over roughly the last ten minutes.
+var average_profit_per_minute: float = 0.0
 ## Seconds the debt has been over the credit limit without a break.
 var over_limit_seconds: float = 0.0
 
@@ -59,6 +64,11 @@ func refund(amount: float) -> void:
 	balance += amount
 
 
+## A one-off gift, e.g. the welcome-back bonus (not part of profit per minute).
+func bonus(amount: float) -> void:
+	balance += amount
+
+
 ## What the airport owes the bank (0 while the balance is positive).
 func debt() -> float:
 	return maxf(-balance, 0.0)
@@ -82,6 +92,7 @@ func tick(delta: float, running_cost_per_minute: float) -> void:
 	_window_time += delta
 	while _window_time >= 1.0:
 		_window_time -= 1.0
+		average_profit_per_minute = lerpf(average_profit_per_minute, profit_per_minute(), 1.0 / AVERAGE_PROFIT_SECONDS)
 		_window_index = (_window_index + 1) % WINDOW_SECONDS
 		_window[_window_index] = 0.0
 

@@ -49,6 +49,10 @@ func _ready() -> void:
 	Airport.airlines.airline_unhappy.connect(_on_airline_unhappy)
 	Airport.airlines.airline_left.connect(_on_airline_left)
 	_set_view(View.MANAGER)
+	if SaveGame.welcome_back_bonus > 0.0:
+		_hud.notify("Welcome back! You were away %d hours. Your airport earned %s while you were gone." % [
+			floori(SaveGame.away_seconds / 3600.0), Economy.format(SaveGame.welcome_back_bonus)])
+		SaveGame.welcome_back_bonus = 0.0
 
 
 # Clears the map and reloads the scene, so every visual is rebuilt from the (now empty) simulation.

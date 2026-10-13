@@ -78,7 +78,8 @@ Inspirations: *Builderment*, *Idle Train Empire*, *Airplane Inc.*, *TheoTown*.
 
 - **While playing:** full simulation, all income. The simulation **keeps running in the build view** — there is no pause (for now).
 - **Offline:** no income for breaks under 36 hours. After **36 hours or more** away, the player receives **4 hours' worth of income** once. (Similar in spirit to Clash of Clans — a small welcome back, not a reason to stay away.)
-- **Saving:** automatic — after every change and when the app goes to the background. No manual save button.
+- **Offline income, implemented:** "income" = the airport's average profit per minute over roughly the last 10 minutes of play (never negative). The save stores the time it was written; on loading after 36 h or more, 4 hours of that profit is paid once and a welcome-back notice says how much.
+- **Saving:** automatic — after every change, every 30 seconds while playing, and when the app goes to the background. No manual save button.
 - **Upgrades:** small upgrades are instant. Big upgrades take **1–10 minutes** with **visible construction on site**.
 
 ---

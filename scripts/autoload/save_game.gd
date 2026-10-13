@@ -9,6 +9,12 @@ extends Node
 const FORMAT_VERSION: int = 1
 ## Wait this long after a change before saving, so a burst of changes is saved once.
 const SAVE_DELAY: float = 1.0
+## Money and the running airport are also saved this often while playing (seconds).
+const AUTOSAVE_INTERVAL: float = 30.0
+## Offline income (design doc §5): nothing for shorter breaks; after this many hours away the
+## player gets OFFLINE_BONUS_HOURS of the airport's average profit once.
+const OFFLINE_MIN_HOURS: float = 36.0
+const OFFLINE_BONUS_HOURS: float = 4.0
 ## Command-line flag (after "--") that turns saving and loading off, for automated tests:
 ## Godot --headless --path . res://test.tscn -- --no-save
 const NO_SAVE_FLAG: String = "--no-save"
@@ -19,8 +25,14 @@ var save_path: String = "user://savegame.json"
 ## The running export (see BuildStamp), stored in the save to detect the first start after an update.
 var build_stamp: String = BuildStamp.DEV
 
+## Set when loading after a long break: the bonus paid and how long the player was away
+## (main.gd shows a welcome-back notice).
+var welcome_back_bonus: float = 0.0
+var away_seconds: float = 0.0
+
 # Stamp of the export that wrote the loaded save.
 var _saved_build: String = ""
+var _autosave_in: float = AUTOSAVE_INTERVAL
 
 var _dirty: bool = false
 var _time_until_save: float = 0.0
@@ -37,6 +49,10 @@ func _ready() -> void:
 
 
 func _process(delta: float) -> void:
+	_autosave_in -= delta
+	if _autosave_in <= 0.0:
+		_autosave_in = AUTOSAVE_INTERVAL
+		save_now()
 	if _dirty:
 		_time_until_save -= delta
 		if _time_until_save <= 0.0:
@@ -47,8 +63,8 @@ func _notification(what: int) -> void:
 	# iOS can close a backgrounded app at any time without warning, so save when we get the chance.
 	match what:
 		NOTIFICATION_APPLICATION_PAUSED, NOTIFICATION_APPLICATION_FOCUS_OUT, NOTIFICATION_WM_CLOSE_REQUEST:
-			if _dirty:
-				save_now()
+			# Always: the time of leaving counts for offline income, and money changes constantly.
+			save_now()
 
 
 func save_now() -> void:
@@ -58,6 +74,7 @@ func save_now() -> void:
 	var data := Airport.save_state()
 	data["version"] = FORMAT_VERSION
 	data["build"] = build_stamp
+	data["saved_at"] = Time.get_unix_time_from_system()
 	# Write to a temporary file first, then swap it in, so a crash mid-save can't corrupt the save.
 	var temp_path := save_path + ".tmp"
 	var file := FileAccess.open(temp_path, FileAccess.WRITE)
@@ -82,6 +99,20 @@ func load_game() -> void:
 	_loading = false
 	if skipped > 0:
 		push_warning("%d saved buildings no longer fit and were skipped." % skipped)
+	if data.has("saved_at"):
+		apply_offline_time(Time.get_unix_time_from_system() - float(data["saved_at"]))
+
+
+## Pays the welcome-back bonus if the player was away long enough (design doc §5).
+## Returns the bonus (0 for shorter breaks).
+func apply_offline_time(seconds_away: float) -> float:
+	away_seconds = seconds_away
+	welcome_back_bonus = 0.0
+	if seconds_away < OFFLINE_MIN_HOURS * 3600.0:
+		return 0.0
+	welcome_back_bonus = maxf(Airport.economy.average_profit_per_minute, 0.0) * OFFLINE_BONUS_HOURS * 60.0
+	Airport.economy.bonus(welcome_back_bonus)
+	return welcome_back_bonus
 
 
 ## On the first start of a new export (test builds only), replaces the map with the showcase
