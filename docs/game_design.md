@@ -432,6 +432,14 @@ Currency: **euro (€)**. All numbers are placeholders, tunable per building (co
 - **Not in the MVP yet:** shop income, parking, salaries per employee, upgrades (§16 item 7).
 
 
+### 11.8 Car park, lounge and fast track (first version)
+Placeholder numbers, tunable. Real airports earn a big share of their money outside the airline fees.
+- **Car park** (landside, 8 × 6, €8,000 · €8/min, front onto a landside walkway): 35 % of passengers travel by car. With a connected car park, departing car travellers arrive there instead of at the entrance (they park for their trip); arriving car travellers (returning from their trip) leave through it and **pay €8** on the way out. Without a car park everyone uses the entrance (taxi, train).
+- **Lounge** (airside, 5 × 3, €10,000 · €20/min, 16 guests): business travellers with time to spare (80 %) wait in the lounge instead of a shop until their final call. The airport runs it: **€12 per guest**, and guests gain +10 mood.
+- **Fast track** (security, a one-off €5,000 from the station panel): business travellers go to the front of the queue and pay **€5** each. Everyone else waits a little longer.
+- Statistics list the car park and lounge with their income.
+
+
 ### 11.6 Bank loan and restructuring (first version)
 Placeholder numbers, tunable.
 - **A negative balance is a bank loan.** Interest: 1 % of the debt per minute, charged like a running cost (it shows in profit per minute). Nothing can be built or upgraded while the money isn't there.

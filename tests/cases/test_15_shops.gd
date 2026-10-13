@@ -91,5 +91,5 @@ func test_shop_panel_and_stats() -> void:
 	check_eq((ui("StationPanel/Content/UpgradeButton") as Button).text, "No upgrades for this building yet", "no shop upgrades yet")
 	hud().show_stats()
 	await frames(2)
-	var cells_text: Array = ui("StatsPanel/Content/Table").get_children().map(func(c: Node) -> String: return (c as Label).text)
+	var cells_text: Array = ui("StatsPanel/Content/TableScroll/Table").get_children().map(func(c: Node) -> String: return (c as Label).text)
 	check(cells_text.has("Shop") and cells_text.has("Café"), "statistics list the shop and the café")

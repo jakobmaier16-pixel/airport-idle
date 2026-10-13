@@ -114,5 +114,5 @@ func test_claim_in_panel_and_stats() -> void:
 	check(info.contains("Waiting for bags:"), "panel: '%s'" % info)
 	hud().show_stats()
 	await frames(2)
-	var texts: Array = ui("StatsPanel/Content/Table").get_children().map(func(c: Node) -> String: return (c as Label).text)
+	var texts: Array = ui("StatsPanel/Content/TableScroll/Table").get_children().map(func(c: Node) -> String: return (c as Label).text)
 	check(texts.has("Baggage claim"), "statistics list the baggage claim")

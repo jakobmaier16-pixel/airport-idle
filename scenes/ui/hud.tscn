@@ -297,6 +297,14 @@ focus_mode = 0
 theme_override_font_sizes/font_size = 20
 text = "Promote"
 
+[node name="FastTrackButton" type="Button" parent="SafeArea/StationPanel/Content"]
+visible = false
+custom_minimum_size = Vector2(0, 56)
+layout_mode = 2
+focus_mode = 0
+theme_override_font_sizes/font_size = 20
+text = "Fast track"
+
 [node name="UpgradeButton" type="Button" parent="SafeArea/StationPanel/Content"]
 custom_minimum_size = Vector2(0, 72)
 layout_mode = 2
@@ -319,17 +327,23 @@ theme_override_styles/panel = SubResource("StyleBox_station_panel")
 
 [node name="Content" type="VBoxContainer" parent="SafeArea/StatsPanel"]
 layout_mode = 2
-theme_override_constants/separation = 14
+theme_override_constants/separation = 8
 
 [node name="TitleLabel" type="Label" parent="SafeArea/StatsPanel/Content"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 30
 text = "Statistics · last 5 minutes"
 
-[node name="Table" type="GridContainer" parent="SafeArea/StatsPanel/Content"]
+[node name="TableScroll" type="ScrollContainer" parent="SafeArea/StatsPanel/Content"]
+custom_minimum_size = Vector2(0, 340)
 layout_mode = 2
+horizontal_scroll_mode = 0
+
+[node name="Table" type="GridContainer" parent="SafeArea/StatsPanel/Content/TableScroll"]
+layout_mode = 2
+size_flags_horizontal = 3
 theme_override_constants/h_separation = 36
-theme_override_constants/v_separation = 8
+theme_override_constants/v_separation = 2
 columns = 5
 
 [node name="TypesLabel" type="Label" parent="SafeArea/StatsPanel/Content"]

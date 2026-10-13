@@ -11,6 +11,8 @@ var rotation_steps: int
 var level: int = 1
 ## Seconds until a running big upgrade is finished; 0 = no upgrade running.
 var upgrade_seconds_left: float = 0.0
+## Security with a fast track lane (design doc §11.8).
+var fast_track: bool = false
 
 
 func _init(building_type: BuildingType, origin: Vector2i, rotation: int) -> void:

@@ -21,11 +21,12 @@ signal hire_pressed(building: Building)
 signal dismiss_pressed(building: Building)
 signal train_pressed(building: Building)
 signal promote_pressed(building: Building)
+signal fast_track_pressed(building: Building)
 
 const MONEY_COLOR: Color = Color(1.0, 1.0, 1.0)
 const DEBT_COLOR: Color = Color(1.0, 0.4, 0.35)
 
-const STATS_FONT_SIZE: int = 22
+const STATS_FONT_SIZE: int = 20
 const BOTTLENECK_COLOR: Color = Color(1.0, 0.7, 0.3)
 ## How often the statistics panel refreshes, in seconds.
 const STATS_REFRESH: float = 0.5
@@ -55,7 +56,7 @@ var _goal_refresh_in: float = 0.0
 @onready var _airlines_button: Button = $SafeArea/TopButtons/AirlinesButton
 @onready var airlines_panel: AirlinesPanel = $SafeArea/AirlinesPanel
 @onready var _stats_panel: Control = $SafeArea/StatsPanel
-@onready var _stats_table: GridContainer = $SafeArea/StatsPanel/Content/Table
+@onready var _stats_table: GridContainer = $SafeArea/StatsPanel/Content/TableScroll/Table
 @onready var _bottleneck_label: Label = $SafeArea/StatsPanel/Content/BottleneckLabel
 @onready var _types_label: Label = $SafeArea/StatsPanel/Content/TypesLabel
 @onready var _satisfaction_label: Label = $SafeArea/StatsPanel/Content/SatisfactionLabel
@@ -93,6 +94,7 @@ var _goal_refresh_in: float = 0.0
 @onready var _team_buttons: Control = $SafeArea/StationPanel/Content/TeamButtons
 @onready var _train_button: Button = $SafeArea/StationPanel/Content/TeamButtons/TrainButton
 @onready var _promote_button: Button = $SafeArea/StationPanel/Content/TeamButtons/PromoteButton
+@onready var _fast_track_button: Button = $SafeArea/StationPanel/Content/FastTrackButton
 
 
 func _ready() -> void:
@@ -121,6 +123,7 @@ func _ready() -> void:
 	_dismiss_button.pressed.connect(func() -> void: dismiss_pressed.emit(shown_station))
 	_train_button.pressed.connect(func() -> void: train_pressed.emit(shown_station))
 	_promote_button.pressed.connect(func() -> void: promote_pressed.emit(shown_station))
+	_fast_track_button.pressed.connect(func() -> void: fast_track_pressed.emit(shown_station))
 	$SafeArea/StationPanel/Content/CloseButton.pressed.connect(hide_station)
 	_stats_button.pressed.connect(func() -> void: hide_stats() if _stats_panel.visible else show_stats())
 	$SafeArea/StatsPanel/Content/CloseButton.pressed.connect(hide_stats)
@@ -367,7 +370,12 @@ func _update_stats_panel() -> void:
 			_add_stats_cell("–" if claim_wait < 0.0 else "%d s" % roundi(claim_wait), color)
 			_add_stats_cell("", color)
 			continue
-		if station.role() == BuildingType.Role.SHOP:
+		if station.role() == BuildingType.Role.CAR_PARK:
+			for i in 3:
+				_add_stats_cell("", color)
+			_add_stats_cell(Economy.format(station.income_in_window(flow.time)), color)
+			continue
+		if station.role() == BuildingType.Role.SHOP or station.role() == BuildingType.Role.LOUNGE:
 			_add_stats_cell("%d inside" % station.queue_length(), color)
 			_add_stats_cell(str(station.longest_queue()), color)
 			_add_stats_cell("", color)
@@ -383,7 +391,7 @@ func _update_stats_panel() -> void:
 	for type_name in ["Families", "Low-cost", "Business"]:
 		parts.append("%d %s" % [counts.get(type_name, 0), type_name])
 	_types_label.text = "In the airport: " + "  ·  ".join(parts) \
-		+ "\nTransfers: %d transferring now  ·  %d connected" % [flow.transferring_count(), flow.transferred_count]
+		+ "     Transfers: %d now  ·  %d connected" % [flow.transferring_count(), flow.transferred_count]
 	_satisfaction_label.text = satisfaction_text(flow.satisfaction)
 	_progress_label.text = Airport.progression.progress_text(Airport.stars())
 	if bottleneck != null:
@@ -432,8 +440,11 @@ func _update_station_panel() -> void:
 		lines.append("Waiting for bags: %d" % station.waiting.size())
 		var wait := station.average_wait(Airport.passenger_flow.time)
 		lines.append("Average time here (5 min): %s" % ("–" if wait < 0.0 else "%d s" % roundi(wait)))
-	elif role == BuildingType.Role.SHOP and station != null:
-		lines.append("Customers inside: %d / %d" % [station.waiting.size(), building.type.customer_capacity])
+	elif role == BuildingType.Role.CAR_PARK and station != null:
+		lines.append("Returning travellers pay %s each" % Economy.format(PassengerFlow.PARKING_FEE))
+		lines.append("Parking income (5 min): %s" % Economy.format(station.income_in_window(Airport.passenger_flow.time)))
+	elif (role == BuildingType.Role.SHOP or role == BuildingType.Role.LOUNGE) and station != null:
+		lines.append("%s inside: %d / %d" % ["Guests" if role == BuildingType.Role.LOUNGE else "Customers", station.waiting.size(), building.type.customer_capacity])
 		lines.append("Airport income (5 min): %s" % Economy.format(station.income_in_window(Airport.passenger_flow.time)))
 	var staffed := Airport.needs_staff(building)
 	if staffed:
@@ -444,10 +455,10 @@ func _update_station_panel() -> void:
 		lines.append("Running cost: %s/min + staff %s/min" % [Economy.format(building.running_cost_per_minute()), Economy.format(salaries)])
 		var unit := "counters" if role == BuildingType.Role.CHECK_IN else "lanes"
 		lines.append("Staff: %d / %d %s" % [working.size(), building.service_slots(), unit])
-		for employee in working.slice(0, 5):
+		for employee in working.slice(0, 4):
 			lines.append("   %s · %s" % [employee.name, employee.level_name()])
-		if working.size() > 5:
-			lines.append("   … and %d more" % (working.size() - 5))
+		if working.size() > 4:
+			lines.append("   … and %d more" % (working.size() - 4))
 	else:
 		lines.append("Running cost: %s/min" % Economy.format(building.running_cost_per_minute()))
 	if building.is_upgrading():
@@ -477,6 +488,18 @@ func _update_station_panel() -> void:
 		var promote_problem := Airport.promote_problem(building)
 		_promote_button.text = "Promote to supervisor" if promote_problem.is_empty() else promote_problem
 		_promote_button.disabled = not promote_problem.is_empty() or not manage_problem.is_empty()
+
+	# Fast track (design doc §11.8): security only, bought once.
+	_fast_track_button.visible = role == BuildingType.Role.SECURITY
+	if _fast_track_button.visible:
+		var fast_problem := Airport.fast_track_problem(building)
+		if building.fast_track:
+			_fast_track_button.text = "Fast track: business travellers first · %s each" % Economy.format(PassengerFlow.FAST_TRACK_FEE)
+		elif fast_problem.is_empty():
+			_fast_track_button.text = "Add fast track · %s" % Economy.format(Airport.FAST_TRACK_COST)
+		else:
+			_fast_track_button.text = fast_problem
+		_fast_track_button.disabled = not fast_problem.is_empty() or not manage_problem.is_empty()
 
 	var upgrade := building.next_upgrade()
 	var problem := Airport.upgrade_problem(building)

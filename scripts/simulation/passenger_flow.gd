@@ -41,6 +41,15 @@ const SHOP_BONUS: float = 5.0
 ## Unhappy customers spend less: spending at mood 0 and at mood 100 (share of the normal amount).
 const SPEND_AT_WORST: float = 0.5
 const SPEND_AT_BEST: float = 1.1
+## Car park, lounge and fast track (design doc §11.8).
+const CAR_SHARE: float = 0.35
+const PARKING_FEE: float = 8.0
+const LOUNGE_CHANCE: float = 0.8
+const LOUNGE_BONUS: float = 10.0
+const FAST_TRACK_FEE: float = 5.0
+## Roles of buildings that get a Station (queues, customers or statistics).
+const STATION_ROLES: Array[BuildingType.Role] = [Role.CHECK_IN, Role.SECURITY, Role.TRANSFER_SECURITY, Role.GATE,
+	Role.SHOP, Role.LOUNGE, Role.BAGGAGE_CLAIM, Role.CAR_PARK]
 ## How many clothing colors the visuals offer.
 const COLOR_COUNT: int = 6
 ## Safety limit, so a layout where passengers can't leave doesn't fill up endlessly.
@@ -71,6 +80,8 @@ var route_problem: String = ""
 var _network: WalkwayNetwork = WalkwayNetwork.new()
 var _stations: Dictionary[Building, Station] = {}
 var _route_entrances: Array[Building] = []
+# Car parks connected to the passenger route (design doc §11.8).
+var _route_car_parks: Array[Building] = []
 var _sample_timer: float = 0.0
 var _rng: RandomNumberGenerator = RandomNumberGenerator.new()
 
@@ -111,7 +122,7 @@ func station_for(building: Building) -> Station:
 ## Every station in a stable order: check-ins, security, gates, each in the order they were built.
 func stations() -> Array[Station]:
 	var result: Array[Station] = []
-	for role in [Role.CHECK_IN, Role.SECURITY, Role.TRANSFER_SECURITY, Role.GATE, Role.SHOP, Role.BAGGAGE_CLAIM]:
+	for role in [Role.CHECK_IN, Role.SECURITY, Role.TRANSFER_SECURITY, Role.GATE, Role.SHOP, Role.LOUNGE, Role.BAGGAGE_CLAIM, Role.CAR_PARK]:
 		for building in Airport.buildings:
 			if building.type.role == role and _stations.has(building):
 				result.append(_stations[building])
@@ -131,7 +142,7 @@ func bottleneck(min_wait: float = 5.0) -> Station:
 	var worst: Station = null
 	var worst_wait := min_wait
 	for station: Station in _stations.values():
-		if station.role() in [Role.GATE, Role.SHOP, Role.BAGGAGE_CLAIM]:
+		if station.role() in [Role.GATE, Role.SHOP, Role.LOUNGE, Role.BAGGAGE_CLAIM, Role.CAR_PARK]:
 			continue  # waiting there is part of the visit, not a queue
 		var wait := station.average_wait(time)
 		if wait >= worst_wait:
@@ -166,7 +177,7 @@ func usable_gates() -> Array[Building]:
 func on_layout_changed() -> void:
 	_network.rebuild(Airport.grid)
 	for building in Airport.buildings:
-		if not _stations.has(building) and building.type.role in [Role.CHECK_IN, Role.SECURITY, Role.TRANSFER_SECURITY, Role.GATE, Role.SHOP, Role.BAGGAGE_CLAIM]:
+		if not _stations.has(building) and building.type.role in STATION_ROLES:
 			_stations[building] = Station.new(building)
 	for station: Station in _stations.values():
 		# Baggage claim is used the other way round than security: in from airside (its back).
@@ -213,8 +224,13 @@ func tick(delta: float) -> void:
 func spawn_passenger(flight: Flight, type: PassengerType) -> bool:
 	if not route_problem.is_empty() or _route_entrances.is_empty() or passengers.size() >= MAX_PASSENGERS:
 		return false
-	var entrance := _route_entrances[_rng.randi() % _route_entrances.size()]
-	var cells := _access_cells(entrance, false)
+	# Car travellers park for their trip, if there is a car park (design doc §11.8).
+	var by_car := not _route_car_parks.is_empty() and _rng.randf() < CAR_SHARE
+	var cells: Array[Vector2i] = []
+	if by_car:
+		cells = _access_cells(_route_car_parks[_rng.randi() % _route_car_parks.size()], true)
+	else:
+		cells = _access_cells(_route_entrances[_rng.randi() % _route_entrances.size()], false)
 	if cells.is_empty():
 		return false
 	var passenger := Passenger.new()
@@ -269,7 +285,7 @@ func is_anyone_coming(flight: Flight) -> bool:
 		if passenger.flight != flight or passenger.is_arriving:
 			continue
 		if passenger.goal == Role.GATE or passenger.goal == Role.TRANSFER_SECURITY \
-				or (passenger.goal == Role.SHOP and passenger.after_shop == Role.GATE):
+				or (passenger.goal in [Role.SHOP, Role.LOUNGE] and passenger.after_shop == Role.GATE):
 			return true
 	return false
 
@@ -295,6 +311,7 @@ func deplane_passenger(flight: Flight, type: PassengerType) -> bool:
 	passenger.type = type
 	passenger.is_arriving = true
 	passenger.has_bag = _rng.randf() < type.checked_bag_chance
+	passenger.by_car = _rng.randf() < CAR_SHARE
 	var parked_at := flight.departure_time - (FlightSchedule.PLANE_ARRIVES - FlightSchedule.TAXI_TIME)
 	passenger.bag_ready_at = parked_at + _rng.randf_range(FlightSchedule.BAGS_FROM, FlightSchedule.BAGS_UNTIL)
 	passenger.offset = Vector3(_rng.randf_range(-MAX_OFFSET, MAX_OFFSET), 0.0, _rng.randf_range(-MAX_OFFSET, MAX_OFFSET))
@@ -413,15 +430,15 @@ func _plan(passenger: Passenger) -> void:
 			continue
 		if passenger.goal == Role.GATE and station.building != passenger.flight.gate:
 			continue
-		if passenger.goal == Role.SHOP and not _has_room(station):
+		if passenger.goal in [Role.SHOP, Role.LOUNGE] and not _has_room(station):
 			continue
 		var entry: Variant = _closest_cell_in_area(station.entry_cells, cell, area)
 		if entry != null:
 			candidates.append(station)
 			candidate_cells.append(entry)
 	if candidates.is_empty():
-		if passenger.goal == Role.SHOP:
-			# No shop with room nearby: carry on instead.
+		if passenger.goal in [Role.SHOP, Role.LOUNGE]:
+			# No shop (or lounge) with room nearby: carry on instead.
 			passenger.goal = passenger.after_shop
 			_plan(passenger)
 			return
@@ -429,7 +446,7 @@ func _plan(passenger: Passenger) -> void:
 		return
 
 	var choice := 0
-	if passenger.goal == Role.SHOP:
+	if passenger.goal in [Role.SHOP, Role.LOUNGE]:
 		# Tastes differ: some want coffee, others duty free. Any place with room may be chosen.
 		choice = _rng.randi() % candidates.size()
 	else:
@@ -482,6 +499,10 @@ func _arrive(passenger: Passenger) -> void:
 		passenger.state = Passenger.State.GONE
 		arrived_count += 1
 		Airport.progression.passengers += 1
+		if passenger.target != null and _stations.has(passenger.target):
+			# Back from their trip: they pay for parking on the way out (design doc §11.8).
+			Airport.economy.earn(PARKING_FEE)
+			_stations[passenger.target].record_income(time, PARKING_FEE)
 		_finish_journey(passenger)
 		Airport.economy.earn(Economy.ARRIVAL_FEE)
 		return
@@ -493,7 +514,7 @@ func _arrive(passenger: Passenger) -> void:
 		passenger.state = Passenger.State.AT_BELT
 		passenger.queued_since = time
 		station.waiting.append(passenger)
-	elif station.role() == Role.SHOP:
+	elif station.role() == Role.SHOP or station.role() == Role.LOUNGE:
 		if time >= passenger.leave_shop_by:
 			# The walk took too long: no time left for the visit, straight on.
 			passenger.goal = passenger.after_shop
@@ -506,7 +527,16 @@ func _arrive(passenger: Passenger) -> void:
 	else:
 		passenger.state = Passenger.State.QUEUING
 		passenger.queued_since = time
-		station.queue.append(passenger)
+		if station.building.fast_track and _is_business(passenger):
+			# Fast track (design doc §11.8): business travellers go ahead of everyone else.
+			var spot := 0
+			while spot < station.queue.size() and _is_business(station.queue[spot]):
+				spot += 1
+			station.queue.insert(spot, passenger)
+			Airport.economy.earn(FAST_TRACK_FEE)
+			station.record_income(time, FAST_TRACK_FEE)
+		else:
+			station.queue.append(passenger)
 
 
 func _set_stuck(passenger: Passenger) -> void:
@@ -520,9 +550,11 @@ func _set_stuck(passenger: Passenger) -> void:
 func _tick_station(station: Station, delta: float) -> void:
 	if station.role() == Role.GATE:
 		return  # boarding is driven by the flight schedule
-	if station.role() == Role.SHOP:
+	if station.role() == Role.SHOP or station.role() == Role.LOUNGE:
 		_tick_shop(station, delta)
 		return
+	if station.role() == Role.CAR_PARK:
+		return  # people only walk through
 	if station.role() == Role.BAGGAGE_CLAIM:
 		_tick_baggage_claim(station)
 		return
@@ -596,7 +628,15 @@ static func staff_time_factor(employee: Employee, team: Array[Employee], manager
 # `allowance` is time still needed after the visit (e.g. for security).
 func _maybe_shop(passenger: Passenger, next: BuildingType.Role, allowance: float, chance: float) -> void:
 	var leave_by := passenger.flight.departure_time - FlightSchedule.BOARDING_OPENS - FINAL_CALL - allowance
-	if leave_by - time < SHOPPING_MIN_SPARE or _rng.randf() >= chance:
+	if leave_by - time < SHOPPING_MIN_SPARE:
+		return
+	# Business travellers prefer the lounge airside (design doc §11.8).
+	if next == Role.GATE and _is_business(passenger) and _has_lounge() and _rng.randf() < LOUNGE_CHANCE:
+		passenger.goal = Role.LOUNGE
+		passenger.after_shop = next
+		passenger.leave_shop_by = leave_by
+		return
+	if _rng.randf() >= chance:
 		return
 	passenger.goal = Role.SHOP
 	passenger.after_shop = next
@@ -625,8 +665,10 @@ func _tick_shop(station: Station, delta: float) -> void:
 		var spend_factor := customer.type.spend_factor if customer.type != null else 1.0
 		# Stressed passengers spend less (design doc §8.10); the visit itself cheers them up.
 		var mood_factor := lerpf(SPEND_AT_WORST, SPEND_AT_BEST, clampf(customer.mood, 0.0, 100.0) / 100.0)
-		customer.mood = minf(customer.mood + SHOP_BONUS, 100.0)
+		customer.mood = minf(customer.mood + (LOUNGE_BONUS if type.airport_run else SHOP_BONUS), 100.0)
 		var income := _rng.randf_range(type.spend_min, type.spend_max) * spend_factor * mood_factor * Economy.CONCESSION_SHARE
+		if type.airport_run:
+			income = type.spend_min  # a fixed price, all of it for the airport
 		Airport.economy.earn(income)
 		station.record_income(time, income)
 		# Out of the front door and on to the gate.
@@ -669,11 +711,26 @@ func _plan_exit(passenger: Passenger) -> void:
 			_set_stuck(passenger)
 			return
 		cell = nearest
-	var exits: Array[Vector2i] = []
-	for building in Airport.buildings:
-		if building.type.role == Role.ENTRANCE:
-			exits.append_array(_access_cells(building, false))
-	var exit: Variant = _closest_cell_in_area(exits, cell, _network.area_of(cell))
+	var area := _network.area_of(cell)
+	passenger.target = null
+	var exit: Variant = null
+	if passenger.by_car:
+		# Car travellers walk to their car (design doc §11.8), if a car park is reachable.
+		var best_distance := INF
+		for car_park in Airport.buildings:
+			if car_park.type.role != Role.CAR_PARK:
+				continue
+			var door: Variant = _closest_cell_in_area(_access_cells(car_park, true), cell, area)
+			if door != null and Vector2(door - cell).length() < best_distance:
+				best_distance = Vector2(door - cell).length()
+				exit = door
+				passenger.target = car_park
+	if exit == null:
+		var exits: Array[Vector2i] = []
+		for building in Airport.buildings:
+			if building.type.role == Role.ENTRANCE:
+				exits.append_array(_access_cells(building, false))
+		exit = _closest_cell_in_area(exits, cell, area)
 	if exit == null:
 		_set_stuck(passenger)
 		return
@@ -746,6 +803,14 @@ func _shop_chance(passenger: Passenger) -> float:
 
 
 # Families need longer at check-in (bags, children), business travellers are quicker.
+func _is_business(passenger: Passenger) -> bool:
+	return passenger.type != null and passenger.type.id == &"business"
+
+
+func _has_lounge() -> bool:
+	return _stations.values().any(func(s: Station) -> bool: return s.role() == Role.LOUNGE)
+
+
 func _type_factor(passenger: Passenger, station: Station) -> float:
 	if passenger.type == null:
 		return 1.0
@@ -803,6 +868,7 @@ func _cell_point(cell: Vector2i, passenger: Passenger) -> Vector3:
 # Checks, step by step like a passenger, whether Entrance -> Check-in -> Security -> Gate works.
 func _update_route() -> void:
 	_route_entrances.clear()
+	_route_car_parks.clear()
 	transfers_possible = false
 	var entrance_areas: Dictionary[int, bool] = {}
 	var has_entrance := false
@@ -875,6 +941,9 @@ func _update_route() -> void:
 		if building.type.role == Role.ENTRANCE:
 			if _access_cells(building, false).any(func(c: Vector2i) -> bool: return good_areas.has(_network.area_of(c))):
 				_route_entrances.append(building)
+		elif building.type.role == Role.CAR_PARK:
+			if _access_cells(building, true).any(func(c: Vector2i) -> bool: return good_areas.has(_network.area_of(c))):
+				_route_car_parks.append(building)
 
 
 func _station_areas(role: BuildingType.Role, front: bool) -> Array[int]:

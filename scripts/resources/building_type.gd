@@ -20,7 +20,8 @@ enum Access {
 }
 
 ## What the building does in the passenger flow (design doc §8.4).
-enum Role { NONE, ENTRANCE, CHECK_IN, SECURITY, GATE, AIRCRAFT_STAND, SHOP, BAGGAGE_CLAIM, TRANSFER_SECURITY }
+## New roles go at the end: saves and .tres files store the number.
+enum Role { NONE, ENTRANCE, CHECK_IN, SECURITY, GATE, AIRCRAFT_STAND, SHOP, BAGGAGE_CLAIM, TRANSFER_SECURITY, CAR_PARK, LOUNGE }
 
 ## Stable internal name, used for save games. Never change it once players have saves.
 @export var id: StringName
@@ -63,6 +64,8 @@ enum Role { NONE, ENTRANCE, CHECK_IN, SECURITY, GATE, AIRCRAFT_STAND, SHOP, BAGG
 ## What a customer spends in euros (random between min and max); the airport earns a share.
 @export var spend_min: float = 0.0
 @export var spend_max: float = 0.0
+## Run by the airport itself (lounge): the airport keeps the whole amount, a fixed price.
+@export var airport_run: bool = false
 
 @export_group("Upgrades")
 ## Upgrade levels in order (design doc §7.8). Empty = the station can't be upgraded.

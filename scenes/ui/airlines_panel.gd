@@ -196,13 +196,18 @@ func _add_label(text: String) -> void:
 func _on_end_pressed(button: Button, airline: Airline) -> void:
 	if button.text != "Tap again":
 		button.text = "Tap again"
-		get_tree().create_timer(CONFIRM_TIME).timeout.connect(func() -> void:
-			if is_instance_valid(button):
-				button.text = "End deal")
+		# A method, not a lambda: the connection ends with the panel, and a lambda holding the
+		# button would complain once the button is gone.
+		get_tree().create_timer(CONFIRM_TIME).timeout.connect(_disarm_end_button.bind(button))
 		return
 	Airport.end_airline_deal(airline)
 	_list_key = ""
 	_refresh()
+
+
+func _disarm_end_button(button: Button) -> void:
+	if is_instance_valid(button):
+		button.text = "End deal"
 
 
 func _change_fee(step: float) -> void:

@@ -295,6 +295,30 @@ func _finish_upgrade(building: Building) -> void:
 	building_upgraded.emit(building)
 
 
+## A fast track lane for security (design doc §11.8): a one-off price.
+const FAST_TRACK_COST: float = 5000.0
+
+
+## Why `building` can't get a fast track right now, or "" if it can.
+func fast_track_problem(building: Building) -> String:
+	if building.type.role != BuildingType.Role.SECURITY:
+		return "Only for security"
+	if building.fast_track:
+		return "Has a fast track"
+	if not economy.can_afford(FAST_TRACK_COST):
+		return "Not enough money (%s)" % Economy.format(FAST_TRACK_COST)
+	return ""
+
+
+func buy_fast_track(building: Building) -> bool:
+	if not fast_track_problem(building).is_empty():
+		return false
+	economy.pay_construction(FAST_TRACK_COST)
+	building.fast_track = true
+	building_upgraded.emit(building)
+	return true
+
+
 ## Running costs of everything built plus salaries, in euros per minute.
 func running_cost_per_minute() -> float:
 	return _running_cost_per_minute
@@ -584,6 +608,7 @@ func save_state() -> Dictionary:
 			"rotation": building.rotation_steps,
 			"level": building.level,
 			"upgrade_left": building.upgrade_seconds_left,
+			"fast_track": building.fast_track,
 		})
 	var saved_staff: Array[Dictionary] = []
 	for employee in staff:
@@ -639,6 +664,7 @@ func load_state(data: Dictionary) -> int:
 			continue
 		building.level = clampi(int(entry.get("level", 1)), 1, type.upgrades.size() + 1)
 		building.upgrade_seconds_left = float(entry.get("upgrade_left", 0.0)) if building.next_upgrade() != null else 0.0
+		building.fast_track = bool(entry.get("fast_track", false))
 	_loading = false
 	if data.has("staff"):
 		for entry: Dictionary in data["staff"]:

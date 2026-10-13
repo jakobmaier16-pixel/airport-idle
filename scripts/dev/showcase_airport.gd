@@ -52,9 +52,14 @@ static func build(warm_up_seconds: float = 180.0) -> void:
 	# Airside shopping between the gates (design doc §8.6).
 	Airport.place_building(catalog.find(&"shop"), Vector2i(22, 34), 0)
 	Airport.place_building(catalog.find(&"cafe"), Vector2i(33, 34), 0)
+	# Lounge for business travellers next to the café, a car park beside the landside hall, and
+	# a fast track at security (design doc §11.8).
+	Airport.place_building(catalog.find(&"lounge"), Vector2i(37, 34), 0)
+	Airport.place_building(catalog.find(&"car_park"), Vector2i(46, 21), 3)
 
 	# Station upgrades (design doc §7.8): security already at level 2.
 	Airport.start_upgrade(_first(BuildingType.Role.SECURITY))
+	Airport.buy_fast_track(_first(BuildingType.Role.SECURITY))
 
 	# Airlines (§10.1): the starter deal, two more and a long-haul airline, together as many
 	# flights as the three gates can take (60 per hour), and an open offer to negotiate.
