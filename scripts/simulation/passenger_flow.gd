@@ -23,6 +23,20 @@ const SECURITY_ALLOWANCE: float = 60.0
 const PASS_THROUGH_TIME: float = 3.0
 ## Customers leave a shop this long before boarding opens at the latest ("final call").
 const FINAL_CALL: float = 15.0
+## Satisfaction (design doc §8.10): mood points lost per second in a queue beyond the type's
+## patience, per second waiting for a bag beyond BAG_PATIENCE, per meter walked beyond
+## WALK_TOLERANCE, and per second without a way to go on.
+const QUEUE_PENALTY: float = 0.5
+const BAG_PATIENCE: float = 60.0
+const BAG_PENALTY: float = 0.3
+const WALK_TOLERANCE: float = 150.0
+const WALK_PENALTY: float = 0.1
+const STUCK_PENALTY: float = 1.0
+## Mood gained by a visit to a shop or café.
+const SHOP_BONUS: float = 5.0
+## Unhappy customers spend less: spending at mood 0 and at mood 100 (share of the normal amount).
+const SPEND_AT_WORST: float = 0.5
+const SPEND_AT_BEST: float = 1.1
 ## How many clothing colors the visuals offer.
 const COLOR_COUNT: int = 6
 ## Safety limit, so a layout where passengers can't leave doesn't fill up endlessly.
@@ -45,6 +59,8 @@ var transferred_count: int = 0
 var transfers_possible: bool = false
 ## Tests only: if 0 or more, replaces every route's transfer share.
 var transfer_share_override: float = -1.0
+## How happy passengers leave the airport (design doc §8.10).
+var satisfaction: Satisfaction = Satisfaction.new()
 ## What is missing for a complete route, or "" if passengers can flow.
 var route_problem: String = ""
 
@@ -169,12 +185,14 @@ func tick(delta: float) -> void:
 		_sample_timer -= 1.0
 		for station: Station in _stations.values():
 			station.record_sample()
+		satisfaction.tick_second()
 
 	for passenger in passengers:
 		match passenger.state:
 			Passenger.State.WALKING:
 				_walk(passenger, delta)
 			Passenger.State.STUCK:
+				_lose_mood(passenger, Satisfaction.NO_WAY, STUCK_PENALTY * delta)
 				passenger.retry_in -= delta
 				if passenger.retry_in <= 0.0:
 					_plan(passenger)
@@ -228,6 +246,8 @@ func board(flight: Flight, max_count: int) -> int:
 	if boarding.is_empty():
 		return 0
 	_remove(boarding)
+	for passenger in boarding:
+		_finish_journey(passenger)
 	flight.boarded += boarding.size()
 	transferred_count += boarding.filter(func(p: Passenger) -> bool: return p.is_transfer).size()
 	return boarding.size()
@@ -325,6 +345,10 @@ func remove_flight_passengers(flight: Flight, count_as_missed: bool) -> int:
 	_remove(leaving)
 	if count_as_missed:
 		missed_count += leaving.size()
+		for passenger: Passenger in leaving:
+			# Missing the flight ruins the trip, whatever happened before.
+			_lose_mood(passenger, Satisfaction.MISSED, passenger.mood)
+			_finish_journey(passenger, Satisfaction.MISSED_WEIGHT)
 	return leaving.size()
 
 
@@ -409,6 +433,12 @@ func _plan(passenger: Passenger) -> void:
 
 func _walk(passenger: Passenger, delta: float) -> void:
 	var step := _speed(passenger) * delta
+	var walked_before := passenger.walked
+	passenger.walked += step
+	# Long walks wear people out (design doc §8.10).
+	var too_far := passenger.walked - maxf(walked_before, WALK_TOLERANCE)
+	if too_far > 0.0:
+		_lose_mood(passenger, Satisfaction.LONG_WALKS, too_far * WALK_PENALTY)
 	while step > 0.0 and passenger.path_index < passenger.path.size():
 		var to_target := passenger.path[passenger.path_index] - passenger.position
 		var distance := to_target.length()
@@ -428,6 +458,7 @@ func _arrive(passenger: Passenger) -> void:
 		# Out of the airport: the arrival is complete (design doc §8.8).
 		passenger.state = Passenger.State.GONE
 		arrived_count += 1
+		_finish_journey(passenger)
 		Airport.economy.earn(Economy.ARRIVAL_FEE)
 		return
 	var station := _stations[passenger.target]
@@ -488,6 +519,8 @@ func _tick_station(station: Station, delta: float) -> void:
 			next.state = Passenger.State.IN_SERVICE
 			station.serving[i] = next
 			station.record_wait(time, time - next.queued_since)
+			var patience := next.type.queue_patience if next.type != null else 60.0
+			_lose_mood(next, Satisfaction.LONG_QUEUES, (time - next.queued_since - patience) * QUEUE_PENALTY)
 			# Some passengers are quicker than others; experienced staff are faster.
 			station.service_left[i] = station.building.service_time() * _type_factor(next, station) \
 				* working[i].time_factor() * _rng.randf_range(0.75, 1.25)
@@ -548,7 +581,10 @@ func _tick_shop(station: Station, delta: float) -> void:
 		station.waiting.erase(customer)
 		var type := station.building.type
 		var spend_factor := customer.type.spend_factor if customer.type != null else 1.0
-		var income := _rng.randf_range(type.spend_min, type.spend_max) * spend_factor * Economy.CONCESSION_SHARE
+		# Stressed passengers spend less (design doc §8.10); the visit itself cheers them up.
+		var mood_factor := lerpf(SPEND_AT_WORST, SPEND_AT_BEST, clampf(customer.mood, 0.0, 100.0) / 100.0)
+		customer.mood = minf(customer.mood + SHOP_BONUS, 100.0)
+		var income := _rng.randf_range(type.spend_min, type.spend_max) * spend_factor * mood_factor * Economy.CONCESSION_SHARE
 		Airport.economy.earn(income)
 		station.record_income(time, income)
 		# Out of the front door and on to the gate.
@@ -574,6 +610,7 @@ func _tick_baggage_claim(station: Station) -> void:
 	for passenger in leaving:
 		station.waiting.erase(passenger)
 		station.record_wait(time, time - passenger.queued_since)
+		_lose_mood(passenger, Satisfaction.BAG_WAITS, (time - passenger.queued_since - BAG_PATIENCE) * BAG_PENALTY)
 		var door: Vector2i = station.exit_cells[_rng.randi() % station.exit_cells.size()]
 		passenger.position = _cell_point(door, passenger)
 		passenger.previous_position = passenger.position
@@ -640,6 +677,20 @@ func _move_towards(passenger: Passenger, target: Vector3, delta: float) -> void:
 		passenger.position = target
 	else:
 		passenger.position += to_target.normalized() * step
+
+
+# --- Satisfaction (design doc §8.10) ---
+
+func _lose_mood(passenger: Passenger, reason: String, points: float) -> void:
+	points = minf(points, passenger.mood)
+	if points <= 0.0:
+		return
+	passenger.mood -= points
+	satisfaction.complain(reason, points)
+
+
+func _finish_journey(passenger: Passenger, weight: float = 1.0) -> void:
+	satisfaction.record(passenger.type.display_name if passenger.type != null else "Other", passenger.mood, weight)
 
 
 # --- Passenger types (design doc §8.7) ---

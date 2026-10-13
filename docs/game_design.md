@@ -294,6 +294,20 @@ Placeholder numbers, tunable in `data/passengers/`. Transfer passengers come wit
 - **Without a working transfer security the airport sells no connections:** all arriving passengers end their journey here.
 - Statistics show passengers transferring now and successful connections.
 
+
+### 8.10 Passenger satisfaction (first version)
+Placeholder numbers, tunable.
+- Every passenger has a **mood** (0–100 %) that starts at 100 % and drops when the airport treats them badly:
+  - **Long queues:** −0.5 per second in a check-in or security queue beyond their patience (families 60 s, low-cost 90 s, business 30 s).
+  - **Long walks:** −0.1 per meter beyond 150 m walked inside the airport.
+  - **Waiting for bags:** −0.3 per second at the belt beyond 60 s.
+  - **No way through:** −1 per second while they can't find a way to their next station.
+  - **Missed flight:** mood 0, and the journey counts three times (people remember the trip that went wrong).
+- A visit to a shop or café **cheers them up** (+5). Unhappy customers **spend less**: from 50 % of the normal amount at mood 0 to 110 % at mood 100.
+- When a journey ends (boarded, left the airport, missed the flight), the mood goes into the airport's **satisfaction**: a running average over roughly the last 60 passengers, also per passenger type. A new airport starts at 75 %.
+- **Statistics** show satisfaction overall and per type, and the **main complaint** (the reason that cost the most mood over the last few minutes).
+- Satisfaction feeds the airport's **reputation** (§11.7).
+
 ---
 
 ## 9. Staff

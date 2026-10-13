@@ -49,6 +49,7 @@ var _tool: BuildMode.Tool = BuildMode.Tool.NONE
 @onready var _stats_table: GridContainer = $SafeArea/StatsPanel/Content/Table
 @onready var _bottleneck_label: Label = $SafeArea/StatsPanel/Content/BottleneckLabel
 @onready var _types_label: Label = $SafeArea/StatsPanel/Content/TypesLabel
+@onready var _satisfaction_label: Label = $SafeArea/StatsPanel/Content/SatisfactionLabel
 @onready var _build_menu: Control = $SafeArea/BuildMenu
 @onready var _building_buttons: HBoxContainer = $SafeArea/BuildMenu/BuildingButtons
 @onready var _tool_panel: Control = $SafeArea/ToolPanel
@@ -275,11 +276,26 @@ func _update_stats_panel() -> void:
 		parts.append("%d %s" % [counts.get(type_name, 0), type_name])
 	_types_label.text = "In the airport: " + "  ·  ".join(parts) \
 		+ "\nTransfers: %d transferring now  ·  %d connected" % [flow.transferring_count(), flow.transferred_count]
+	_satisfaction_label.text = satisfaction_text(flow.satisfaction)
 	if bottleneck != null:
 		_bottleneck_label.text = "Bottleneck: %s · avg wait %d s" % [
 			flow.station_label(bottleneck.building), roundi(bottleneck.average_wait(flow.time))]
 	else:
 		_bottleneck_label.text = "No bottleneck: every queue moves quickly."
+
+
+## "Satisfaction: 78 %  ·  Families 82 % …" plus the main complaint (design doc §8.10).
+static func satisfaction_text(satisfaction: Satisfaction) -> String:
+	var parts: PackedStringArray = []
+	for type_name in ["Families", "Low-cost", "Business"]:
+		if satisfaction.by_type.has(type_name):
+			parts.append("%s %d %%" % [type_name, roundi(satisfaction.by_type[type_name])])
+	var text := "Satisfaction: %d %%" % roundi(satisfaction.average)
+	if not parts.is_empty():
+		text += "   (" + "  ·  ".join(parts) + ")"
+	var complaint := satisfaction.main_complaint()
+	text += "\nMain complaint: " + (complaint if not complaint.is_empty() else "none")
+	return text
 
 
 func _add_stats_cell(text: String, color: Color) -> void:

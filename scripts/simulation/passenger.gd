@@ -52,5 +52,9 @@ var visit_left: float = 0.0
 ## simulation time by which the passenger must leave to still make boarding.
 var after_shop: BuildingType.Role = BuildingType.Role.GATE
 var leave_shop_by: float = 0.0
+## How happy the passenger is with the airport so far, 0..100 (design doc §8.10).
+var mood: float = 100.0
+## Meters walked inside the airport so far.
+var walked: float = 0.0
 ## Seconds until a STUCK passenger tries again.
 var retry_in: float = 0.0

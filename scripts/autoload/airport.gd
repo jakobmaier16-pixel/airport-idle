@@ -349,6 +349,7 @@ func save_state() -> Dictionary:
 		"zones": Marshalls.raw_to_base64(grid.get_zone_data()),
 		"walkways": Marshalls.raw_to_base64(grid.get_walkway_data()),
 		"money": economy.balance,
+		"satisfaction": passenger_flow.satisfaction.save_state(),
 		"buildings": saved_buildings,
 	}
 
@@ -399,6 +400,7 @@ func load_state(data: Dictionary) -> int:
 			if needs_staff(building):
 				staff_fully(building)
 	economy.balance = float(data.get("money", Economy.STARTING_MONEY))
+	passenger_flow.satisfaction.load_state(data.get("satisfaction", {}))
 	zones_changed.emit()
 	walkways_changed.emit()
 	layout_changed.emit()

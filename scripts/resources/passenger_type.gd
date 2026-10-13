@@ -25,6 +25,10 @@ extends Resource
 ## Arriving passengers: share with a checked bag, who wait at the baggage claim (design doc §8.8).
 @export_range(0.0, 1.0) var checked_bag_chance: float = 1.0
 
+@export_group("Satisfaction")
+## Seconds in a queue before they get annoyed (design doc §8.10).
+@export var queue_patience: float = 60.0
+
 @export_group("Shopping")
 ## Chance to visit a shop or café after security, if there is time (design doc §8.6).
 @export_range(0.0, 1.0) var shop_chance: float = 0.6
