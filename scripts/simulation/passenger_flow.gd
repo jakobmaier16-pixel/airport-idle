@@ -54,6 +54,8 @@ const STATION_ROLES: Array[BuildingType.Role] = [Role.CHECK_IN, Role.SECURITY, R
 const COLOR_COUNT: int = 6
 ## Safety limit, so a layout where passengers can't leave doesn't fill up endlessly.
 const MAX_PASSENGERS: int = 600
+## The limit in use (the device benchmark raises it, see scripts/dev/benchmark.gd).
+var max_passengers: int = MAX_PASSENGERS
 
 const Role := BuildingType.Role
 
@@ -235,7 +237,7 @@ func tick(delta: float) -> void:
 
 ## A passenger of `type` for `flight` arrives at an entrance. Returns false if nobody can arrive.
 func spawn_passenger(flight: Flight, type: PassengerType) -> bool:
-	if not route_problem.is_empty() or _route_entrances.is_empty() or passengers.size() >= MAX_PASSENGERS:
+	if not route_problem.is_empty() or _route_entrances.is_empty() or passengers.size() >= max_passengers:
 		return false
 	# Car travellers park for their trip, if there is a car park (design doc §11.8).
 	var by_car := not _route_car_parks.is_empty() and rng.randf() < CAR_SHARE

@@ -16,6 +16,8 @@ signal demolish_pressed
 signal reset_confirmed
 ## The player confirmed loading the showcase airport (test builds only).
 signal showcase_confirmed
+## The player confirmed starting the device benchmark (test builds only, scripts/dev/benchmark.gd).
+signal benchmark_confirmed
 signal upgrade_pressed(building: Building)
 signal hire_pressed(building: Building)
 signal dismiss_pressed(building: Building)
@@ -91,6 +93,7 @@ var _goal_refresh_in: float = 0.0
 @onready var _departures_label: Label = $SafeArea/InfoPanel/DeparturesLabel
 @onready var _reset_button: Button = $SafeArea/BuildMenu/PaintButtons/ResetButton
 @onready var _demo_button: Button = $SafeArea/BuildMenu/PaintButtons/DemoButton
+@onready var _bench_button: Button = $SafeArea/BuildMenu/PaintButtons/BenchButton
 @onready var _station_panel: Control = $SafeArea/StationPanel
 @onready var _station_title: Label = $SafeArea/StationPanel/Content/TitleLabel
 @onready var _station_info: Label = $SafeArea/StationPanel/Content/InfoLabel
@@ -124,8 +127,10 @@ func _ready() -> void:
 	# Reset and Demo are testing aids, so they only exist in debug builds (including device test builds).
 	_reset_button.visible = OS.is_debug_build()
 	_demo_button.visible = OS.is_debug_build()
+	_bench_button.visible = OS.is_debug_build()
 	_reset_button.pressed.connect(_on_confirm_button_pressed.bind(_reset_button, "Reset", reset_confirmed))
 	_demo_button.pressed.connect(_on_confirm_button_pressed.bind(_demo_button, "Demo", showcase_confirmed))
+	_bench_button.pressed.connect(_on_confirm_button_pressed.bind(_bench_button, "Bench", benchmark_confirmed))
 	_upgrade_button.pressed.connect(func() -> void: upgrade_pressed.emit(shown_station))
 	_hire_button.pressed.connect(func() -> void: hire_pressed.emit(shown_station))
 	_dismiss_button.pressed.connect(func() -> void: dismiss_pressed.emit(shown_station))

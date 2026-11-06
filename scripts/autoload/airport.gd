@@ -80,6 +80,9 @@ var manager_yaw: float = 0.0
 var saved_manager: Dictionary = {}
 ## How far the current frame is between the last and the next simulation step (0..1).
 var sim_alpha: float = 0.0
+## How long each simulation step of the current frame took, in microseconds (for the device
+## benchmark, scripts/dev/benchmark.gd). Refilled every frame.
+var last_heartbeats_usec: PackedInt32Array = PackedInt32Array()
 ## The airport's dice (tech_architecture.md §3). Every random choice of the simulation comes from
 ## here, so the same seed and the same player actions give exactly the same game. Shared with
 ## PassengerFlow, FlightSchedule, Airlines and Weather; saved with the game.
@@ -113,8 +116,11 @@ func _ready() -> void:
 func _process(delta: float) -> void:
 	_sim_time += delta
 	var steps := 0
+	last_heartbeats_usec.clear()
 	while _sim_time >= SIM_STEP and steps < MAX_STEPS_PER_FRAME:
+		var started := Time.get_ticks_usec()
 		step(SIM_STEP)
+		last_heartbeats_usec.append(Time.get_ticks_usec() - started)
 		_sim_time -= SIM_STEP
 		steps += 1
 	_sim_time = minf(_sim_time, SIM_STEP)

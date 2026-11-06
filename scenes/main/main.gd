@@ -37,6 +37,7 @@ func _ready() -> void:
 	_build_mode.tool_changed.connect(_hud.set_tool_state)
 	_hud.reset_confirmed.connect(_on_reset_confirmed)
 	_hud.showcase_confirmed.connect(_on_showcase_confirmed)
+	_hud.benchmark_confirmed.connect(_on_benchmark_confirmed)
 	# Managing a station needs the manager on the spot (design doc §15.1).
 	_hud.upgrade_pressed.connect(func(building: Building) -> void:
 		if Airport.manage_problem(building).is_empty():
@@ -85,6 +86,12 @@ func _ready() -> void:
 		_hud.notify("Welcome back! You were away %d hours. Your airport earned %s while you were gone." % [
 			floori(SaveGame.away_seconds / 3600.0), Economy.format(SaveGame.welcome_back_bonus)])
 		SaveGame.welcome_back_bonus = 0.0
+	# The device benchmark was asked for before the scene reload (test builds only).
+	if Benchmark.pending:
+		Benchmark.pending = false
+		var benchmark := Benchmark.new()
+		benchmark.main = self
+		add_child(benchmark)
 
 
 # Clears the map and reloads the scene, so every visual is rebuilt from the (now empty) simulation.
@@ -97,6 +104,18 @@ func _on_reset_confirmed() -> void:
 func _on_showcase_confirmed() -> void:
 	SaveGame.load_showcase()
 	get_tree().reload_current_scene()
+
+
+# Builds the benchmark airport (the player's save is kept safe) and reloads the scene for it.
+func _on_benchmark_confirmed() -> void:
+	Benchmark.prepare_airport()
+	Benchmark.pending = true
+	get_tree().reload_current_scene()
+
+
+## Switches to `view` (used by the device benchmark).
+func set_view(view: View) -> void:
+	_set_view(view)
 
 
 func _process(_delta: float) -> void:

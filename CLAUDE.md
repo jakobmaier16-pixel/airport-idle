@@ -209,6 +209,9 @@ UI controls (buttons) consume their touches first, so taps on buttons never reac
   Check new `class_name`s against built-in classes. Method names can clash too: a method called
   `sign()` is shadowed by the global math function inside its own class ("Too many arguments").
 - `"%s" % some_array` treats the array as the argument list; wrap it: `"%s" % [some_array]`.
+- Packed arrays (`PackedFloat32Array` etc.) are values, not references: one read out of a
+  Dictionary or Array is a copy, so `(dict["x"] as PackedFloat32Array).append(v)` changes nothing.
+  Keep growing lists in plain `Array`s there (they are shared), or write the packed array back.
 - The default font has no ★ or → glyphs (stars are drawn by `StarRating`); check new symbols
   with `ThemeDB.fallback_font.has_char()`.
 - Autoloads are not available to scripts run with `--script`; that's why tests run as a scene
