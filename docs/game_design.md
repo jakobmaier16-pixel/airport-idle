@@ -315,7 +315,7 @@ Goal: prove the core loop: demand grows by itself, the player builds capacity.
 8. **One service: electricity** with capacity, to test the TheoTown principle **(proposal)**
 9. **One upgrade ladder:** security, with one real technology step visible in 3D: more lanes → fast track → CT scanners
 10. Basic statistics: queue length per station, power use
-11. **One milestone:** reaching the first tier unlocks something new (new land and the CT scanner step, **(proposal)**), to test the milestone, upgrade and rebuild moment
+11. **One milestone:** reaching the first tier unlocks something new (new land and the CT scanner step), to test the milestone, upgrade and rebuild moment
 
 **Next, in order (proposal):** manager view for one area → more services (water, fire) → shops → staff → passenger types → airlines and deals → arrivals → Schengen / non-Schengen → Terminal 2.
 

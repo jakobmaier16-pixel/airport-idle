@@ -35,6 +35,8 @@ The game is split into three parts that are kept strictly apart:
 - **10 heartbeats per second.** The brain thinks in fixed steps, whatever the screen does. The drawing smooths movement between two heartbeats. (Already working in the prototype.)
 - **One clock** for everything. The prototype has two (time of day, and a passenger timer that restarts at every load); they become one. One real second is 15 game seconds; a new airport opens at 06:00 on day 1.
 - **Dice with a seed.** All randomness (passenger types, arrival times, names) comes from one random generator that starts from a number, the *seed*. The same seed gives exactly the same game, so a bug can be replayed and tests always behave the same. The seed is saved with the game.
+  - **Done** (2026-11-06): today the dice live in the global airport object (`Airport.rng`) and are shared with every part of the brain; every test runs with its own fixed seed.
+  - **When the brain becomes one object, the shared dice move with it:** the brain object owns them, every part of the brain gets them from the brain, and they are saved with it. Nothing may keep its own dice or fall back to the global ones.
 - **The brain is one object.** The whole airport lives in one self-contained object instead of being spread over a global that everything reaches into. A test can create a fresh airport in a split second; later a second airport could exist for previews.
 
 **Later:** running the brain on its own processor core (a background thread) if the heartbeat gets too heavy for big hubs.
@@ -104,7 +106,7 @@ The game is split into three parts that are kept strictly apart:
 The milestone, upgrade and rebuild moment is the core of the game, so the slice tests it once.
 
 - **Slice:** reaching the first tier (Regional → National) is a milestone. A big moment on screen names it and shows what is new.
-- What it unlocks in the slice **(proposal):** new land to expand into, and the CT scanner step of the security ladder. The player then has a reason to rebuild security and grow into the new land.
+- What it unlocks in the slice (decided 2026-11-06): **new land** to expand into, and the **CT scanner step** of the security ladder. The player then has a reason to rebuild security and grow into the new land.
 - The requirement uses the tier rules as built (passengers served and stars); the numbers are rebalanced for the slice.
 
 **Later:** the other tiers and their rewards (game_design.md §13), first-landing cutscenes, special events.
@@ -185,7 +187,7 @@ The test devices are an **iPhone 13 Pro** (the weaker one) and an **iPad Air M1*
 |---|---|---|
 | **Brain tests** | The brain alone, without graphics: queues, zones, recipes, money, saving. Fast. | new |
 | **Walkthrough tests** | The real game, tapped and dragged like a player. | existing (266), kept |
-| **Seeded randomness** | Every test run behaves exactly the same; a failure can be replayed with its seed. | new (first task) |
+| **Seeded randomness** | Every test run behaves exactly the same; a failure can be replayed with its seed. | done |
 | **Performance test** | The benchmark of §15, on the device. | new (first tasks) |
 | **Save tests** | Old saves load through every migration and nothing gets lost. Includes stored example saves from every version. | new (first tasks) |
 | **Data checks** | The data files are complete and consistent (§14). | new |
@@ -232,4 +234,3 @@ Airlines and deals · arrivals, baggage and transfers · passenger types, shops 
 
 1. **Minimum supported iPhone:** decide before TestFlight. Godot needs at least an A12 chip (iPhone XS / XR, 2018); the budget in §15 keeps room for it, but it must be tested on a real older device or dropped.
 2. **Memory limit:** set after the first device measurement.
-3. **What the milestone unlocks in the slice** (§9): new land and the CT scanner step is the proposal.

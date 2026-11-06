@@ -171,6 +171,7 @@ Starting airport · day/night lighting · pause and speed controls · upgrade-in
 | Vertical slice | Adds one milestone (first tier) and the security ladder up to CT scanners, visible in 3D |
 | Test devices | iPhone 13 Pro (the weaker one) and iPad Air M1; stricter budget on the 13 Pro to keep headroom for older phones |
 | Minimum supported iPhone | Open: decide before TestFlight |
+| Slice milestone | Reaching the first tier unlocks new land and the CT scanner step |
 
 ---
 
