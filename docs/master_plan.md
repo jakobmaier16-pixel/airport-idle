@@ -32,7 +32,7 @@
 |---|---|---|
 | `docs/game_design.md` | *What* is the game? Decisions and direction only. Short. | When a decision is made |
 | `docs/prototype_reference.md` | What does the POC do *today*? Numbers, tables, rules. Not final. | Only for reference |
-| `docs/tech_architecture.md` (to write) | *How* is it built? Structure, data, saving, performance. | With each technical decision |
+| `docs/tech_architecture.md` | *How* is it built? Structure, data, saving, performance. | With each technical decision |
 | `docs/roadmap.md` (to write) | *When / in what order?* Now / Next / Later backlog. | Every week |
 | `CLAUDE.md` | Rules for Claude Code in this project | When rules change |
 
@@ -67,7 +67,9 @@ One small piece of the **real** game, at near-final quality, about 30 minutes of
 - automatic zones from buildings
 - top-down view and a manager view with one area
 - statistics panel with a bottleneck finder
-- one service (power) and one upgrade ladder (security)
+- one service (power)
+- one upgrade ladder (security) with one real technology step visible in 3D: more lanes → fast track → CT scanners
+- one milestone: reaching the first tier unlocks something new, to test the milestone, upgrade and rebuild moment
 - near-final look, sound and UI feel for this slice
 
 **Gate (the most important in the project):** let 5–10 people outside our circle play it on their own phone. Do they understand it, enjoy it, and want to continue? If not, fix the core before building more.
@@ -166,6 +168,9 @@ Starting airport · day/night lighting · pause and speed controls · upgrade-in
 | Upgrades | Real technology steps, visible in 3D |
 | Bankruptcy | Loan and restructuring, no game over |
 | Money | No ads, no in-app purchases for now |
+| Vertical slice | Adds one milestone (first tier) and the security ladder up to CT scanners, visible in 3D |
+| Test devices | iPhone 13 Pro (the weaker one) and iPad Air M1; stricter budget on the 13 Pro to keep headroom for older phones |
+| Minimum supported iPhone | Open: decide before TestFlight |
 
 ---
 

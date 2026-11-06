@@ -13,6 +13,8 @@ When a decision is made, update the design doc.
 
 - `docs/master_plan.md`: how we build the app: phases and gates, the day-to-day workflow,
   the parking lot for later ideas, and the decision log.
+- `docs/tech_architecture.md`: how the game is built (brain / windows / hands, saving, performance
+  budget, testing). Read it before any technical work.
 - `docs/prototype_reference.md`: what the current prototype does today, with all its numbers and
   rules. Not the final design. Code comments that cite "design doc §N" use this file's section numbers.
 
