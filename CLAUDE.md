@@ -1,34 +1,43 @@
 # AirportIdle
 
-A free, strategic airport management game with idle elements for iPhone and iPad.
-The player builds their own airport freeform on a grid and grows it from a regional field into a hub.
+A free, realistic airport builder and management game for iPhone and iPad.
+The player builds and runs their own airport on one map and grows it from a regional field into a hub.
+The airport is the game; idle mechanics support it, they never replace it.
 
 ## Design doc first
 
-Read `docs/game_design.md` before working on any feature. It is the source of truth for *what*
-we build. If a request conflicts with the design doc, point it out instead of silently deviating.
-Items marked **(open)** are undecided — ask before inventing an answer.
+Read `docs/game_design.md` before working on any feature. It is the source of truth. Items marked
+**(open)** or **(proposal)** are not yet decided, so ask first.
+If a request conflicts with the design doc, point it out instead of silently deviating.
 When a decision is made, update the design doc.
+
+- `docs/master_plan.md`: how we build the app: phases and gates, the day-to-day workflow,
+  the parking lot for later ideas, and the decision log.
+- `docs/prototype_reference.md`: what the current prototype does today, with all its numbers and
+  rules. Not the final design. Code comments that cite "design doc §N" use this file's section numbers.
 
 ## Key decisions
 
-- **Platforms:** iOS / iPadOS only, distributed via the App Store. No Android, no desktop release.
-  The Mac is used only for development and testing.
-- **Devices:** iPad is the primary device and gets the best experience; iPhone must stay fully playable.
+- **Platforms:** iOS / iPadOS, distributed via the App Store. Android is not a focus now (revisit
+  later if easy); no desktop release. The Mac is used only for development and testing.
+- **Devices:** iPhone and iPad are both main devices and must both play well.
 - **Orientation:** landscape only, in both views.
-- **Language:** English only.
+- **Language:** English only. No multiplayer, no multiple airports.
 - **Monetization:** none. No ads, no in-app purchases.
 - **Realism first:** the airport must *work* like a real one (zones, flows, staff, schedules).
 - **Building:** grid-based, freeform layout with predesigned, rotatable buildings.
+- **Zones:** automatic from the buildings; the security building is the landside / airside border.
+  (The prototype still has hand-painted zones; that will be replaced.)
 - **Grid scale:** compressed, not 1:1. Terminal and landside stay near-realistic (cell = 2 m to start);
   airside (runways, taxiways, aprons) is scaled down so the whole airport fits on a playable map.
   The cell size must stay a single, easy-to-change value.
 - **Two camera views** (a HUD button switches between them):
   - *Manager view:* **first person** (changed 2026-10-13, was a fixed tilted camera): the player
     sees what the manager sees, from eye height, and looks around by dragging on the right half.
-    Everything except building happens here (walking, passengers, staff, stations, statistics).
-    No zoom; the build view gives the overview.
-  - *Build view:* top-down / bird's-eye. All building and layout planning happens here, and only here. One-finger drag pans
+    Here the player enjoys the airport, walks around, and inspects and upgrades stations and staff.
+    No zoom; the build view gives the overview. Incident handling here is parked until much later.
+  - *Build view:* top-down / bird's-eye. Understand the airport and its passenger flow, read
+    statistics, and plan the layout: all building happens here, and only here. One-finger drag pans
     (unless a tool uses it, e.g. dragging a building or painting zones), two fingers pan and zoom;
     zoom is limited and the camera stays inside the map.
 - **Simulation keeps running in the build view.** No pause for now.
@@ -36,7 +45,12 @@ When a decision is made, update the design doc.
   A drag starting on the **left half** is the floating joystick (walk relative to the view); a drag
   on the **right half** looks around; a short touch anywhere is a tap (opens the station under it).
   Both thumbs work at once. WASD / arrow keys and mouse-drag look also work for testing on the Mac.
-- **Offline income:** minimal. Nothing for breaks under 36 h; after 36 h+ away, 4 h of income once.
+- **Offline income:** minimal. Nothing for breaks under 36 h; after 36 h+ away, 4 h of income once
+  ("income" = average profit per minute over the last ~10 min of play).
+- **Saving:** automatic after every change, when the app goes to the background, and a 30 s safety
+  save. Every save stores a timestamp (for offline income).
+- **Time:** 1 real second = 15 game seconds (a game day is 96 real minutes); a new airport opens at
+  06:00 on day 1 and the clock runs all 24 hours.
 - **Fictional world:** all airlines and airports are fictional. No real names or logos.
 - **Art:** simple low-poly models.
 - **Safe areas:** all UI must stay inside the safe area (notch, Dynamic Island, home indicator).
@@ -44,7 +58,7 @@ When a decision is made, update the design doc.
 
 ## Performance architecture (rule for every feature)
 
-Target: smooth on older iPhones. Plan this in from the start (design doc §18).
+Target: smooth on older iPhones. Plan this in from the start (design doc §16).
 
 1. **Simulation and visuals are strictly separate.** The simulation (passengers, stations, money,
    queues) is pure data for the whole airport and runs at all times. Simulation code must not use
@@ -68,7 +82,8 @@ Target: smooth on older iPhones. Plan this in from the start (design doc §18).
 
 ## Working rules
 
-- Build in small, playable steps, starting with the MVP (design doc §16).
+- Build in small, playable steps, starting with the MVP (design doc §15). Order, phases and gates:
+  `docs/master_plan.md`.
 - Update `docs/game_design.md` whenever a design decision is made.
 
 ## Folder structure
