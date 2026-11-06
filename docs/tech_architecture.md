@@ -182,8 +182,11 @@ The test devices are an **iPhone 13 Pro** (the weaker one) and an **iPad Air M1*
   | Device | Heartbeat (avg · 95 %) | Work per frame (95 %) | Result |
   |---|---|---|---|
   | Mac (development, no screen) | 2.3–2.4 ms · 2.7–3.0 ms | — | FAIL (heartbeat) |
-  | iPhone 13 Pro | pending | pending | pending |
+  | iPhone 13 Pro, top-down (120 fps) | 2.6 ms · 3.1 ms (worst 3.9) | 11.7 ms (avg 8.9, worst 27.6) | FAIL (both) |
+  | iPhone 13 Pro, first person (93 fps) | 3.1 ms · 3.8 ms (worst 4.3) | 14.4 ms (avg 13.3) | FAIL (both) |
   | iPad Air M1 | pending | pending | pending |
+
+  iPhone 13 Pro (build b6f7d17, 2026-11-06): peak memory Godot 97 MB, video 218 MB. The graphics chip time reads 0 on the iPhone: it isn't reported this way there, so it means "not measured", not "free". The phone ran at 120 fps (ProMotion), not the 60 fps the budget assumes.
 
 - **Measured, not felt:** a benchmark mode in test builds builds a busy airport with 1,000 passengers, runs it for a few minutes on the device and reports the numbers (frame time, heartbeat time, memory). It runs before every milestone.
 
