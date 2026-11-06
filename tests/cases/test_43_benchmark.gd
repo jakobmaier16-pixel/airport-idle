@@ -41,6 +41,12 @@ func test_benchmark_runs_and_reports() -> void:
 	check(benchmark.report.contains("PASS") or benchmark.report.contains("FAIL"), "judged against the budget")
 	check(main.current_view == main.View.MANAGER, "the second run is in first person")
 	check(benchmark.find_child("CloseButton", true, false) != null, "the results can be closed")
+	# Without a screen there is no graphics time: the report says so instead of showing 0.0 ms.
+	check(benchmark.report.contains("not measured on this device"), "an unmeasured graphics time is named as such")
+	var results := benchmark.find_child("Results", true, false) as PanelContainer
+	var background := results.get_theme_stylebox("panel") as StyleBoxFlat
+	check(background != null and background.bg_color.a == 1.0, "the results screen has a solid background")
+	check(benchmark.report.contains("Frame cap"), "the report shows the frame cap")
 
 
 func test_percentile() -> void:

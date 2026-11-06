@@ -208,8 +208,9 @@ func _finish() -> void:
 	lines.append("Benchmark · %s · build %s · seed %d" % [OS.get_model_name(), BuildStamp.text(), SEED])
 	# The cap is 60 fps on iPhone and iPad (project setting application/run/max_fps.mobile), even on
 	# 120 Hz screens (tech_architecture.md §15). 0 = no cap (e.g. the Mac).
-	lines.append("Frame cap %s · screen %.0f Hz" % [
-		"%d fps" % Engine.max_fps if Engine.max_fps > 0 else "none", DisplayServer.screen_get_refresh_rate()])
+	var refresh := DisplayServer.screen_get_refresh_rate()
+	lines.append("Frame cap %s · screen %s" % [
+		"%d fps" % Engine.max_fps if Engine.max_fps > 0 else "none", "%.0f Hz" % refresh if refresh > 0.0 else "unknown"])
 	lines.append("Budget (%s): work per frame ≤ %.0f ms, heartbeat ≤ %.0f ms (95 %% of frames)" % [
 		"iPad" if tablet else "iPhone", work_budget, HEARTBEAT_BUDGET_MS])
 	var all_pass := true
@@ -226,7 +227,11 @@ func _finish() -> void:
 			_phase_name(run_phase), roundi(run["seconds"]), int(run["passengers"]) / frames, int(run["figures"]) / frames])
 		lines.append("  Frames per second   %.1f" % (frames / maxf(run["seconds"], 0.001)))
 		lines.append("  Work per frame      %s   %s" % [_spread(run["work"]), "PASS" if work_ok else "FAIL"])
-		lines.append("  Graphics chip       %s" % _spread(run["gpu"]))
+		if (run["gpu"] as Array).any(func(ms: float) -> bool: return ms > 0.0):
+			lines.append("  Graphics chip       %s" % _spread(run["gpu"]))
+		else:
+			# Some devices (e.g. the iPhone) don't report it this way: 0 means "not measured".
+			lines.append("  Graphics chip       not measured on this device (Xcode's GPU gauge shows it)")
 		lines.append("  Heartbeat           %s   %s" % [_spread(run["heartbeat"]), "PASS" if heartbeat_ok else "FAIL"])
 	lines.append("")
 	lines.append("Memory (peak)  Godot %.0f MB · video %.0f MB" % [_peak_memory / 1048576.0, _peak_video_memory / 1048576.0])
@@ -254,9 +259,18 @@ func _phase_name(which: Phase) -> String:
 	return "Top-down (whole map)" if which == Phase.TOP_DOWN else "First person (at security)"
 
 
+## Background of the results screen: solid, so the game doesn't show through the numbers.
+const RESULTS_BACKGROUND: Color = Color(0.07, 0.08, 0.1)
+
+
 func _show_results() -> void:
 	_results = PanelContainer.new()
+	_results.name = "Results"
 	_results.set_anchors_preset(Control.PRESET_FULL_RECT)
+	var background := StyleBoxFlat.new()
+	background.bg_color = RESULTS_BACKGROUND
+	background.set_content_margin_all(32.0)
+	_results.add_theme_stylebox_override("panel", background)
 	var box := VBoxContainer.new()
 	_results.add_child(box)
 	var text := Label.new()
@@ -268,6 +282,7 @@ func _show_results() -> void:
 	close.name = "CloseButton"
 	close.text = "Close and load my airport"
 	close.custom_minimum_size = Vector2(0, 80)
+	close.add_theme_font_size_override("font_size", 28)
 	close.pressed.connect(func() -> void: restore_player_game(get_tree()))
 	box.add_child(close)
 	_status.get_parent().add_child(_results)
