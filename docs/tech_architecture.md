@@ -176,6 +176,7 @@ The test devices are an **iPhone 13 Pro** (the weaker one) and an **iPad Air M1*
 | Memory | **(open)**: set after the first measurement | same |
 | Battery and heat | 30 minutes of play without the phone getting hot **(proposal)** | same |
 
+- **Frame-rate cap: 60 fps on iPhone and iPad** (decided 2026-11-06), even on 120 Hz screens (ProMotion). It halves the drawing work, saves battery and heat, and matches this budget. An optional 120 Hz smooth mode is in the parking lot for the polish phase.
 - **Why 8 ms:** an older phone that is about twice as slow still stays near 60 fps, and well above 30.
 - **Baseline: the prototype's numbers** (benchmark in test builds, 1,000 passengers, seed 2026). The current passenger flow is not tuned to pass; it gets rewritten, and the rewrite must beat these numbers.
 

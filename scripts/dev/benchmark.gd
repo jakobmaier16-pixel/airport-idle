@@ -206,6 +206,10 @@ func _finish() -> void:
 	var work_budget := TABLET_WORK_BUDGET_MS if tablet else PHONE_WORK_BUDGET_MS
 	var lines: PackedStringArray = []
 	lines.append("Benchmark · %s · build %s · seed %d" % [OS.get_model_name(), BuildStamp.text(), SEED])
+	# The cap is 60 fps on iPhone and iPad (project setting application/run/max_fps.mobile), even on
+	# 120 Hz screens (tech_architecture.md §15). 0 = no cap (e.g. the Mac).
+	lines.append("Frame cap %s · screen %.0f Hz" % [
+		"%d fps" % Engine.max_fps if Engine.max_fps > 0 else "none", DisplayServer.screen_get_refresh_rate()])
 	lines.append("Budget (%s): work per frame ≤ %.0f ms, heartbeat ≤ %.0f ms (95 %% of frames)" % [
 		"iPad" if tablet else "iPhone", work_budget, HEARTBEAT_BUDGET_MS])
 	var all_pass := true

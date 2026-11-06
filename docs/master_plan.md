@@ -145,7 +145,7 @@ Other rules:
 
 ## 8. Parking lot (decided later)
 
-Starting airport · day/night lighting · pause and speed controls · upgrade-in-progress details · incident handling in first person · lounge model · cargo model · reputation formula · exact tier thresholds · second terminal details · Android · online features.
+Starting airport · day/night lighting · pause and speed controls · optional 120 Hz smooth mode (polish phase) · upgrade-in-progress details · incident handling in first person · lounge model · cargo model · reputation formula · exact tier thresholds · second terminal details · Android · online features.
 
 ---
 
@@ -171,6 +171,7 @@ Starting airport · day/night lighting · pause and speed controls · upgrade-in
 | Vertical slice | Adds one milestone (first tier) and the security ladder up to CT scanners, visible in 3D |
 | Test devices | iPhone 13 Pro (the weaker one) and iPad Air M1; stricter budget on the 13 Pro to keep headroom for older phones |
 | Minimum supported iPhone | Open: decide before TestFlight |
+| Frame rate | Capped at 60 fps on iPhone and iPad; optional 120 Hz smooth mode parked for the polish phase |
 | Slice milestone | Reaching the first tier unlocks new land and the CT scanner step |
 
 ---
