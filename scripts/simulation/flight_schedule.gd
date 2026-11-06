@@ -79,11 +79,12 @@ var runway_bookings: Array = []
 # Departure time of the latest flight planned at each gate.
 var _last_planned: Dictionary[Building, float] = {}
 var _next_number: int = 101
-var _rng: RandomNumberGenerator = RandomNumberGenerator.new()
+## Dice. Airport replaces them with its shared, seeded dice (tech_architecture.md §3).
+var rng: RandomNumberGenerator = RandomNumberGenerator.new()
 
 
 func _init() -> void:
-	_rng.randomize()
+	rng.randomize()
 
 
 func tick(now: float, delta: float, flow: PassengerFlow) -> void:
@@ -144,13 +145,13 @@ func _schedule(gate: Building, departure_time: float, airline: Airline = null) -
 	flight.gate = gate
 	flight.stand = Airport.stand_behind(gate)
 	# The airline's route type sets the passenger mix (design doc §10.1); random without one.
-	flight.route = airline.type.route if airline != null else ROUTES.keys()[_rng.randi() % ROUTES.size()]
+	flight.route = airline.type.route if airline != null else ROUTES.keys()[rng.randi() % ROUTES.size()]
 	flight.wide_body = airline != null and airline.type.wide_body
 	flight.departure_time = departure_time
 	if airline != null and airline.type.cargo:
 		# A freighter (design doc §10.3): freight instead of passengers.
 		flight.cargo = true
-		flight.tonnes = _rng.randf_range(CARGO_TONNES_MIN, CARGO_TONNES_MAX)
+		flight.tonnes = rng.randf_range(CARGO_TONNES_MIN, CARGO_TONNES_MAX)
 		flight.fee_per_passenger = airline.fee  # per tonne
 		_last_planned[gate] = departure_time
 		flights.append(flight)
@@ -169,14 +170,14 @@ func _schedule(gate: Building, departure_time: float, airline: Airline = null) -
 	var mix := PackedFloat32Array(ROUTES[flight.route])
 	var types: Array[PassengerType] = [FAMILY, LOW_COST, BUSINESS]
 	for i in roundi(_passenger_count() * size_factor):
-		flight.inbound_types.append(types[_rng.rand_weighted(mix)])
+		flight.inbound_types.append(types[rng.rand_weighted(mix)])
 	_last_planned[gate] = departure_time
 	flights.append(flight)
 
 
 # Passengers on one leg: a well-rated airport attracts more of them (design doc §11.7).
 func _passenger_count() -> int:
-	return roundi(_rng.randi_range(BOOKED_MIN, BOOKED_MAX) * Airport.reputation.demand_factor(Airport.stars()))
+	return roundi(rng.randi_range(BOOKED_MIN, BOOKED_MAX) * Airport.reputation.demand_factor(Airport.stars()))
 
 
 # Decides type and arrival time of every booked passenger, from the route's mix.
@@ -185,8 +186,8 @@ func _plan_arrivals(flight: Flight) -> void:
 	var types: Array[PassengerType] = [FAMILY, LOW_COST, BUSINESS]
 	var arrivals: Array = []
 	for i in flight.booked:
-		var type := types[_rng.rand_weighted(PackedFloat32Array(mix))]
-		var before := _rng.randf_range(type.arrives_until, type.arrives_from)
+		var type := types[rng.rand_weighted(PackedFloat32Array(mix))]
+		var before := rng.randf_range(type.arrives_until, type.arrives_from)
 		arrivals.append([flight.departure_time - before, type])
 	arrivals.sort_custom(func(a: Array, b: Array) -> bool: return a[0] < b[0])
 	for arrival: Array in arrivals:

@@ -67,7 +67,7 @@ func test_presence_speeds_up_staff() -> void:
 		var passenger := Passenger.new()
 		passenger.position = Airport.grid.cell_to_world(Vector2i(32, 27))
 		station.queue.append(passenger)
-		flow._rng.seed = 42
+		flow.rng.seed = 42
 		flow._tick_station(station, Airport.SIM_STEP)
 		var slot := station.serving.find(passenger)
 		var seconds: float = station.service_left[slot]

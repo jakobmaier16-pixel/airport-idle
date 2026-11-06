@@ -80,6 +80,12 @@ var manager_yaw: float = 0.0
 var saved_manager: Dictionary = {}
 ## How far the current frame is between the last and the next simulation step (0..1).
 var sim_alpha: float = 0.0
+## The airport's dice (tech_architecture.md §3). Every random choice of the simulation comes from
+## here, so the same seed and the same player actions give exactly the same game. Shared with
+## PassengerFlow, FlightSchedule, Airlines and Weather; saved with the game.
+var rng: RandomNumberGenerator = RandomNumberGenerator.new()
+## The number the dice started from, for replaying a game (e.g. a failing test).
+var game_seed: int = 0
 
 var _sim_time: float = 0.0
 # While loading a save, layout_changed is sent once at the end instead of for every building.
@@ -94,6 +100,10 @@ var _zone_locks: Dictionary[Vector2i, int] = {}
 
 
 func _ready() -> void:
+	# The very first dice come from the clock; every later new game takes its seed from them.
+	var first := RandomNumberGenerator.new()
+	first.randomize()
+	reseed(first.randi())
 	layout_changed.connect(_on_layout_changed)
 	passenger_flow.vip_finished.connect(_on_vip_finished)
 	progression.tier_reached.connect(_on_tier_reached)
@@ -109,6 +119,21 @@ func _process(delta: float) -> void:
 		steps += 1
 	_sim_time = minf(_sim_time, SIM_STEP)
 	sim_alpha = _sim_time / SIM_STEP
+
+
+## Starts the dice from `new_seed`: the same seed and the same player actions give the same game.
+func reseed(new_seed: int) -> void:
+	game_seed = new_seed
+	rng.seed = new_seed
+	_share_rng()
+
+
+# Every part of the simulation rolls the same dice.
+func _share_rng() -> void:
+	passenger_flow.rng = rng
+	passenger_flow.schedule.rng = rng
+	airlines.rng = rng
+	weather.rng = rng
 
 
 ## Advances the whole simulation by one step: passengers, flights and money.
@@ -167,10 +192,10 @@ func _tick_incidents(delta: float) -> void:
 	_next_incident_in -= delta
 	if _next_incident_in > 0.0 or not incidents_automatic:
 		return
-	_next_incident_in = randf_range(INCIDENT_EVERY_MIN, INCIDENT_EVERY_MAX)
+	_next_incident_in = rng.randf_range(INCIDENT_EVERY_MIN, INCIDENT_EVERY_MAX)
 	var candidates := buildings.filter(func(b: Building) -> bool: return needs_staff(b) and not staff_at(b).is_empty())
 	if not candidates.is_empty():
-		start_incident(candidates[randi() % candidates.size()])
+		start_incident(candidates[rng.randi() % candidates.size()])
 
 
 # --- VIP visits (design doc §14.2) ---
@@ -204,7 +229,7 @@ func _tick_vip(delta: float) -> void:
 		return
 	_next_vip_in -= delta
 	if _next_vip_in <= 0.0:
-		_next_vip_in = randf_range(VIP_EVERY_MIN, VIP_EVERY_MAX)
+		_next_vip_in = rng.randf_range(VIP_EVERY_MIN, VIP_EVERY_MAX)
 		announce_vip()
 
 
@@ -479,7 +504,7 @@ func hire(building: Building) -> Employee:
 	if not hire_problem(building).is_empty():
 		return null
 	var employee := Employee.new()
-	employee.name = "%s %s." % [FIRST_NAMES[randi() % FIRST_NAMES.size()], char(65 + randi() % 26)]
+	employee.name = "%s %s." % [FIRST_NAMES[rng.randi() % FIRST_NAMES.size()], char(65 + rng.randi() % 26)]
 	employee.workplace = building
 	employee.salary_per_minute = SALARIES[building.type.role]
 	staff.append(employee)
@@ -745,14 +770,16 @@ func connection_problem(type: BuildingType, origin_cell: Vector2i, rotation_step
 
 ## Removes everything: buildings and zones, and lays the starting runway (unless `with_runway` is
 ## false, e.g. while loading a save that has its own). Visuals must be rebuilt afterwards (reload
-## the scene).
-func reset(with_runway: bool = true) -> void:
+## the scene). The new game's dice start from `new_seed`, or (if negative) from a seed the current
+## dice roll, so a seeded test stays repeatable even when it starts a new game.
+func reset(with_runway: bool = true, new_seed: int = -1) -> void:
 	grid = AirportGrid.new(MAP_SIZE_CELLS, CELL_SIZE)
 	buildings.clear()
 	_zone_locks.clear()
 	staff.clear()
 	passenger_flow = PassengerFlow.new()
 	passenger_flow.vip_finished.connect(_on_vip_finished)
+	reseed(new_seed if new_seed >= 0 else int(rng.randi()))
 	economy = Economy.new()
 	reputation = Reputation.new()
 	airlines.reset()
@@ -808,6 +835,9 @@ func save_state() -> Dictionary:
 		"clock": clock.game_seconds,
 		"manager": {"x": manager_position.x, "z": manager_position.z, "yaw": manager_yaw} if manager_position != NOBODY_THERE else {},
 		"weather": weather.save_state(),
+		# As text: JSON keeps numbers as decimals, which can't hold a 64-bit dice state exactly.
+		"seed": str(game_seed),
+		"rng_state": str(rng.state),
 		"buildings": saved_buildings,
 	}
 
@@ -817,6 +847,11 @@ func save_state() -> Dictionary:
 ## buildings that no longer fit are skipped. Returns how many were skipped.
 func load_state(data: Dictionary) -> int:
 	reset(false)
+	# The dice continue exactly where they were (saves from before seeds keep the fresh dice).
+	if data.has("rng_state"):
+		game_seed = str(data.get("seed", "0")).to_int()
+		rng.seed = game_seed
+		rng.state = str(data["rng_state"]).to_int()
 	# JSON stores every number as a float, hence the explicit conversion.
 	var saved_size: Array = data.get("map_size", [])
 	if saved_size.size() == 2 and Vector2i(int(saved_size[0]), int(saved_size[1])) == grid.size:

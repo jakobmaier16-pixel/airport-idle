@@ -93,7 +93,7 @@ static func build(warm_up_seconds: float = 180.0) -> void:
 	for building in Airport.buildings:
 		Airport.staff_fully(building)
 	for employee in Airport.staff:
-		employee.served[employee.workplace.type.role] = randi() % 200
+		employee.served[employee.workplace.type.role] = Airport.rng.randi() % 200
 
 	# The showcase is a test fixture: start with fresh money, as if it had been there all along.
 	Airport.economy = Economy.new()

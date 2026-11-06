@@ -28,7 +28,7 @@ func test_wide_body_stand_unlocks_at_international() -> void:
 func test_long_haul_flies_from_the_wide_body_gate() -> void:
 	ShowcaseAirport.build(0.0)
 	# Only a few long-haul flights in 15 minutes: fixed random numbers, so averages don't wobble.
-	Airport.passenger_flow.schedule._rng.seed = 7
+	Airport.passenger_flow.schedule.rng.seed = 7
 	var wide := 0
 	var wide_booked := 0
 	var narrow_booked := 0

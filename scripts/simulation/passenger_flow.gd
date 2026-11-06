@@ -87,11 +87,12 @@ var _route_car_parks: Array[Building] = []
 var _usable_gates: Array[Building] = []
 var _usable_cargo_terminals: Array[Building] = []
 var _sample_timer: float = 0.0
-var _rng: RandomNumberGenerator = RandomNumberGenerator.new()
+## Dice. Airport replaces them with its shared, seeded dice (tech_architecture.md §3).
+var rng: RandomNumberGenerator = RandomNumberGenerator.new()
 
 
 func _init() -> void:
-	_rng.randomize()
+	rng.randomize()
 
 
 func status_text() -> String:
@@ -237,12 +238,12 @@ func spawn_passenger(flight: Flight, type: PassengerType) -> bool:
 	if not route_problem.is_empty() or _route_entrances.is_empty() or passengers.size() >= MAX_PASSENGERS:
 		return false
 	# Car travellers park for their trip, if there is a car park (design doc §11.8).
-	var by_car := not _route_car_parks.is_empty() and _rng.randf() < CAR_SHARE
+	var by_car := not _route_car_parks.is_empty() and rng.randf() < CAR_SHARE
 	var cells: Array[Vector2i] = []
 	if by_car:
-		cells = _access_cells(_route_car_parks[_rng.randi() % _route_car_parks.size()], true)
+		cells = _access_cells(_route_car_parks[rng.randi() % _route_car_parks.size()], true)
 	else:
-		cells = _access_cells(_route_entrances[_rng.randi() % _route_entrances.size()], false)
+		cells = _access_cells(_route_entrances[rng.randi() % _route_entrances.size()], false)
 	if cells.is_empty():
 		return false
 	var passenger := Passenger.new()
@@ -253,12 +254,12 @@ func spawn_passenger(flight: Flight, type: PassengerType) -> bool:
 		flight.vip_pending = false
 		passenger.is_vip = true
 		passenger.type = FlightSchedule.BUSINESS
-	passenger.offset = Vector3(_rng.randf_range(-MAX_OFFSET, MAX_OFFSET), 0.0, _rng.randf_range(-MAX_OFFSET, MAX_OFFSET))
-	passenger.color_index = _rng.randi() % COLOR_COUNT
-	passenger.position = _cell_point(cells[_rng.randi() % cells.size()], passenger)
+	passenger.offset = Vector3(rng.randf_range(-MAX_OFFSET, MAX_OFFSET), 0.0, rng.randf_range(-MAX_OFFSET, MAX_OFFSET))
+	passenger.color_index = rng.randi() % COLOR_COUNT
+	passenger.position = _cell_point(cells[rng.randi() % cells.size()], passenger)
 	passenger.previous_position = passenger.position
 	# Online check-in with hand luggage only: straight to security.
-	passenger.goal = Role.SECURITY if _rng.randf() < type.skip_check_in_chance else Role.CHECK_IN
+	passenger.goal = Role.SECURITY if rng.randf() < type.skip_check_in_chance else Role.CHECK_IN
 	passengers.append(passenger)
 	_plan(passenger)
 	return true
@@ -327,13 +328,13 @@ func deplane_passenger(flight: Flight, type: PassengerType) -> bool:
 	passenger.flight = flight
 	passenger.type = type
 	passenger.is_arriving = true
-	passenger.has_bag = _rng.randf() < type.checked_bag_chance
-	passenger.by_car = _rng.randf() < CAR_SHARE
+	passenger.has_bag = rng.randf() < type.checked_bag_chance
+	passenger.by_car = rng.randf() < CAR_SHARE
 	var parked_at := flight.departs_at() + flight.arrival_delay - (FlightSchedule.PLANE_ARRIVES - FlightSchedule.TAXI_TIME)
-	passenger.bag_ready_at = parked_at + _rng.randf_range(FlightSchedule.BAGS_FROM, FlightSchedule.BAGS_UNTIL)
-	passenger.offset = Vector3(_rng.randf_range(-MAX_OFFSET, MAX_OFFSET), 0.0, _rng.randf_range(-MAX_OFFSET, MAX_OFFSET))
-	passenger.color_index = _rng.randi() % COLOR_COUNT
-	passenger.position = _cell_point(gate.entry_cells[_rng.randi() % gate.entry_cells.size()], passenger)
+	passenger.bag_ready_at = parked_at + rng.randf_range(FlightSchedule.BAGS_FROM, FlightSchedule.BAGS_UNTIL)
+	passenger.offset = Vector3(rng.randf_range(-MAX_OFFSET, MAX_OFFSET), 0.0, rng.randf_range(-MAX_OFFSET, MAX_OFFSET))
+	passenger.color_index = rng.randi() % COLOR_COUNT
+	passenger.position = _cell_point(gate.entry_cells[rng.randi() % gate.entry_cells.size()], passenger)
 	passenger.previous_position = passenger.position
 	passenger.goal = Role.BAGGAGE_CLAIM
 	# Some connect to another flight (design doc §8.9), if the airport can handle transfers.
@@ -357,11 +358,11 @@ func _connecting_flight(inbound: Flight) -> Flight:
 		share *= Progression.HUB_TRANSFER_FACTOR
 	if transfer_share_override >= 0.0:
 		share = transfer_share_override
-	if _rng.randf() >= share:
+	if rng.randf() >= share:
 		return null
 	var options := schedule.flights.filter(func(f: Flight) -> bool:
 		return f != inbound and not f.cargo and f.is_active() and f.departure_time >= time + FlightSchedule.MIN_CONNECTION)
-	return options[_rng.randi() % options.size()] if not options.is_empty() else null
+	return options[rng.randi() % options.size()] if not options.is_empty() else null
 
 
 ## A building was demolished (design doc §7.6): its passengers look for another station of the
@@ -465,7 +466,7 @@ func _plan(passenger: Passenger) -> void:
 	var choice := 0
 	if passenger.goal in [Role.SHOP, Role.LOUNGE]:
 		# Tastes differ: some want coffee, others duty free. Any place with room may be chosen.
-		choice = _rng.randi() % candidates.size()
+		choice = rng.randi() % candidates.size()
 	else:
 		# Short queue and short walk both count, like real passengers judging a hall.
 		# (For the gate there is only one candidate: the gate of their flight.)
@@ -539,7 +540,7 @@ func _arrive(passenger: Passenger) -> void:
 			return
 		passenger.state = Passenger.State.IN_SHOP
 		var type := station.building.type
-		passenger.visit_left = _rng.randf_range(type.visit_seconds_min, type.visit_seconds_max)
+		passenger.visit_left = rng.randf_range(type.visit_seconds_min, type.visit_seconds_max)
 		station.waiting.append(passenger)
 	else:
 		passenger.state = Passenger.State.QUEUING
@@ -604,7 +605,7 @@ func _tick_station(station: Station, delta: float) -> void:
 				* (PRESENCE_CALM if manager_here else 1.0))
 			# Some passengers are quicker than others; experienced staff are faster.
 			station.service_left[i] = station.building.service_time() * _type_factor(next, station) \
-				* staff_time_factor(working[i], working, manager_here) * _rng.randf_range(0.75, 1.25)
+				* staff_time_factor(working[i], working, manager_here) * rng.randf_range(0.75, 1.25)
 
 	for k in station.queue.size():
 		_move_towards(station.queue[k], _queue_spot(station, k), delta)
@@ -649,12 +650,12 @@ func _maybe_shop(passenger: Passenger, next: BuildingType.Role, allowance: float
 	if leave_by - time < SHOPPING_MIN_SPARE:
 		return
 	# Business travellers prefer the lounge airside (design doc §11.8).
-	if next == Role.GATE and _is_business(passenger) and _has_lounge() and _rng.randf() < LOUNGE_CHANCE:
+	if next == Role.GATE and _is_business(passenger) and _has_lounge() and rng.randf() < LOUNGE_CHANCE:
 		passenger.goal = Role.LOUNGE
 		passenger.after_shop = next
 		passenger.leave_shop_by = leave_by
 		return
-	if _rng.randf() >= chance:
+	if rng.randf() >= chance:
 		return
 	passenger.goal = Role.SHOP
 	passenger.after_shop = next
@@ -684,14 +685,14 @@ func _tick_shop(station: Station, delta: float) -> void:
 		# Stressed passengers spend less (design doc §8.10); the visit itself cheers them up.
 		var mood_factor := lerpf(SPEND_AT_WORST, SPEND_AT_BEST, clampf(customer.mood, 0.0, 100.0) / 100.0)
 		customer.mood = minf(customer.mood + (LOUNGE_BONUS if type.airport_run else SHOP_BONUS), 100.0)
-		var income := _rng.randf_range(type.spend_min, type.spend_max) * spend_factor * mood_factor * Economy.CONCESSION_SHARE
+		var income := rng.randf_range(type.spend_min, type.spend_max) * spend_factor * mood_factor * Economy.CONCESSION_SHARE
 		if type.airport_run:
 			income = type.spend_min  # a fixed price, all of it for the airport
 		Airport.economy.earn(income, Economy.LOUNGE if type.airport_run else Economy.SHOPS)
 		station.record_income(time, income)
 		# Out of the front door and on to the gate.
 		if not station.entry_cells.is_empty():
-			var door: Vector2i = station.entry_cells[_rng.randi() % station.entry_cells.size()]
+			var door: Vector2i = station.entry_cells[rng.randi() % station.entry_cells.size()]
 			customer.position = _cell_point(door, customer)
 			customer.previous_position = customer.position
 		customer.goal = customer.after_shop
@@ -713,7 +714,7 @@ func _tick_baggage_claim(station: Station) -> void:
 		station.waiting.erase(passenger)
 		station.record_wait(time, time - passenger.queued_since)
 		_lose_mood(passenger, Satisfaction.BAG_WAITS, (time - passenger.queued_since - BAG_PATIENCE) * BAG_PENALTY)
-		var door: Vector2i = station.exit_cells[_rng.randi() % station.exit_cells.size()]
+		var door: Vector2i = station.exit_cells[rng.randi() % station.exit_cells.size()]
 		passenger.position = _cell_point(door, passenger)
 		passenger.previous_position = passenger.position
 		passenger.goal = Role.ENTRANCE

@@ -161,6 +161,12 @@ UI controls (buttons) consume their touches first, so taps on buttons never reac
   start after every new export, so the user never has to build by hand to try an update.
   **Every new feature must be added to the showcase** (a test checks every building type is in it).
   The tests and screenshots use the same layout. The "Demo" button (debug builds) reloads it.
+- **Randomness is seeded** (tech_architecture.md §3): simulation code rolls only `Airport.rng`
+  (shared with PassengerFlow, FlightSchedule, Airlines and Weather), never the global
+  `randf()` / `randi()`. Purely visual effects (e.g. lightning flashes) may use the global ones.
+  Every test runs with a fixed seed from its name; a failure prints a replay line
+  (`tools/run_tests.sh --only=<test> --seed=<n>`). `--seed=<n>` runs every test with that seed:
+  try a few to catch tests that only pass by luck.
 - Tests run with `-- --no-save` and never touch the real save game. The runner turns random
   weather and incidents off (`Airport.weather.automatic`, `Airport.incidents_automatic`); their
   tests start them with `Airport.weather.start()` / `Airport.start_incident()`.
