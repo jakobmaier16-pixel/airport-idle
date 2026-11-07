@@ -223,5 +223,11 @@ UI controls (buttons) consume their touches first, so taps on buttons never reac
   (it waits a frame), never tap a button in the same frame it became visible.
 - The Mac save game lives in `~/Library/Application Support/Godot/app_userdata/AirportIdle/`.
   Test builds have a two-tap "Reset" button in the build menu.
+- **Saves must keep loading** (tech_architecture.md §13). `tests/saves/` holds example saves as
+  players have them: never regenerate or edit them. When the save format changes, add a converter
+  to `SaveGame.migrations`, bump `SaveGame.FORMAT_VERSION`, and add an example save of the new
+  version next to the old ones. Enums stored as numbers in saves (`AirportGrid.Zone`,
+  `BuildingType.Role`, `Progression.Tier`, `Weather.Kind`) only get new values at the end.
+  A save that can't be loaded is put aside as a `.bak` file, never overwritten.
 - Changing a building's size or zone rule can make old saves invalid: such buildings are skipped
   on load (with a warning). Bump `SaveGame.FORMAT_VERSION` only if the file format itself changes.

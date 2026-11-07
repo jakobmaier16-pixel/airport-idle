@@ -5,7 +5,8 @@ extends Node
 ## Test builds: the first start after a new export loads the showcase airport instead
 ## (see ShowcaseAirport), so the newest features are ready to try without building by hand.
 
-## Bump when the save format changes in a way older code can't read.
+## Bump when the save format changes in a way older code can't read, and add a converter to
+## `migrations` for the old version (tech_architecture.md §13). Keep every old converter.
 const FORMAT_VERSION: int = 1
 ## Wait this long after a change before saving, so a burst of changes is saved once.
 const SAVE_DELAY: float = 1.0
@@ -29,6 +30,18 @@ var build_stamp: String = BuildStamp.DEV
 ## (main.gd shows a welcome-back notice).
 var welcome_back_bonus: float = 0.0
 var away_seconds: float = 0.0
+
+## Converters for old saves: migrations[n] takes a version-n save (a Dictionary) and returns it as
+## version n + 1. Loading runs them one after another, so a save is never thrown away for being old.
+## Empty while there is only version 1.
+var migrations: Dictionary[int, Callable] = {}
+## The version this build reads and writes. A variable only so tests can pretend to be a newer build.
+var format_version: int = FORMAT_VERSION
+## Why the save couldn't be loaded, for the player ("" if it loaded or there was none).
+## main.gd shows it as a notice.
+var load_problem: String = ""
+## Where a save that couldn't be loaded was put aside ("" if none). It is never overwritten.
+var backup_path: String = ""
 
 # Stamp of the export that wrote the loaded save.
 var _saved_build: String = ""
@@ -72,7 +85,7 @@ func save_now() -> void:
 	if not enabled:
 		return
 	var data := Airport.save_state()
-	data["version"] = FORMAT_VERSION
+	data["version"] = format_version
 	data["build"] = build_stamp
 	data["saved_at"] = Time.get_unix_time_from_system()
 	# Write to a temporary file first, then swap it in, so a crash mid-save can't corrupt the save.
@@ -87,11 +100,23 @@ func save_now() -> void:
 
 
 func load_game() -> void:
+	load_problem = ""
+	backup_path = ""
 	if not enabled or not FileAccess.file_exists(save_path):
 		return
-	var data: Variant = JSON.parse_string(FileAccess.get_file_as_string(save_path))
-	if not data is Dictionary or int(data.get("version", 0)) != FORMAT_VERSION:
-		push_warning("Save game is unreadable or from an incompatible version; starting fresh.")
+	# JSON.parse() (unlike JSON.parse_string()) reports a broken file quietly: it's handled below.
+	var json := JSON.new()
+	var parsed: Variant = json.data if json.parse(FileAccess.get_file_as_string(save_path)) == OK else null
+	if not parsed is Dictionary or not (parsed as Dictionary).has("version"):
+		_put_aside("unreadable", "Your saved airport couldn't be read. It was kept as a backup, and a new airport starts.")
+		return
+	var version := int(parsed["version"])
+	if version > format_version:
+		_put_aside("newer", "Your saved airport is from a newer version of the game. It was kept as a backup, and a new airport starts.")
+		return
+	var data := migrate(parsed)
+	if data.is_empty():
+		_put_aside("unconvertible", "Your saved airport couldn't be converted to this version. It was kept as a backup, and a new airport starts.")
 		return
 	_saved_build = str(data.get("build", ""))
 	_loading = true
@@ -101,6 +126,28 @@ func load_game() -> void:
 		push_warning("%d saved buildings no longer fit and were skipped." % skipped)
 	if data.has("saved_at"):
 		apply_offline_time(Time.get_unix_time_from_system() - float(data["saved_at"]))
+
+
+## Converts `data` from its version to `format_version`, one step at a time (tech_architecture.md
+## §13). Returns the converted save, or an empty Dictionary if a converter is missing.
+func migrate(data: Dictionary) -> Dictionary:
+	var version := int(data.get("version", 0))
+	while version < format_version:
+		if not migrations.has(version):
+			push_warning("No converter for save version %d." % version)
+			return {}
+		data = migrations[version].call(data)
+		version += 1
+		data["version"] = version
+	return data
+
+
+# Moves a save that can't be loaded out of the way, so the next autosave can't overwrite it.
+func _put_aside(reason: String, message: String) -> void:
+	backup_path = "%s.%s-%d.bak" % [save_path, reason, int(Time.get_unix_time_from_system())]
+	DirAccess.rename_absolute(ProjectSettings.globalize_path(save_path), ProjectSettings.globalize_path(backup_path))
+	load_problem = message
+	push_warning("Save game put aside as %s: %s" % [backup_path, message])
 
 
 ## Pays the welcome-back bonus if the player was away long enough (design doc §5).

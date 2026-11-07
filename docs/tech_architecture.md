@@ -201,7 +201,7 @@ The test devices are an **iPhone 13 Pro** (the weaker one) and an **iPad Air M1*
 | **Walkthrough tests** | The real game, tapped and dragged like a player. | existing (266), kept |
 | **Seeded randomness** | Every test run behaves exactly the same; a failure can be replayed with its seed. | done |
 | **Performance test** | The benchmark of §15, on the device. | new (first tasks) |
-| **Save tests** | Old saves load through every migration and nothing gets lost. Includes stored example saves from every version. | new (first tasks) |
+| **Save tests** | Old saves load through every migration and nothing gets lost. Includes stored example saves from every version. | done for version 1 (2026-11-06) |
 | **Data checks** | The data files are complete and consistent (§14). | new |
 
 - All tests pass before every commit and every export (already the rule).

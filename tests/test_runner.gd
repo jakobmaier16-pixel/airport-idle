@@ -83,3 +83,6 @@ func _reset_world() -> void:
 	TouchGestures.pinch_cancels_drag = false
 	TouchGestures.independent_drags = false
 	SaveGame.enabled = false
+	# Tests may pretend to be a newer build (save migration tests).
+	SaveGame.format_version = SaveGame.FORMAT_VERSION
+	SaveGame.migrations.clear()
