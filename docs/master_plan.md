@@ -158,6 +158,7 @@ Starting airport · day/night lighting · pause and speed controls · optional 1
 | Scope | No multiplayer, no multiple airports, English only |
 | Feel | Thoughtful, clever, powerful (free to demolish), collector, architect |
 | Zones | Automatic from buildings; the security building is the border |
+| Landside growth (2026-11-13) | Free pieces with upgrade levels; milestones unlock piece types, never layouts; bigger upgrades need room (move roads) |
 | Scale (2026-11-13) | Real size everywhere, also airside (full-length runway); big map unlocked piece by piece; build view shows all, manager view loads only its area |
 | Prototype extras | Weather, incidents, VIP visits and the first-landing cutscene removed from the prototype on 2026-11-13 to focus on fundamentals; realism systems may return later, rebuilt on the new foundation |
 | First-person view | Enjoy the airport, walk around, inspect and upgrade stations and staff. Incidents come much later |

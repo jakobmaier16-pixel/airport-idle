@@ -94,6 +94,14 @@ Idle games let you hire "managers" so things run without you. The realistic vers
 
 Each mode needs its own infrastructure, and the mix affects how crowded the entrance gets.
 
+**Landside grows piece by piece (decided 2026-11-13).** No fixed layouts and no "airport per tier":
+- The player places landside **pieces** freely: roads, curb (drop-off / pick-up), car park, bus stop, taxi rank, rail station, later ramps, garages, bus station, people mover.
+- Milestones only **unlock new piece types**; they never prescribe a layout.
+- Every piece has **upgrade levels**. Two kinds:
+  - *Same footprint:* better or taller on the same cells (surface car park → multi-storey garage; bus stop → shelter and display).
+  - *Bigger footprint:* needs free cells next to it (taxi rank 4 → 12 places → holding area; single-level curb → two levels with ramps). The player makes room by moving or demolishing roads ("demolish anything", §8.5).
+- Real airports (BER, Hamburg, Munich, Frankfurt, Düsseldorf) are references for **how things work**, never copied 1:1 (no real names, logos or signature buildings).
+
 ### Station 1 — Landside hall (public)
 - Baggage drop and check-in
 - Food (fictional brands)
