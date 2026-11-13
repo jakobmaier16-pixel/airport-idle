@@ -30,8 +30,10 @@ When a decision is made, update the design doc.
 - **Building:** grid-based, freeform layout with predesigned, rotatable buildings.
 - **Zones:** automatic from the buildings; the security building is the landside / airside border.
   Zones are never painted: `ZoneMap` computes them after every layout change and after load.
-- **Grid scale:** compressed, not 1:1. Terminal and landside stay near-realistic (cell = 2 m to start);
-  airside (runways, taxiways, aprons) is scaled down so the whole airport fits on a playable map.
+- **Grid scale:** real size everywhere, 1:1 (decided 2026-11-13, was: airside compressed). 1 cell = 2 m
+  for terminal, landside **and** airside: planes, stands, taxiways and the full-length runway.
+  The map is large and unlocked piece by piece. The build view always shows the whole airport
+  (very cheap far models); the manager view loads only the area the manager is in, in full detail.
   The cell size must stay a single, easy-to-change value.
 - **Two camera views** (a HUD button switches between them):
   - *Manager view:* **first person** (changed 2026-10-13, was a fixed tilted camera): the player

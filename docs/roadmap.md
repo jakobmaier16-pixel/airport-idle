@@ -12,6 +12,13 @@
 - Step 5 · Passenger journey as recipes (done 2026-11-13)
 - Step 4 · Automatic zones and areas (done 2026-11-13)
 
+### Request from the visual lane (Jakob decides when)
+- **Real scale** (decided 2026-11-13, see game_design.md §16): airside at real size, no compression.
+  Stand ~20 × 23 cells, wide-body stand ~35 × 40, taxiway ~12 cells wide, runway 23 cells wide at
+  full length (starting length open), a much larger map unlocked piece by piece. Build view draws the
+  whole airport cheaply; manager view loads only the manager's area. Plane visuals at real size.
+  Old saves with the small stand / runway footprints must keep loading.
+
 ### Later (vertical slice)
 - Step 7 · Electricity
 - Step 8 · Security upgrade ladder up to CT scanners, visible in 3D
