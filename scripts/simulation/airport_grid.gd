@@ -229,6 +229,31 @@ func get_nonempty_cells() -> Array[Vector2i]:
 	return result
 
 
+## Every cell with any of the bits in `mask` set (e.g. TAXIWAY_BIT), chunk by chunk: the cost follows
+## the allocated chunks, not the map. The order is chunk by chunk, not row by row.
+func get_cells_with_flag(mask: int) -> Array[Vector2i]:
+	var result: Array[Vector2i] = []
+	for index in _chunks.size():
+		var chunk: GridChunk = _chunks[index]
+		if chunk == null:
+			continue
+		var base := Vector2i(index % _chunks_wide, index / _chunks_wide) * CHUNK_SIZE
+		for i in chunk.cells.size():
+			if chunk.cells[i] & mask != 0:
+				result.append(base + Vector2i(i & CHUNK_MASK, i >> CHUNK_SHIFT))
+	return result
+
+
+## Sets the zone of every cell of `rect` (clipped to the map), row by row. The cost follows the
+## rectangle, never the map; chunks that stay all zero are not allocated.
+func set_zone_rect(rect: Rect2i, zone: Zone) -> void:
+	var area := rect.intersection(Rect2i(Vector2i.ZERO, size))
+	var bits := int(zone) & ZONE_MASK
+	for y in range(area.position.y, area.end.y):
+		for x in range(area.position.x, area.end.x):
+			_write(Vector2i(x, y), ZONE_MASK, bits)
+
+
 func _chunk_at(chunk_coord: Vector2i) -> GridChunk:
 	if chunk_coord.x < 0 or chunk_coord.y < 0 or chunk_coord.x >= _chunks_wide or chunk_coord.y >= _chunks_high:
 		return null

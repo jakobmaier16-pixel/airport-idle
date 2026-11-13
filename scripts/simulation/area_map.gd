@@ -13,22 +13,30 @@ const _STEPS: Array[Vector2i] = [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1)
 
 ## One entry per area: {"name": String, "zone": AirportGrid.Zone, "cells": Array[Vector2i]}.
 var _areas: Array = []
-## Area index per cell (row by row), -1 where there is no area.
-var _area_of: PackedInt32Array = PackedInt32Array()
+## Area index per walkway cell; cells outside every area have no entry (sparse: the cost follows the
+## walkway cells, never the map size).
+var _area_of: Dictionary[Vector2i, int] = {}
 var _size: Vector2i = Vector2i.ZERO
+## Debug counter: walkway cells looked at by the last `recompute`. Tests use it to check that the
+## cost does not grow with the map.
+var last_work_cells: int = 0
 
 
 func recompute(grid: AirportGrid, buildings: Array[Building]) -> void:
 	_size = grid.size
 	_areas.clear()
-	_area_of.resize(_size.x * _size.y)
-	_area_of.fill(-1)
-	# Scanning row by row finds the areas in order of their lowest cell index.
-	for y in _size.y:
-		for x in _size.x:
-			var start := Vector2i(x, y)
-			if _area_of[y * _size.x + x] == -1 and grid.is_walkable(start):
-				_flood(grid, start)
+	_area_of.clear()
+	# Only walkway cells can start an area. Sorting their cell indices (row by row) finds the areas
+	# in order of their lowest cell index.
+	var indices := PackedInt64Array()
+	for cell: Vector2i in grid.get_cells_with_flag(AirportGrid.WALKWAY_BIT):
+		indices.append(cell.y * _size.x + cell.x)
+	indices.sort()
+	last_work_cells = indices.size()
+	for index in indices:
+		var start := Vector2i(index % _size.x, index / _size.x)
+		if not _area_of.has(start) and grid.is_walkable(start):
+			_flood(grid, start)
 	var touching: Array[Dictionary] = []
 	for area: Dictionary in _areas:
 		touching.append({})
@@ -73,23 +81,21 @@ func areas() -> Array:
 
 
 func _index_at(cell: Vector2i) -> int:
-	if cell.x < 0 or cell.y < 0 or cell.x >= _size.x or cell.y >= _size.y:
-		return -1
-	return _area_of[cell.y * _size.x + cell.x]
+	return _area_of.get(cell, -1)
 
 
 func _flood(grid: AirportGrid, start: Vector2i) -> void:
 	var index := _areas.size()
 	var zone := grid.get_zone(start)
 	var cells: Array[Vector2i] = [start]
-	_area_of[start.y * _size.x + start.x] = index
+	_area_of[start] = index
 	var queue: Array[Vector2i] = [start]
 	while not queue.is_empty():
 		var cell: Vector2i = queue.pop_back()
 		for step: Vector2i in _STEPS:
 			var next := cell + step
-			if grid.is_walkable(next) and _area_of[next.y * _size.x + next.x] == -1 and grid.get_zone(next) == zone:
-				_area_of[next.y * _size.x + next.x] = index
+			if grid.is_walkable(next) and not _area_of.has(next) and grid.get_zone(next) == zone:
+				_area_of[next] = index
 				cells.append(next)
 				queue.append(next)
 	_areas.append({"name": "", "zone": zone, "cells": cells})
