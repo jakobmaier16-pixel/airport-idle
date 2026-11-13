@@ -64,7 +64,7 @@ The game is split into three parts that are kept strictly apart:
 - **Walking** follows the walkways (the grid's pathfinding, as in the prototype).
 - **Slice:** one recipe, departures: entrance → check-in → security → gate → plane. Up to 1,000 passengers at once.
 
-**Later:** arrivals and baggage claim, transfers, passenger types, shops and lounges, passport control, customs. Each is a new recipe or a new station type, not a new piece of special code.
+**Later:** arrivals and baggage claim, transfers, passenger types, shops and lounges, passport control, customs. Each is a new recipe or a new station type, not a new piece of special code. (Done: a visit before a step is a "detour" flag on the step, see `JourneyStep`; the passenger keeps their step and returns to it.)
 
 ---
 
@@ -230,7 +230,7 @@ From the prototype audit (keep / refactor / rewrite):
 2. The brain as one object (no global) **(done 2026-11-13)**
 3. Saving: names instead of numbers, migrations, flights and passengers included
 4. Automatic zones and areas
-5. Passenger journey as recipes (**5a done**: recipes in `data/journeys/`, passengers carry recipe and step; 5b speed done (heartbeat about halved), 5c done: save format 6, the passengers as one compressed block, about 1,030 KB -> 60 KB with 1,000 passengers)
+5. Passenger journey as recipes (**done 2026-11-13**; 5a: recipes in `data/journeys/`, passengers carry recipe and step; 5b speed done (heartbeat about halved), 5c: save format 6, the passengers as one compressed block, about 1,030 KB -> 60 KB with 1,000 passengers; 5d: shop, café and lounge visits are a generic detour before a step and the step order, the exit and "the flight waits for this step" are read from the recipe, no special code left)
 6. Daily timetable and growing demand
 7. Electricity
 8. Security upgrade ladder with CT scanners in 3D

@@ -57,6 +57,8 @@ func test_flight_holds_for_late_passenger() -> void:
 	# A passenger far away on the airside walkway, on the way to this gate.
 	var late := Passenger.new()
 	late.flight = flight
+	late.recipe = PassengerFlow.DEPARTURE
+	late.step = 2
 	late.goal = BuildingType.Role.GATE
 	late.position = Airport.grid.cell_to_world(Vector2i(53, 37))
 	late.previous_position = late.position

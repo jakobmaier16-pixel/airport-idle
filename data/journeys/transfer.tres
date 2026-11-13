@@ -6,12 +6,15 @@
 [sub_resource type="Resource" id="s_transfer"]
 script = ExtResource("2_step")
 role = 8
+holds_flight = true
 emerges_behind = true
 
 [sub_resource type="Resource" id="s_gate"]
 script = ExtResource("2_step")
 role = 4
 detour_before = true
+detour_lounge = true
+holds_flight = true
 
 [resource]
 script = ExtResource("1_recipe")

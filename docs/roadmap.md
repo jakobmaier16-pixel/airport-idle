@@ -6,12 +6,10 @@
 ## Code lane
 
 ### Now
-- Step 5 · Passenger journey as recipes
-
-### Next
 - Step 6 · Daily timetable and growing demand
 
 ### Done
+- Step 5 · Passenger journey as recipes (done 2026-11-13)
 - Step 4 · Automatic zones and areas (done 2026-11-13)
 
 ### Later (vertical slice)

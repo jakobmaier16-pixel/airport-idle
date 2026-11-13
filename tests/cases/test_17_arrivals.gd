@@ -50,6 +50,8 @@ func test_arrival_fee() -> void:
 	var flow := Airport.passenger_flow
 	var passenger := Passenger.new()
 	passenger.is_arriving = true
+	passenger.recipe = PassengerFlow.ARRIVAL
+	passenger.step = 1
 	passenger.goal = BuildingType.Role.ENTRANCE
 	flow.passengers.append(passenger)
 	var before := Airport.economy.balance

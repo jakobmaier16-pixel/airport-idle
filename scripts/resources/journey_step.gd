@@ -11,6 +11,12 @@ extends Resource
 @export var detour_allowance: float = 0.0
 ## Scales the chance of the visit (landside cafés are less popular than airside shops).
 @export var detour_chance_factor: float = 1.0
+## Business travellers may choose the lounge instead of a shop for this detour.
+@export var detour_lounge: bool = false
+## The flight keeps its doors open for passengers on their way to this step (gate, transfer security).
+@export var holds_flight: bool = false
+## This step is the way out of the airport (an arrival's last step).
+@export var leaves_airport: bool = false
 ## After this step the passenger appears behind the building (through the security lane).
 @export var emerges_behind: bool = false
 ## Leaving: car travellers walk to their car park instead of the entrance (design doc §11.8).
