@@ -25,8 +25,7 @@ var on_time_rate: float = ON_TIME_START
 ## Departures counted so far, and how many of them were late.
 var departures: int = 0
 var late_departures: int = 0
-## Stars currently taken off (after a restructuring or an unhappy VIP), fading to 0. Negative
-## after a happy VIP visit: a bonus.
+## Stars currently taken off (after a restructuring), fading to 0.
 var penalty: float = 0.0
 
 

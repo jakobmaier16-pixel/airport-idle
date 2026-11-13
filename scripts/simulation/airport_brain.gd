@@ -59,6 +59,8 @@ var passenger_flow: PassengerFlow = PassengerFlow.new()
 var plane_network: PlaneNetwork = PlaneNetwork.new()
 ## Zones computed from the layout (tech_architecture.md §4): written into `grid` after every layout change.
 var zone_map: ZoneMap = ZoneMap.new()
+## Named areas (connected walkways per zone), derived after the zones; never saved.
+var area_map: AreaMap = AreaMap.new()
 var economy: Economy = Economy.new()
 ## Signed airlines and their offers (design doc §10.1). Kept for the whole game (reset, not
 ## replaced), so the HUD's signal connections stay valid.
@@ -176,6 +178,16 @@ func step(delta: float) -> void:
 
 
 # --- Airport tiers (design doc §14.1) ---
+
+## The name of the area at a walkway cell ("Check-in Hall", "Gates", ...), "" outside any area.
+func area_name(cell: Vector2i) -> String:
+	return area_map.area_name(cell)
+
+
+## All areas as {"name", "zone", "cells"}.
+func areas() -> Array:
+	return area_map.areas()
+
 
 ## True if the airport owns `cell` (land can be built on and painted).
 func owns_cell(cell: Vector2i) -> bool:
@@ -682,6 +694,7 @@ func reset(with_runway: bool = true, new_seed: int = -1) -> void:
 	buildings.clear()
 	_next_building_id = 1
 	zone_map.recompute(grid, buildings)
+	area_map.recompute(grid, buildings)
 	staff.clear()
 	passenger_flow = PassengerFlow.new()
 	passenger_flow.schedule.plane_arriving.connect(plane_arriving.emit)
@@ -866,6 +879,7 @@ func stand_behind(gate: Building) -> Building:
 func _on_layout_changed() -> void:
 	# Zones first: everything below (walkway areas, stations) reads them.
 	zone_map.recompute(grid, buildings)
+	area_map.recompute(grid, buildings)
 	zones_changed.emit()
 	plane_network.rebuild(grid, buildings)
 	passenger_flow.on_layout_changed()

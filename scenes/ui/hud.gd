@@ -54,6 +54,8 @@ var messages: Array = []
 var stats_tab: StatsTab = StatsTab.STATIONS
 ## The building shown in the station panel, or null.
 var shown_station: Building = null
+# Area name of the shown station: looked up on opening and when the layout changes, not per frame.
+var _station_area: String = ""
 var _tool: BuildMode.Tool = BuildMode.Tool.NONE
 var _notice_left: float = 0.0
 var _goal_refresh_in: float = 0.0
@@ -108,6 +110,7 @@ var _goal_refresh_in: float = 0.0
 
 
 func _ready() -> void:
+	Airport.zones_changed.connect(_refresh_station_area)
 	_view_button.pressed.connect(view_toggle_pressed.emit)
 	var paint_buttons := {
 		^"SafeArea/BuildMenu/PaintButtons/WalkwayButton": BuildMode.PaintKind.WALKWAY,
@@ -229,6 +232,7 @@ func show_station(building: Building) -> void:
 	hide_stats()
 	hide_airlines()
 	shown_station = building
+	_refresh_station_area()
 	_station_panel.visible = true
 	_update_station_panel()
 
@@ -534,12 +538,28 @@ func _add_stats_cell(text: String, color: Color) -> void:
 	_stats_table.add_child(cell)
 
 
+func _refresh_station_area() -> void:
+	_station_area = "" if shown_station == null else _area_of_building(shown_station)
+
+
+# A building stands next to the area its walkway belongs to: the first side that has one.
+func _area_of_building(building: Building) -> String:
+	for front: bool in [true, false]:
+		for cell in Building.outside_row(building.type.footprint, building.origin_cell, building.rotation_steps, front):
+			var name := Airport.area_name(cell)
+			if not name.is_empty():
+				return name
+	return ""
+
+
 func _update_station_panel() -> void:
 	var building := shown_station
 	_station_title.text = "%s · Level %d" % [building.type.display_name, building.level]
 	var lines: PackedStringArray = []
 	var role := building.type.role
 	var station := Airport.passenger_flow.station_for(building)
+	if not _station_area.is_empty():
+		lines.append("Area: %s" % _station_area)
 	if role in [BuildingType.Role.CHECK_IN, BuildingType.Role.SECURITY, BuildingType.Role.TRANSFER_SECURITY]:
 		var unit := "counters" if role == BuildingType.Role.CHECK_IN else "lanes"
 		lines.append("%d %s · %.1f s per passenger" % [building.service_slots(), unit, building.service_time()])
