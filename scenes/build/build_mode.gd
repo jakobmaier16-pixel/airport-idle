@@ -3,13 +3,13 @@ extends Node3D
 ## Build view logic with two tools:
 ## - PLACE (design doc §7.1a): move the preview by dragging it (snaps cell by cell) or by tapping
 ##   the map, rotate it, then place or cancel.
-## - PAINT (design doc §7.1b, §7.2): drag a rectangle (or tap a cell) to paint landside / airside,
-##   lay walkway floor or remove it.
+## - PAINT (design doc §7.1b, §7.2): drag a rectangle (or tap a cell) to lay walkway floor or
+##   taxiway, or remove it. Zones are not painted: they follow from the layout (design doc §8.1).
 ## - DEMOLISH (design doc §7.6): tap a building to select it, confirm to demolish it.
 ## With no tool active, tapping a cell highlights it.
 
 enum Tool { NONE, PLACE, PAINT, DEMOLISH }
-enum PaintKind { AIRSIDE, LANDSIDE, WALKWAY, REMOVE_WALKWAY, TAXIWAY }
+enum PaintKind { WALKWAY, REMOVE_WALKWAY, TAXIWAY }
 
 ## Emitted whenever the tool, its validity or its hint changes (so the HUD can update).
 ## can_confirm: PLACE = the spot is allowed; PAINT = always true; DEMOLISH = a building is selected.
@@ -19,8 +19,6 @@ signal tool_changed(tool: Tool, can_confirm: bool, hint: String)
 @export var camera: BuildCamera
 @export var valid_color: Color = Color(0.3, 0.9, 0.4, 0.55)
 @export var invalid_color: Color = Color(0.95, 0.3, 0.25, 0.55)
-@export var airside_paint_color: Color = Color(0.25, 0.35, 0.6, 0.45)
-@export var landside_paint_color: Color = Color(0.35, 0.8, 0.35, 0.45)
 @export var walkway_paint_color: Color = Color(0.95, 0.9, 0.7, 0.55)
 @export var remove_paint_color: Color = Color(0.95, 0.3, 0.25, 0.45)
 @export var taxiway_paint_color: Color = Color(0.15, 0.15, 0.17, 0.6)
@@ -54,7 +52,7 @@ var _preview_material: StandardMaterial3D
 var _preview_front_material: StandardMaterial3D
 
 # PAINT tool
-var _paint_kind: PaintKind = PaintKind.AIRSIDE
+var _paint_kind: PaintKind = PaintKind.WALKWAY
 var _painting_drag: bool = false
 var _paint_start_cell: Vector2i = Vector2i.ZERO
 var _paint_rect: Rect2i = Rect2i()
@@ -73,7 +71,7 @@ func _ready() -> void:
 	_preview_material = _make_transparent_material(valid_color)
 	_preview_front_material = _make_transparent_material(Color(0.1, 0.1, 0.1, 0.6))
 
-	_paint_material = _make_transparent_material(airside_paint_color)
+	_paint_material = _make_transparent_material(walkway_paint_color)
 	var plane := PlaneMesh.new()
 	plane.size = Vector2.ONE
 	plane.material = _paint_material
@@ -116,7 +114,7 @@ func start_painting(kind: PaintKind) -> void:
 	cancel_tool()
 	_tool = Tool.PAINT
 	_paint_kind = kind
-	var colors: Array[Color] = [airside_paint_color, landside_paint_color, walkway_paint_color, remove_paint_color, taxiway_paint_color]
+	var colors: Array[Color] = [walkway_paint_color, remove_paint_color, taxiway_paint_color]
 	_paint_material.albedo_color = colors[kind]
 	_update_highlight()
 	_emit_paint_hint("")
@@ -344,12 +342,7 @@ func _stop_painting_drag() -> void:
 
 # Applies the current paint kind. Returns "" if everything worked, or a hint for the player.
 func _apply_paint(cells: Array[Vector2i]) -> String:
-	var blocked := 0
 	match _paint_kind:
-		PaintKind.AIRSIDE:
-			blocked = Airport.paint_zone(cells, AirportGrid.Zone.AIRSIDE)
-		PaintKind.LANDSIDE:
-			blocked = Airport.paint_zone(cells, AirportGrid.Zone.LANDSIDE)
 		PaintKind.WALKWAY:
 			return Airport.paint_walkway(cells, true)
 		PaintKind.REMOVE_WALKWAY:
@@ -358,14 +351,12 @@ func _apply_paint(cells: Array[Vector2i]) -> String:
 			return Airport.paint_walkway(cells, false)
 		PaintKind.TAXIWAY:
 			return Airport.paint_taxiway(cells, true)
-	if blocked > 0:
-		return "%d cells kept: a building needs their zone." % blocked
 	return ""
 
 
 # Shows `problem` if there is one, otherwise how to use the current paint tool.
 func _emit_paint_hint(problem: String) -> void:
-	var actions: Array[String] = ["paint airside", "paint landside", "lay walkway (%s per cell)" % Economy.format(Economy.WALKWAY_COST_PER_CELL),
+	var actions: Array[String] = ["lay walkway (%s per cell)" % Economy.format(Economy.WALKWAY_COST_PER_CELL),
 		"remove walkway or taxiway", "lay taxiway from stands to the runway (%s per cell)" % Economy.format(Economy.TAXIWAY_COST_PER_CELL)]
 	var hint := problem
 	if hint.is_empty():

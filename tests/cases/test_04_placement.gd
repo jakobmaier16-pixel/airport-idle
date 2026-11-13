@@ -79,17 +79,13 @@ func test_overlap_is_red_and_place_disabled() -> void:
 
 func test_zone_rules_and_hints() -> void:
 	await start_game()
-	Airport.paint_zone(cells(Vector2i(0, 32), Vector2i(64, 32)), AirportGrid.Zone.AIRSIDE)
 	await open_build_view()
 	var hint := ui("ToolPanel/HintLabel") as Label
 	await pick_building("Gate")  # Gate
 	build_mode()._set_preview_origin(Vector2i(10, 10))
-	check_eq(hint.text, "Must be built on airside", "gate on landside")
-	build_mode()._set_preview_origin(Vector2i(10, 40))
-	check(hint.text.begins_with("Needs a walkway"), "gate on airside is allowed, hint names what's missing: '%s'" % hint.text)
+	check(hint.text.begins_with("Needs a walkway"), "a gate can go anywhere, hint names what's missing: '%s'" % hint.text)
 	await press(ui("ToolPanel/ToolBar/CancelButton"))
 	check_eq(Airport.check_placement(type_of(&"security"), Vector2i(20, 29), 0), "", "security on the border, front landside")
-	check_eq(Airport.check_placement(type_of(&"security"), Vector2i(20, 29), 2), "Front must face landside, back must face airside", "security facing the wrong way")
 
 
 func test_leaving_build_view_cancels() -> void:

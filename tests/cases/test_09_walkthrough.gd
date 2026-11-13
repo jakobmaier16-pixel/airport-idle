@@ -9,7 +9,6 @@ func test_build_airport_by_touch_and_fly_passengers() -> void:
 	await open_build_view()
 	await show_whole_map()
 
-	await paint("AirsideButton", Vector2i(8, 31), Vector2i(55, 56))
 	await paint("WalkwayButton", Vector2i(18, 21), Vector2i(45, 27))
 	await paint("WalkwayButton", Vector2i(10, 31), Vector2i(53, 33))
 

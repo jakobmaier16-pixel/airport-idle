@@ -21,7 +21,6 @@ func _flights_seen(seconds: float) -> Array[Flight]:
 
 func test_terminal_rules() -> void:
 	var type := type_of(&"cargo_terminal")
-	Airport.paint_zone(cells(Vector2i(8, 30), Vector2i(48, 26)), AirportGrid.Zone.AIRSIDE)
 	check_eq(Airport.check_placement(type, Vector2i(20, 35), 0), "Unlocked at National airport", "not for regional airports")
 	Airport.progression.tier = Progression.Tier.NATIONAL
 	var terminal := Airport.place_building(type, Vector2i(20, 35), 0)

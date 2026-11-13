@@ -21,10 +21,6 @@ static func build(warm_up_seconds: float = 180.0) -> void:
 	Airport.progression.transfers = 400
 	Airport.land_changed.emit()
 
-	# Zones: landside in the north, airside in the south (security sits on the border), down to the
-	# runway every airport starts with (design doc §7.5a).
-	Airport.paint_zone(_cells(Vector2i(8, 31), Vector2i(54, 26)), AirportGrid.Zone.AIRSIDE)
-
 	# Walkways: a landside hall and an airside walkway along the gates.
 	Airport.paint_walkway(_cells(Vector2i(18, 21), Vector2i(28, 7)), true)
 	Airport.paint_walkway(_cells(Vector2i(10, 31), Vector2i(44, 3)), true)

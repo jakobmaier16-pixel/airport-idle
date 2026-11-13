@@ -19,15 +19,13 @@ func test_new_game_has_a_runway() -> void:
 
 func test_taxiway_rules() -> void:
 	Airport.reset()
-	Airport.paint_zone(cells(Vector2i(8, 40), Vector2i(48, 17)), AirportGrid.Zone.AIRSIDE)
 	Airport.paint_walkway(cells(Vector2i(20, 40), Vector2i(2, 1)), true)
 	var money := Airport.economy.balance
-	check_eq(Airport.paint_taxiway(cells(Vector2i(20, 30), Vector2i(2, 2)), true), "Taxiways go on airside only", "not landside")
 	Airport.paint_taxiway(cells(Vector2i(20, 40), Vector2i(4, 1)), true)
 	check(not Airport.grid.is_taxiway(Vector2i(20, 40)), "never on a walkway")
 	check(Airport.grid.is_taxiway(Vector2i(23, 40)), "on airside")
 	check_eq(Airport.economy.balance, money - 2 * Economy.TAXIWAY_COST_PER_CELL, "€30 per cell")
-	check_eq(Airport.paint_zone(cells(Vector2i(23, 40), Vector2i(1, 1)), AirportGrid.Zone.LANDSIDE), 1, "taxiways stay airside")
+	check_eq(Airport.grid.get_zone(Vector2i(23, 40)), AirportGrid.Zone.AIRSIDE, "taxiways are airside")
 	var data := JSON.parse_string(JSON.stringify(Airport.save_state())) as Dictionary
 	Airport.load_state(data)
 	check(Airport.grid.is_taxiway(Vector2i(23, 40)), "saved")

@@ -94,7 +94,7 @@ Inspirations: *Builderment*, *Idle Train Empire*, *Airplane Inc.*, *TheoTown*.
 ### 6.1 Getting started goals (first version)
 Decided 2026-10-13. The story intro above stays open; until it exists, a short goal line guides a new player through their first airport.
 - **The player's own airport starts as an empty field** (closes §19 Q2 for now): 48 × 48 cells of land (§14.1), €50,000 and one airline deal (§10.1).
-- One line under the top buttons shows the next goal, e.g. "Goal 3/10: Build a Check-in facing the entrance's walkway". Goals, in order: paint airside · entrance on a walkway · check-in · security on the border · gate with a stand · baggage claim · hire staff · first departure · sign a second airline · reach National.
+- One line under the top buttons shows the next goal, e.g. "Goal 3/10: Build a Check-in facing the entrance's walkway". Goals, in order: security with a walkway behind it (airside) · entrance on a walkway · check-in · security on the border · gate with a stand · baggage claim · hire staff · first departure · sign a second airline · reach National.
 - The line always shows the first goal that isn't met (a goal undone by demolishing comes back). "Hide" removes it for good (saved). It disappears when all goals are done, and while a panel on the right is open.
 
 ---
@@ -120,7 +120,7 @@ Decided 2026-10-13. The story intro above stays open; until it exists, a short g
 - Buildings cannot overlap each other or leave the map.
 - Each building has a **front side** (e.g. where passengers queue at check-in), shown on the model.
 - **Building costs money** (§11.5). If there isn't enough, the building can't be placed and the hint shows the price.
-- If a spot is not allowed, a short hint says why (space taken, wrong zone, …).
+- If a spot is not allowed, a short hint says why (space taken, no free row beside a border building, …).
 - MVP building sizes (provisional, easy to change per building):
 
 | Building | Cells | Meters | Zone rule |
@@ -139,7 +139,7 @@ Decided 2026-10-13. The story intro above stays open; until it exists, a short g
 - Corridors and halls are drawn as **walkway floor**: pick *Walkway* and drag a rectangle (or tap a cell); *Remove* erases walkway.
 - **Any width.** Width will matter once passengers walk: narrow walkways get crowded and slow passengers down. A realistic corridor is at least 2 cells (4 m) wide.
 - **Buildings can stand on walkway** (e.g. check-in desks inside a hall). Cells under a building are not walkable.
-- Walkways belong to the zone they are painted in. Passengers only walk on walkways and can only get from landside to airside **through security** (§7.2).
+- Walkways belong to the zone the zone map computes for them (§7.2). Passengers only walk on walkways and can only get from landside to airside **through security** (§7.2).
 - **Access sides:** passengers enter and leave buildings only on their access sides.
 
 | Building | Access side(s) |
@@ -159,9 +159,8 @@ Decided 2026-10-13. The story intro above stays open; until it exists, a short g
 ### 7.2 Zones (realism rule)
 - The airport has a **landside (public)** zone and an **airside (secure)** zone.
 - **Security is the only way** for passengers to get from landside to airside. Once through security, you are in the secure zone.
-- **The player paints the zones** in the build view: pick *Airside* or *Landside* and drag a rectangle (or tap a single cell). Every cell starts as landside.
-- Each building has a **zone rule** (see the table in §7.1a). Security sits **on the border**: the row in front of it must be landside, the row behind it airside.
-- Cells that a building's zone rule depends on cannot be painted to the other zone while the building stands.
+- **Zones are computed, not painted** (since step 4b): the game walks from the entrance along the walkways; what it reaches without passing security is landside, what is behind security's back row is airside. Taxiways, stands, runways and other airside-rule buildings are airside by rule; empty ground is landside.
+- Each building has a **zone rule** (see the table in §7.1a). It is no longer a placement check: airside buildings can be placed anywhere and show "Not connected" until the airside reaches them. Security needs a free row on both sides. Transfer security is not a border.
 - Zones are shown as a tint on the ground (airside darker / grey-blue).
 - Further realistic zone rules (e.g. passport control for non-Schengen, arrivals separated from departures) follow the same principle.
 
@@ -457,7 +456,7 @@ Placeholder numbers, tunable.
 Currency: **euro (€)**. All numbers are placeholders, tunable per building (compressed game time).
 - **Starting money:** €50,000.
 - **Income** when a flight's doors close: **€15 per departing passenger** (passenger fee paid by the airline) and **€300 per flight** (landing / turnaround fee).
-- **Construction:** Entrance €2,000 · Check-in €3,000 · Security €5,000 · Gate €4,000 · Aircraft stand €6,000 · Walkway €20 per cell. Painting zones is free. Removing walkway is free and refunds nothing (demolishing rules are still open, §19).
+- **Construction:** Entrance €2,000 · Check-in €3,000 · Security €5,000 · Gate €4,000 · Aircraft stand €6,000 · Walkway €20 per cell. Removing walkway is free and refunds nothing (demolishing rules are still open, §19).
 - **Running costs per minute** (staff, maintenance, utilities): Entrance €10 · Check-in €30 · Security €40 · Gate €25 · Stand €15 · Walkway €0.05 per cell. Charged continuously while the game runs.
 - **Display:** balance and profit per minute (last 60 s) at the top of the info panel; red when negative.
 - **Negative balance** is a bank loan (§11.6).
@@ -607,7 +606,7 @@ A button switches between the two views.
   - Looking up and down is limited (70° down to watch queues, 35° up), so the view never flips.
   - No zoom in the manager view.
 - **Build view:** top-down / bird's-eye. **All** building and layout planning happens here, and only here.
-  - Drag with one finger to move, pinch to zoom; two fingers also move the view. While a tool uses one-finger drags (e.g. painting zones), only two fingers move the view. Zoom is limited so the game stays playable; the camera cannot leave the map.
+  - Drag with one finger to move, pinch to zoom; two fingers also move the view. While a tool uses one-finger drags (e.g. painting walkways), only two fingers move the view. Zoom is limited so the game stays playable; the camera cannot leave the map.
   - When zoomed out, crowds are shown simplified (fewer figures, simple shapes). See §18.
 - What walking as the manager does in gameplay: decided, see §15.1.
 

@@ -19,7 +19,6 @@ func _flights_planned(seconds: float) -> Array[Flight]:
 
 func test_wide_body_stand_unlocks_at_international() -> void:
 	var type := type_of(&"wide_body_stand")
-	Airport.paint_zone(cells(Vector2i(8, 30), Vector2i(48, 26)), AirportGrid.Zone.AIRSIDE)
 	check_eq(Airport.check_placement(type, Vector2i(20, 36), 0), "Unlocked at International airport", "not before International")
 	Airport.progression.tier = Progression.Tier.INTERNATIONAL
 	check_eq(Airport.check_placement(type, Vector2i(20, 36), 0), "", "then it can be built")

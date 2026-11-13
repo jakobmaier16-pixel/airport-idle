@@ -22,7 +22,6 @@ func test_small_upgrade_is_instant() -> void:
 
 func test_big_upgrade_takes_time() -> void:
 	# Security must sit on the border: landside in front (row 9), airside behind (row 13).
-	Airport.paint_zone(cells(Vector2i(0, 13), Vector2i(64, 51)), AirportGrid.Zone.AIRSIDE)
 	var security := Airport.place_building(type_of(&"security"), Vector2i(10, 10), 0)
 	check(security != null, "security placed on the border")
 	security.level = 2
@@ -48,7 +47,6 @@ func test_upgrade_needs_money() -> void:
 
 
 func test_gates_have_no_upgrades_yet() -> void:
-	Airport.paint_zone(cells(Vector2i(0, 32), Vector2i(64, 32)), AirportGrid.Zone.AIRSIDE)
 	var gate := Airport.place_building(type_of(&"gate"), Vector2i(10, 40), 0)
 	check_eq(Airport.upgrade_problem(gate), "No upgrades for this building yet", "gate")
 
