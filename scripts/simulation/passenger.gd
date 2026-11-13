@@ -27,6 +27,10 @@ var by_car: bool = false
 ## Arriving: whether they wait for a checked bag, and when it comes off the belt.
 var has_bag: bool = false
 var bag_ready_at: float = 0.0
+## The journey this passenger follows and the step of it they are on (tech architecture §5).
+## `goal` is the kind of station they head for now: the step's role, or a shop/lounge detour.
+var recipe: JourneyRecipe = null
+var step: int = 0
 ## The kind of station the passenger is heading for next.
 var goal: BuildingType.Role = BuildingType.Role.CHECK_IN
 ## The building of the station the passenger is heading for or standing at.

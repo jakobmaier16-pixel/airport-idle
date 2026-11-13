@@ -16,6 +16,7 @@ const RETRY_INTERVAL: float = 1.0
 ## before boarding opens, and then with this probability.
 const SHOPPING_MIN_SPARE: float = 45.0
 ## Before security, passengers are less likely to sit in a landside café (share of their shop chance).
+## (The values live in data/journeys/departure.tres; these two are kept for tests and checked against it.)
 const LANDSIDE_CAFE_FACTOR: float = 0.4
 ## Time kept free for getting through security after a landside café.
 const SECURITY_ALLOWANCE: float = 60.0
@@ -61,6 +62,10 @@ var world: AirportWorld
 var max_passengers: int = MAX_PASSENGERS
 
 const Role := BuildingType.Role
+## The journeys (tech architecture §5): the order of stations lives in these data files.
+const DEPARTURE: JourneyRecipe = preload("res://data/journeys/departure.tres")
+const ARRIVAL: JourneyRecipe = preload("res://data/journeys/arrival.tres")
+const TRANSFER: JourneyRecipe = preload("res://data/journeys/transfer.tres")
 
 var passengers: Array[Passenger] = []
 var schedule: FlightSchedule = FlightSchedule.new()
@@ -308,6 +313,7 @@ func load_state(data: Dictionary, by_id: Dictionary[int, Building]) -> void:
 		passenger.visit_left = float(entry.get("visit_left", 0.0))
 		passenger.after_shop = int(entry.get("after_shop", Role.GATE)) as Role
 		passenger.leave_shop_by = float(entry.get("leave_shop_by", 0.0))
+		_restore_journey(passenger)
 		passenger.mood = float(entry.get("mood", 100.0))
 		passenger.walked = float(entry.get("walked", 0.0))
 		passenger.retry_in = float(entry.get("retry_in", 0.0))
@@ -404,7 +410,9 @@ func spawn_passenger(flight: Flight, type: PassengerType) -> bool:
 	passenger.position = _cell_point(cells[rng.randi() % cells.size()], passenger)
 	passenger.previous_position = passenger.position
 	# Online check-in with hand luggage only: straight to security.
-	passenger.goal = Role.SECURITY if rng.randf() < type.skip_check_in_chance else Role.CHECK_IN
+	passenger.recipe = DEPARTURE
+	passenger.step = DEPARTURE.index_of(Role.SECURITY) if rng.randf() < type.skip_check_in_chance else 0
+	passenger.goal = DEPARTURE.role_at(passenger.step)
 	passengers.append(passenger)
 	_plan(passenger)
 	return true
@@ -481,14 +489,16 @@ func deplane_passenger(flight: Flight, type: PassengerType) -> bool:
 	passenger.color_index = rng.randi() % COLOR_COUNT
 	passenger.position = _cell_point(gate.entry_cells[rng.randi() % gate.entry_cells.size()], passenger)
 	passenger.previous_position = passenger.position
-	passenger.goal = Role.BAGGAGE_CLAIM
+	passenger.recipe = ARRIVAL
+	passenger.goal = ARRIVAL.role_at(0)
 	# Some connect to another flight (design doc §8.9), if the airport can handle transfers.
 	var connection := _connecting_flight(flight)
 	if connection != null:
 		passenger.is_arriving = false
 		passenger.is_transfer = true
 		passenger.flight = connection
-		passenger.goal = Role.TRANSFER_SECURITY
+		passenger.recipe = TRANSFER
+		passenger.goal = TRANSFER.role_at(0)
 	passengers.append(passenger)
 	_plan(passenger)
 	return true
@@ -759,19 +769,33 @@ func _tick_station(station: Station, delta: float) -> void:
 
 
 func _finish_service(station: Station, passenger: Passenger) -> void:
-	match station.role():
-		Role.CHECK_IN:
-			passenger.goal = Role.SECURITY
-			_maybe_shop(passenger, Role.SECURITY, SECURITY_ALLOWANCE, _shop_chance(passenger) * LANDSIDE_CAFE_FACTOR)
-			_plan(passenger)
-		Role.SECURITY, Role.TRANSFER_SECURITY:
-			passenger.goal = Role.GATE
-			_maybe_shop(passenger, Role.GATE, 0.0, _shop_chance(passenger))
-			# Through the security lane: appear behind the building.
-			var exit: Vector2i = _closest_cell_in_area(station.exit_cells, world.grid.world_to_cell(passenger.position), -1)
-			passenger.position = _cell_point(exit, passenger)
-			passenger.previous_position = passenger.position
-			_plan(passenger)
+	if passenger.recipe == null or passenger.recipe.is_last(passenger.step):
+		return
+	var done := passenger.recipe.step_at(passenger.step)
+	var next := _next_step(passenger)
+	if next.detour_before:
+		_maybe_shop(passenger, next.role, next.detour_allowance, _shop_chance(passenger) * next.detour_chance_factor)
+	if done.emerges_behind:
+		# Through the security lane: appear behind the building.
+		var exit: Vector2i = _closest_cell_in_area(station.exit_cells, world.grid.world_to_cell(passenger.position), -1)
+		passenger.position = _cell_point(exit, passenger)
+		passenger.previous_position = passenger.position
+	_plan(passenger)
+
+
+# Moves the passenger on to the next step of their journey and makes it their goal.
+func _next_step(passenger: Passenger) -> JourneyStep:
+	passenger.step = mini(passenger.step + 1, passenger.recipe.steps.size() - 1)
+	passenger.goal = passenger.recipe.role_at(passenger.step)
+	return passenger.recipe.step_at(passenger.step)
+
+
+# Journeys are not saved yet (save format 6 will): rebuild recipe and step from the saved flags
+# and goal. A passenger in a shop detour is on the step they will return to.
+func _restore_journey(passenger: Passenger) -> void:
+	passenger.recipe = TRANSFER if passenger.is_transfer else (ARRIVAL if passenger.is_arriving else DEPARTURE)
+	var role := passenger.after_shop if passenger.goal in [Role.SHOP, Role.LOUNGE] else passenger.goal
+	passenger.step = maxi(passenger.recipe.index_of(role), 0)
 
 
 ## How long `employee` needs compared to the standard time: experience (§9.1), a supervisor
@@ -861,7 +885,7 @@ func _tick_baggage_claim(station: Station) -> void:
 		var door: Vector2i = station.exit_cells[rng.randi() % station.exit_cells.size()]
 		passenger.position = _cell_point(door, passenger)
 		passenger.previous_position = passenger.position
-		passenger.goal = Role.ENTRANCE
+		_next_step(passenger)
 		_plan(passenger)
 
 
@@ -877,7 +901,7 @@ func _plan_exit(passenger: Passenger) -> void:
 	var area := _network.area_of(cell)
 	passenger.target = null
 	var exit: Variant = null
-	if passenger.by_car:
+	if passenger.by_car and passenger.recipe != null and passenger.recipe.step_at(passenger.step).exit_via_car_park:
 		# Car travellers walk to their car (design doc §11.8), if a car park is reachable.
 		var best_distance := INF
 		for car_park in world.buildings:

@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="JourneyRecipe" load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/journey_recipe.gd" id="1_recipe"]
+[ext_resource type="Script" path="res://scripts/resources/journey_step.gd" id="2_step"]
+
+[sub_resource type="Resource" id="s_claim"]
+script = ExtResource("2_step")
+role = 7
+
+[sub_resource type="Resource" id="s_exit"]
+script = ExtResource("2_step")
+role = 1
+exit_via_car_park = true
+
+[resource]
+script = ExtResource("1_recipe")
+id = &"arrival"
+steps = Array[ExtResource("2_step")]([SubResource("s_claim"), SubResource("s_exit")])
