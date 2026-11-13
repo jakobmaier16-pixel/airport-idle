@@ -43,8 +43,11 @@ nothing pure black or pure white, or PBR lighting looks fake.
 | Wayfinding, markings (road, apron) | Signal yellow | `#E8B830` |
 | Road markings, zebra | Marking white | `#E6E6E2` |
 | Status: problem / alert only | Signal red | `#C8382E` |
+| Ground markings: stand safety / boundary lines | Marking red | `#C8382E` |
 
 Rule: **one accent per area.** Yellow is for wayfinding and markings only; red only for warnings.
+**Ground markings follow real ICAO conventions** (white runway, yellow taxi / lead-in, red stand
+safety lines); the "red only for alerts" rule applies to buildings and signs.
 Airline colours (fictional) live on planes, counters and signs, not on the building.
 
 ## 4. Materials (shared library)
@@ -55,7 +58,7 @@ Few shared materials, reused by every asset. Each is a Godot `StandardMaterial3D
 
 | Material | Use | Maps | Notes |
 |---|---|---|---|
-| `concrete` | walls, curbs, apron slabs | albedo, normal, ORM | slab joints come from the mesh/UVs, not the texture |
+| `concrete` | walls, curbs, apron slabs | albedo, normal, ORM | slab joints come from the mesh/UVs, not the texture (exception: ground tiles, see below) |
 | `terrazzo_dark` | interior floors | albedo, ORM | roughness ~0.35, subtle reflection |
 | `glass` | windows, facades, railings | none (flat colour) | transparent, roughness 0.05, **no refraction**, depth draw off; few large panes |
 | `metal_dark` | frames, mullions, posts | none | metallic 1, roughness 0.45, anthracite |
@@ -70,6 +73,11 @@ Few shared materials, reused by every asset. Each is a Godot `StandardMaterial3D
 - **Textures:** tileable, **1024² max** (512² for small trims), compressed as **ASTC**
   (`VRAM Compressed`, mipmaps on). Normal maps flagged as normal maps on import.
 - **ORM** = occlusion (R), roughness (G), metallic (B) in one texture: one sample instead of three.
+  Textured materials with ORM are saved as `ORMMaterial3D` (the `StandardMaterial3D` variant that
+  reads the packed texture).
+- **Ground tiles bake their slab joints into the texture** (exception to the mesh/UV rule): the
+  apron `concrete` tile is 10 × 10 m with 2 × 2 slabs of 5 m, so the ground stays one flat plane.
+  Ground tile sizes: grass 16 m, asphalt 8 m, concrete 10 m (`uv1_scale` = 2 m / tile size).
 - No 4K textures, no unique textures per building, no texture painting on single assets.
 
 ## 5. Light (hybrid)
