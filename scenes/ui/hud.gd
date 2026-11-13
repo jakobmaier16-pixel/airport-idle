@@ -406,7 +406,8 @@ func _update_stats_panel() -> void:
 	_types_label.text = "In the airport: " + "  ·  ".join(parts) \
 		+ "     Transfers: %d now  ·  %d connected" % [flow.transferring_count(), flow.transferred_count]
 	_satisfaction_label.text = satisfaction_text(flow.satisfaction) \
-		+ "     On time: %d %%" % roundi(Airport.reputation.on_time_rate * 100.0)
+		+ "     On time: %d %%" % roundi(Airport.reputation.on_time_rate * 100.0) \
+		+ "     " + demand_text(Airport.demand, Airport.stars())
 	_progress_label.text = Airport.progression.progress_text(Airport.stars())
 	_bottleneck_label.visible = stats_tab == StatsTab.STATIONS
 	if bottleneck != null:
@@ -514,6 +515,12 @@ func _fill_stations_table(bottleneck: Station) -> void:
 		_add_stats_cell(str(station.longest_queue()), color)
 		_add_stats_cell("–" if wait < 0.0 else "%d s" % roundi(wait), color)
 		_add_stats_cell("%d %%" % roundi(station.busy_share() * 100.0), color)
+
+
+## "Demand: 54 flights/day, 78 % full, rising" (words, not arrows: the font has no arrow glyphs).
+static func demand_text(demand: Demand, stars: float) -> String:
+	var trend := {"up": "rising", "down": "falling", "steady": "steady"}[demand.trend()] as String
+	return "Demand: %d flights/day, %d %% full, %s" % [roundi(demand.flights_per_day()), roundi(Demand.load_factor(stars) * 100.0), trend]
 
 
 ## "Satisfaction: 78 %  ·  Families 82 % …" plus the main complaint (design doc §8.10).

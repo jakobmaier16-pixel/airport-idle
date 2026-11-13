@@ -69,6 +69,8 @@ var airlines: Airlines = Airlines.new()
 var clock: Clock = Clock.new()
 ## The day's planned flights (tech_architecture.md §6); FlightSchedule turns them into flights.
 var timetable: Timetable = Timetable.new()
+## Market demand for flights; grows with stars and punctuality (scripts/simulation/demand.gd).
+var demand: Demand = Demand.new()
 ## "Getting started" goals (design doc §6.1).
 var goals: Goals = Goals.new()
 ## Airport tiers and lifetime passenger counts (design doc §14.1). Reset, not replaced.
@@ -159,6 +161,7 @@ func dispose() -> void:
 ## Advances the whole simulation by one step: passengers, flights and money.
 func step(delta: float) -> void:
 	clock.tick(delta)
+	demand.tick(clock.day(), progression.tier, stars(), reputation.on_time_rate)
 	timetable.tick()
 	passenger_flow.tick(delta)
 	economy.tick(delta, _running_cost_per_minute - _salaries_per_minute, _salaries_per_minute)
@@ -711,6 +714,7 @@ func reset(with_runway: bool = true, new_seed: int = -1) -> void:
 	goals.hidden = false
 	clock.reset()
 	timetable.clear()
+	demand.reset()
 	land_changed.emit()
 	manager_position = NOBODY_THERE
 	saved_manager = {}
@@ -766,6 +770,7 @@ func save_state() -> Dictionary:
 		"clock": clock.game_seconds,
 		"clock_elapsed": clock.elapsed,
 		"timetable": timetable.save_state(),
+		"demand": demand.save_state(),
 		"flow": passenger_flow.save_state(),
 		"manager": {"x": manager_position.x, "z": manager_position.z, "yaw": manager_yaw} if manager_position != NOBODY_THERE else {},
 		# As text: JSON keeps numbers as decimals, which can't hold a 64-bit dice state exactly.
@@ -796,6 +801,8 @@ func load_state(data: Dictionary) -> int:
 		push_warning("Saved airport has no clock_elapsed: the clock starts at zero.")
 	clock.load_state(float(data.get("clock_elapsed", 0.0)), float(data.get("clock", Clock.START_HOUR * 3600.0)))
 	timetable.load_state(data.get("timetable", {}))
+	demand.load_state(data.get("demand", {}))
+	demand.last_day = maxi(demand.last_day, 1) if data.has("demand") else clock.day()
 	saved_manager = data.get("manager", {})
 	land_changed.emit()
 	var skipped := 0

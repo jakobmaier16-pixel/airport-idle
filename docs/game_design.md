@@ -49,6 +49,7 @@ Inspirations: *TheoTown* (services that grow with the city), *Builderment*, *Idl
 
 ### 3.1 The growth loop
 1. **Demand grows on its own.** A well-run airport attracts more airlines, flights and passengers.
+   *Pace (decided 2026-11-13):* demand is one value, updated once per game day from the star rating and the on-time rate. A well-run regional airport grows from the start (about 3 narrow-body flights an hour at the average hour) to the regional maximum (6) in about **5 game days** (about 8 real hours). It **falls slowly** when the airport runs badly (long queues, delays): at a quarter of the growth speed, never below the start. The cap depends on tier and stars, **not** on infrastructure: demand outgrows capacity, so bottlenecks appear; gates, stands and runway still limit the flights that actually happen. The HUD shows flights per day, load factor and the trend.
 2. **Something hits its limit.** A queue at security, not enough power, no free aircraft stand, a runway the fire station can't reach in time.
 3. **Statistics show where.** The player rebuilds, upgrades or adds a service.
 4. **Capacity rises**, reputation rises, airlines offer more flights. Back to 1.
