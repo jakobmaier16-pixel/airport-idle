@@ -472,7 +472,9 @@ func is_anyone_coming(flight: Flight) -> bool:
 		if passenger.flight != flight or passenger.is_arriving:
 			continue
 		# On a step the flight waits for (also while on a detour back to it).
-		if passenger.recipe != null and passenger.recipe.step_at(passenger.step).holds_flight:
+		if passenger.recipe == null:
+			push_warning("A passenger without a journey recipe was found.")
+		elif passenger.recipe.step_at(passenger.step).holds_flight:
 			return true
 	return false
 
@@ -831,7 +833,10 @@ func _resume_role(passenger: Passenger) -> Role:
 
 # On a detour: the goal is a visit, not the role of the current step.
 func _in_detour(passenger: Passenger) -> bool:
-	return passenger.recipe != null and passenger.goal != passenger.recipe.role_at(passenger.step)
+	if passenger.recipe == null:
+		push_warning("A passenger without a journey recipe was found.")
+		return false
+	return passenger.goal != passenger.recipe.role_at(passenger.step)
 
 
 # Back to the step the detour came before.
