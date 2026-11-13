@@ -24,6 +24,9 @@ var _chunks: Array = []
 var _chunks_wide: int = 0
 var _chunks_high: int = 0
 var _allocated_chunks: int = 0
+# Chunks whose flags changed since the last `take_dirty_chunks()`: chunk index -> true. Filled by every
+# flag write that changes a value (so a rebuild of the ground texture only visits these chunks).
+var _dirty: Dictionary[int, bool] = {}
 
 
 ## Edge length of a storage chunk in cells.
@@ -35,7 +38,8 @@ const CHUNK_MASK: int = CHUNK_SIZE - 1
 const ZONE_MASK: int = 0x07
 const WALKWAY_BIT: int = 0x08
 const TAXIWAY_BIT: int = 0x10
-## Reserved for "owned land" (later PRs); nothing sets it yet.
+## Reserved for "owned land" (later PRs); nothing sets it yet. The ground shades unowned land from
+## `Progression.owned_land` (a rectangle uniform) instead, so the chunks stay sparse.
 const OWNED_BIT: int = 0x20
 
 
@@ -49,6 +53,10 @@ class GridChunk extends RefCounted:
 
 
 func _init(size_in_cells: Vector2i, cell_size_meters: float) -> void:
+	# Even sizes only: the map is centered on the world origin, and a save of another map size is
+	# placed in the middle by (size difference) / 2 cells; both stay on whole cells only if every
+	# size is even.
+	assert(size_in_cells.x % 2 == 0 and size_in_cells.y % 2 == 0, "Map size %s must be even" % size_in_cells)
 	size = size_in_cells
 	cell_size = cell_size_meters
 	origin = Vector3(-size.x * cell_size * 0.5, 0.0, -size.y * cell_size * 0.5)
@@ -215,6 +223,24 @@ func count_flag(mask: int) -> int:
 	return total
 
 
+## Chunk coordinates of every chunk whose flags changed since the last call, row by row, and forgets
+## them. A chunk that became empty (and is no longer allocated) is listed too: its cells are now 0.
+## Meant for one consumer, the ground texture (scenes/ground/ground_flag_texture.gd).
+func take_dirty_chunks() -> Array[Vector2i]:
+	var indices := _dirty.keys()
+	indices.sort()
+	_dirty.clear()
+	var result: Array[Vector2i] = []
+	for index: int in indices:
+		result.append(Vector2i(index % _chunks_wide, index / _chunks_wide))
+	return result
+
+
+## How many chunks are waiting in the dirty set.
+func get_dirty_chunk_count() -> int:
+	return _dirty.size()
+
+
 ## Every cell whose flag byte is not zero, chunk by chunk (cheap: unallocated chunks are skipped).
 func get_nonempty_cells() -> Array[Vector2i]:
 	var result: Array[Vector2i] = []
@@ -276,6 +302,7 @@ func _write(cell: Vector2i, mask: int, bits: int) -> void:
 	var value := (old & ~mask) | bits
 	if value == old:
 		return
+	_dirty[chunk_index] = true
 	chunk.cells[i] = value
 	if old == 0:
 		chunk.nonzero += 1

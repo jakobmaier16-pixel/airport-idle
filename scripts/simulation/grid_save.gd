@@ -54,6 +54,7 @@ static func cells_of(chunks: Array) -> Array[Vector2i]:
 static func from_dense(dense: PackedByteArray, size: Vector2i) -> Array[Dictionary]:
 	var result: Array[Dictionary] = []
 	if dense.size() != size.x * size.y:
+		push_warning("A saved dense map layer has %d cells, expected %d; it was ignored." % [dense.size(), size.x * size.y])
 		return result
 	var wide := ceili(float(size.x) / AirportGrid.CHUNK_SIZE)
 	var high := ceili(float(size.y) / AirportGrid.CHUNK_SIZE)

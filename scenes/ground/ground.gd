@@ -1,15 +1,19 @@
 class_name Ground
 extends StaticBody3D
-## The flat ground of the map. Sizes itself to the airport grid and shows zones and walkway floor,
-## so the visuals always match the simulation data.
+## The flat ground of the map: one mesh, one draw call. Sizes itself to the airport grid; the shader
+## reads the grid's flag layer from an R8 texture (GroundFlagTexture), so the visuals always match
+## the simulation data. Unowned land is shaded from `Progression.owned_land` (a rectangle uniform;
+## the grid's owned bit stays unused so its chunks stay sparse).
 
 @onready var _mesh_instance: MeshInstance3D = $MeshInstance3D
 @onready var _collision_shape: CollisionShape3D = $CollisionShape3D
 
 var _material: ShaderMaterial
-# One pixel per cell (red = airside, green = walkway, blue = taxiway); the shader reads it.
-var _zone_image: Image
-var _zone_texture: ImageTexture
+# The whole flag layer as one R8 texture (1 texel per cell); the shader decodes the bits.
+var _flags: GroundFlagTexture
+var _flags_grid: AirportGrid
+# Set by the change signals; the texture is brought up to date once per frame in _process.
+var _cells_dirty: bool = false
 
 
 func _ready() -> void:
@@ -27,14 +31,28 @@ func _ready() -> void:
 	_material.set_shader_parameter(&"grid_origin", Vector2(grid.origin.x, grid.origin.z))
 	_material.set_shader_parameter(&"map_size", rect.size)
 
-	_zone_image = Image.create(grid.size.x, grid.size.y, false, Image.FORMAT_RGB8)
-	_zone_texture = ImageTexture.create_from_image(_zone_image)
-	_material.set_shader_parameter(&"zone_map", _zone_texture)
 	_update_cells()
 	_update_land()
 	Airport.land_changed.connect(_update_land)
-	Airport.zones_changed.connect(_update_cells)
-	Airport.walkways_changed.connect(_update_cells)
+	Airport.zones_changed.connect(_mark_cells_dirty)
+	Airport.walkways_changed.connect(_mark_cells_dirty)
+
+
+func _process(_delta: float) -> void:
+	if _cells_dirty:
+		_cells_dirty = false
+		_update_cells()
+
+
+# Several signals can fire for one edit (and several edits in one frame): only remember it, the
+# upload happens at most once per frame.
+func _mark_cells_dirty() -> void:
+	_cells_dirty = true
+
+
+## The flag texture (for tests).
+func get_flag_texture() -> GroundFlagTexture:
+	return _flags
 
 
 # Shades land the airport doesn't own yet (design doc §14.1).
@@ -47,16 +65,13 @@ func _update_land() -> void:
 	_material.set_shader_parameter(&"owned_rect", Vector4(from.x, from.y, to.x, to.y))
 
 
+# Brings the flag texture up to date: only chunks that changed since the last call are copied.
 func _update_cells() -> void:
-	var zones := Airport.grid.get_zone_data()
-	var walkways := Airport.grid.get_walkway_data()
-	var taxiways := Airport.grid.get_taxiway_data()
-	# Three bytes per pixel (red, green, blue). Values are 0 / 1; the texture needs 0 / 255 for "on".
-	var data := PackedByteArray()
-	data.resize(zones.size() * 3)
-	for i in zones.size():
-		data[i * 3] = zones[i] * 255
-		data[i * 3 + 1] = walkways[i] * 255
-		data[i * 3 + 2] = taxiways[i] * 255
-	_zone_image.set_data(_zone_image.get_width(), _zone_image.get_height(), false, Image.FORMAT_RGB8, data)
-	_zone_texture.update(_zone_image)
+	var grid := Airport.grid
+	if _flags == null or grid != _flags_grid:
+		# First build, or a new grid (a loaded game): copy every allocated chunk once.
+		_flags_grid = grid
+		_flags = GroundFlagTexture.new(grid)
+		_material.set_shader_parameter(&"flag_map", _flags.texture)
+		return
+	_flags.refresh()
