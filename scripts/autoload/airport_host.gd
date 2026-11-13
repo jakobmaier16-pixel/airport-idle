@@ -395,10 +395,6 @@ func demolish(building: Building) -> bool:
 	return brain.demolish(building)
 
 
-func paint_zone(cells: Array[Vector2i], zone: AirportGrid.Zone) -> int:
-	return brain.paint_zone(cells, zone)
-
-
 func paint_walkway(cells: Array[Vector2i], walkway: bool) -> String:
 	return brain.paint_walkway(cells, walkway)
 

@@ -66,12 +66,11 @@ func test_demolished_stand_stops_its_gate() -> void:
 	check(Airport.passenger_flow.schedule.flights.all(func(f: Flight) -> bool: return f.gate != gate), "no flights at that gate")
 
 
-func test_zone_cells_are_freed() -> void:
-	Airport.paint_zone(cells(Vector2i(0, 32), Vector2i(64, 32)), AirportGrid.Zone.AIRSIDE)
-	var security := Airport.place_building(type_of(&"security"), Vector2i(20, 29), 0)
-	check_eq(Airport.paint_zone(cells(Vector2i(20, 32), Vector2i(5, 1)), AirportGrid.Zone.LANDSIDE), 5, "locked while security stands")
-	Airport.demolish(security)
-	check_eq(Airport.paint_zone(cells(Vector2i(20, 32), Vector2i(5, 1)), AirportGrid.Zone.LANDSIDE), 0, "free after demolishing")
+func test_demolishing_security_makes_the_airside_landside() -> void:
+	build_basic_terminal()
+	check_eq(Airport.grid.get_zone(Vector2i(20, 32)), AirportGrid.Zone.AIRSIDE, "airside behind security")
+	Airport.demolish(_building(BuildingType.Role.SECURITY))
+	check_eq(Airport.grid.get_zone(Vector2i(20, 32)), AirportGrid.Zone.LANDSIDE, "landside without it")
 
 
 func test_demolish_by_touch() -> void:

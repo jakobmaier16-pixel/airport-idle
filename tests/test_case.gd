@@ -255,6 +255,16 @@ func type_of(id: StringName) -> BuildingType:
 	return Airport.CATALOG.find(id)
 
 
+## A minimal terminal: landside hall with an entrance, security on the border, and an airside
+## walkway behind it (gates and shops can go along that walkway). No money or tier needed.
+func build_basic_terminal() -> void:
+	Airport.economy.balance = 1.0e9
+	Airport.paint_walkway(cells(Vector2i(18, 21), Vector2i(28, 7)), true)
+	Airport.paint_walkway(cells(Vector2i(10, 31), Vector2i(44, 3)), true)
+	Airport.place_building(type_of(&"entrance"), Vector2i(30, 19), 0)
+	Airport.place_building(type_of(&"security"), Vector2i(30, 28), 0)
+
+
 ## The showcase airport (scripts/dev/showcase_airport.gd), without passengers yet.
 func build_reference_airport() -> void:
 	ShowcaseAirport.build(0.0)

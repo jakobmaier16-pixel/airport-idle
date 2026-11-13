@@ -18,7 +18,7 @@ func test_state_round_trip() -> void:
 	check_eq(Airport.grid.get_zone_data(), zones, "zones restored")
 	check_eq(Airport.grid.get_walkway_data(), walkways, "walkways restored")
 	check(Airport.passenger_flow.route_problem.is_empty(), "route works after loading")
-	check_eq(Airport.paint_zone([Vector2i(31, 31)] as Array[Vector2i], AirportGrid.Zone.LANDSIDE), 1, "zone locks restored")
+	check_eq(Airport.grid.get_zone(Vector2i(31, 31)), AirportGrid.Zone.AIRSIDE, "airside walkway behind security recomputed")
 
 
 func test_file_save_and_load() -> void:

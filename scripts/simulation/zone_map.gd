@@ -3,12 +3,14 @@ extends RefCounted
 ## Zones worked out from the layout (tech_architecture.md §4, game_design §8.1): the brain walks
 ## from the entrance along the walkways. Everything reached without passing security is landside,
 ## everything behind security is airside. Pure data, no nodes.
-## Step 4a: computed next to the painted zones (AirportGrid) and only compared; nothing reads it
-## yet. Step 4b switches the game to it and removes painting.
+## `recompute` also writes the result into the grid, which everything else reads (AirportGrid.get_zone).
+## Border buildings are security only: transfer security joins two airside walkways but is no border.
 
 ## One byte per cell (row by row), an AirportGrid.Zone value. Cells nobody walks to stay landside.
 var computed: PackedByteArray = PackedByteArray()
 var _size: Vector2i = Vector2i.ZERO
+## True once security's back reaches a walkway: the airside exists.
+var airside_reached: bool = false
 
 const _STEPS: Array[Vector2i] = [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]
 
@@ -23,6 +25,7 @@ func recompute(grid: AirportGrid, buildings: Array[Building]) -> void:
 	_size = grid.size
 	computed.resize(_size.x * _size.y)
 	computed.fill(AirportGrid.Zone.LANDSIDE)
+	airside_reached = false
 	_walkable_seen.clear()
 
 	# Landside: from both outside rows of every entrance, over walkway cells. Buildings are never
@@ -30,7 +33,7 @@ func recompute(grid: AirportGrid, buildings: Array[Building]) -> void:
 	var landside_seeds: Array[Vector2i] = []
 	var airside_seeds: Array[Vector2i] = []
 	var transfers: Array[Building] = []
-	for building in buildings:
+	for building: Building in buildings:
 		match building.type.role:
 			BuildingType.Role.ENTRANCE:
 				landside_seeds.append_array(_rows(building, true))
@@ -43,20 +46,21 @@ func recompute(grid: AirportGrid, buildings: Array[Building]) -> void:
 	var landside := _flood(grid, landside_seeds, {})
 	# Transfer security joins two airside walkways: once one side is reached, so is the other.
 	var airside := _flood(grid, airside_seeds, landside)
-	var changed := not transfers.is_empty()
+	var changed: bool = not transfers.is_empty()
 	while changed:
 		changed = false
-		for building in transfers:
-			var front := Building.outside_row(building.type.footprint, building.origin_cell, building.rotation_steps, true)
-			var back := Building.outside_row(building.type.footprint, building.origin_cell, building.rotation_steps, false)
-			var reached := false
-			for cell in front + back:
+		for building: Building in transfers:
+			var front: Array[Vector2i] = Building.outside_row(building.type.footprint, building.origin_cell, building.rotation_steps, true)
+			var back: Array[Vector2i] = Building.outside_row(building.type.footprint, building.origin_cell, building.rotation_steps, false)
+			var reached: bool = false
+			for cell: Vector2i in front + back:
 				reached = reached or airside.has(cell)
 			if reached:
-				var before := airside.size()
+				var before: int = airside.size()
 				airside = _flood(grid, front + back, landside, airside)
 				changed = changed or airside.size() != before
-	for cell in airside:
+	airside_reached = not airside.is_empty()
+	for cell: Vector2i in airside:
 		computed[cell.y * _size.x + cell.x] = AirportGrid.Zone.AIRSIDE
 
 	# Cells without a walkway: planes' ground and airside buildings are airside by rule.
@@ -64,40 +68,13 @@ func recompute(grid: AirportGrid, buildings: Array[Building]) -> void:
 		for x in _size.x:
 			if grid.is_taxiway(Vector2i(x, y)):
 				computed[y * _size.x + x] = AirportGrid.Zone.AIRSIDE
-	for building in buildings:
-		var zone := _building_zone(building)
+	for building: Building in buildings:
+		var zone: int = _building_zone(building)
 		if zone >= 0:
-			for cell in Building.footprint_cells(building.type.footprint, building.origin_cell, building.rotation_steps):
+			for cell: Vector2i in Building.footprint_cells(building.type.footprint, building.origin_cell, building.rotation_steps):
 				if grid.is_inside(cell):
 					computed[cell.y * _size.x + cell.x] = zone
-
-
-## Cells where the painted zones (`grid`) and the computed ones disagree, as readable lines.
-## Only cells that matter are compared: walkway, taxiway, and the footprints of buildings whose
-## zone is fixed by their rule or by the walkway beside them (security and baggage claim stand on
-## the border, so they have no single zone). Empty ground has no computed zone, so it is skipped.
-## Temporary 4a aid: removed with the painted zones in 4b.
-func differences(grid: AirportGrid, buildings: Array[Building]) -> Array[String]:
-	var lines: Array[String] = []
-	for y in _size.y:
-		for x in _size.x:
-			var cell := Vector2i(x, y)
-			if (grid.is_walkway(cell) or grid.is_taxiway(cell)) and grid.is_empty(cell) and grid.get_zone(cell) != zone_at(cell):
-				lines.append("%s %s: painted %s, computed %s" % [
-					"taxiway" if grid.is_taxiway(cell) else "walkway", cell,
-					AirportGrid.Zone.keys()[grid.get_zone(cell)], AirportGrid.Zone.keys()[zone_at(cell)]])
-	for building in buildings:
-		if building.type.role == BuildingType.Role.RUNWAY:
-			continue
-		var zone := _building_zone(building)
-		if zone < 0:
-			continue
-		var painted := grid.get_zone(building.origin_cell)
-		if painted != zone:
-			lines.append("%s at %s: painted %s, computed %s" % [
-				building.type.display_name, building.origin_cell,
-				AirportGrid.Zone.keys()[painted], AirportGrid.Zone.keys()[zone]])
-	return lines
+	grid.set_zone_data(computed)
 
 
 # The zone of a building's footprint, or -1 for border buildings (they have two sides).
@@ -109,8 +86,8 @@ func _building_zone(building: Building) -> int:
 			return AirportGrid.Zone.AIRSIDE
 		BuildingType.ZoneRule.ANY:
 			# Like a café: it stands on the side of the walkway it serves.
-			for front in [true, false]:
-				for cell in Building.outside_row(building.type.footprint, building.origin_cell, building.rotation_steps, front):
+			for front: bool in [true, false]:
+				for cell: Vector2i in Building.outside_row(building.type.footprint, building.origin_cell, building.rotation_steps, front):
 					if _is_marked_side(cell):
 						return zone_at(cell)
 	return -1
@@ -133,17 +110,17 @@ func _rows(building: Building, front: bool) -> Array[Vector2i]:
 func _flood(grid: AirportGrid, seeds: Array[Vector2i], blocked: Dictionary, into: Dictionary = {}) -> Dictionary:
 	var reached: Dictionary = into
 	var queue: Array[Vector2i] = []
-	for cell in seeds:
+	for cell: Vector2i in seeds:
 		if grid.is_walkable(cell) and not blocked.has(cell) and not reached.has(cell):
 			reached[cell] = true
 			queue.append(cell)
 	while not queue.is_empty():
 		var cell: Vector2i = queue.pop_back()
-		for step in _STEPS:
+		for step: Vector2i in _STEPS:
 			var next := cell + step
 			if grid.is_walkable(next) and not blocked.has(next) and not reached.has(next):
 				reached[next] = true
 				queue.append(next)
-	for cell in reached:
+	for cell: Vector2i in reached:
 		_walkable_seen[cell] = true
 	return reached

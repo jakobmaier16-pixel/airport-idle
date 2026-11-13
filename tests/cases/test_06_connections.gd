@@ -11,7 +11,6 @@ func test_check_in_needs_walkway_in_front() -> void:
 
 
 func test_security_needs_both_sides() -> void:
-	Airport.paint_zone(cells(Vector2i(0, 32), Vector2i(64, 32)), AirportGrid.Zone.AIRSIDE)
 	var security := type_of(&"security")
 	Airport.paint_walkway(cells(Vector2i(20, 28), Vector2i(5, 1)), true)
 	check_eq(Airport.connection_problem(security, Vector2i(20, 29), 0), "Needs a walkway behind", "front only")
@@ -20,8 +19,7 @@ func test_security_needs_both_sides() -> void:
 
 
 func test_gate_needs_stand_behind() -> void:
-	Airport.paint_zone(cells(Vector2i(0, 32), Vector2i(64, 32)), AirportGrid.Zone.AIRSIDE)
-	Airport.paint_walkway(cells(Vector2i(40, 33), Vector2i(5, 1)), true)
+	build_basic_terminal()  # the gate's walkway must be reached through security
 	Airport.place_building(type_of(&"gate"), Vector2i(40, 34), 0)
 	check_eq(Airport.connection_problem(type_of(&"gate"), Vector2i(40, 34), 0), "Needs an aircraft stand behind", "no stand")
 	Airport.place_building(type_of(&"aircraft_stand"), Vector2i(36, 39), 0)

@@ -4,7 +4,7 @@
 > Nothing is built unless it is in **Now** (master_plan.md §6).
 
 ## Now
-- Step 4 · Automatic zones and areas (4a computed next to painted, 4b remove painting, 4c areas)
+- Step 4 · Automatic zones and areas (4a done, 4b remove painting done, 4c areas)
 
 ## Next
 - Step 5 · Passenger journey as recipes

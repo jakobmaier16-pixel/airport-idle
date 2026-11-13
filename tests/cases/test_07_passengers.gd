@@ -5,7 +5,6 @@ extends TestCase
 func test_route_messages_guide_the_player() -> void:
 	var flow := Airport.passenger_flow
 	check(flow.status_text().contains("build an entrance"), "empty map")
-	Airport.paint_zone(cells(Vector2i(8, 31), Vector2i(49, 25)), AirportGrid.Zone.AIRSIDE)
 	Airport.paint_walkway(cells(Vector2i(18, 21), Vector2i(28, 7)), true)
 	Airport.place_building(type_of(&"entrance"), Vector2i(30, 19), 0)
 	check(flow.status_text().contains("check-in"), "after entrance: %s" % flow.status_text())

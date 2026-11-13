@@ -50,7 +50,6 @@ func test_hiring_limit_and_salary() -> void:
 
 
 func test_gates_need_no_staff() -> void:
-	Airport.paint_zone(cells(Vector2i(0, 32), Vector2i(64, 32)), AirportGrid.Zone.AIRSIDE)
 	var gate := Airport.place_building(type_of(&"gate"), Vector2i(10, 40), 0)
 	check(not Airport.needs_staff(gate), "gates run without staff for now")
 	check_eq(Airport.hire_problem(gate), "No staff needed here", "hint")

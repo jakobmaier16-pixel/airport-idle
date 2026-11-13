@@ -88,7 +88,6 @@ func test_fast_track_puts_business_first() -> void:
 
 
 func test_buying_fast_track() -> void:
-	Airport.paint_zone(cells(Vector2i(8, 31), Vector2i(48, 25)), AirportGrid.Zone.AIRSIDE)
 	var security := Airport.place_building(type_of(&"security"), Vector2i(30, 28), 0)
 	check_eq(Airport.fast_track_problem(security), "", "can be bought")
 	var money := Airport.economy.balance
@@ -103,7 +102,6 @@ func test_buying_fast_track() -> void:
 
 
 func test_fast_track_button() -> void:
-	Airport.paint_zone(cells(Vector2i(8, 31), Vector2i(48, 25)), AirportGrid.Zone.AIRSIDE)
 	var security := Airport.place_building(type_of(&"security"), Vector2i(30, 28), 0)
 	await start_game()
 	manager().global_position = Airport.grid.block_center(security.origin_cell, Vector2i(5, 3)) + Vector3(0.0, 0.0, 6.0)

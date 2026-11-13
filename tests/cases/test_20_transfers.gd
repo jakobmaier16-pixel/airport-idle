@@ -78,11 +78,10 @@ func test_transfer_security_rules() -> void:
 	var type := type_of(&"transfer_security")
 	check_eq(Airport.check_placement(type, Vector2i(10, 10), 0), "Unlocked at National airport", "not for regional airports")
 	Airport.progression.tier = Progression.Tier.NATIONAL
-	check_eq(Airport.check_placement(type, Vector2i(10, 10), 0), "Must be built on airside", "airside only")
-	Airport.paint_zone(cells(Vector2i(0, 32), Vector2i(64, 32)), AirportGrid.Zone.AIRSIDE)
+	check_eq(Airport.check_placement(type, Vector2i(10, 10), 0), "", "can be placed anywhere; it works once the airside reaches it")
 	check_eq(Airport.connection_problem(type, Vector2i(10, 40), 0), "Needs a walkway in front", "needs walkway in front")
 	Airport.paint_walkway(cells(Vector2i(10, 39), Vector2i(4, 1)), true)
-	check_eq(Airport.connection_problem(type, Vector2i(10, 40), 0), "Needs a walkway behind", "and behind")
+	check(Airport.connection_problem(type, Vector2i(10, 40), 0).begins_with("Not connected"), "a walkway the airside doesn't reach isn't enough")
 	var building := Airport.place_building(type, Vector2i(10, 40), 0)
 	check(Airport.needs_staff(building), "staffed like security")
 	check_eq(Airport.hire(building).salary_per_minute, 10.0, "security officer salary")

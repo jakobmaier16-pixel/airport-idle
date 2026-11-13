@@ -71,9 +71,8 @@ func test_landside_cafe_gets_customers_before_security() -> void:
 
 
 func test_zone_rules_for_shops() -> void:
-	check_eq(Airport.check_placement(type_of(&"shop"), Vector2i(10, 10), 0), "Must be built on airside", "shop needs airside")
+	check_eq(Airport.check_placement(type_of(&"shop"), Vector2i(10, 10), 0), "", "a shop can be placed anywhere")
 	check_eq(Airport.check_placement(type_of(&"cafe"), Vector2i(10, 10), 0), "", "café allowed landside")
-	Airport.paint_zone(cells(Vector2i(0, 32), Vector2i(64, 32)), AirportGrid.Zone.AIRSIDE)
 	check_eq(Airport.check_placement(type_of(&"cafe"), Vector2i(10, 40), 0), "", "café allowed airside")
 	check_eq(Airport.connection_problem(type_of(&"shop"), Vector2i(10, 40), 0), "Needs a walkway in front", "shops need a walkway in front")
 

@@ -7,7 +7,7 @@ extends Node
 
 ## Bump when the save format changes in a way older code can't read, and add a converter to
 ## `migrations` for the old version (tech_architecture.md §13). Keep every old converter.
-const FORMAT_VERSION: int = 3
+const FORMAT_VERSION: int = 4
 ## Wait this long after a change before saving, so a burst of changes is saved once.
 const SAVE_DELAY: float = 1.0
 ## Money and the running airport are also saved this often while playing (seconds).
@@ -147,7 +147,7 @@ func migrate(data: Dictionary) -> Dictionary:
 
 ## The converters this build ships (tests put them back after swapping in their own).
 func default_migrations() -> Dictionary[int, Callable]:
-	return {1: _v1_to_v2, 2: _v2_to_v3}
+	return {1: _v1_to_v2, 2: _v2_to_v3, 3: _v3_to_v4}
 
 
 ## Version 1 -> 2: buildings get permanent IDs (their old list position + 1) and staff point to
@@ -162,6 +162,13 @@ func _v1_to_v2(data: Dictionary) -> Dictionary:
 			var index := int(entry.get("building", -1))
 			entry["building_id"] = index + 1 if index >= 0 and index < buildings.size() else 0
 			entry.erase("building")
+	return data
+
+
+## Version 3 -> 4: zones are computed from the layout (tech_architecture.md §4), so the painted
+## zones ("zones") are dropped.
+func _v3_to_v4(data: Dictionary) -> Dictionary:
+	data.erase("zones")
 	return data
 
 

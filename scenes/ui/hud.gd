@@ -110,8 +110,6 @@ var _goal_refresh_in: float = 0.0
 func _ready() -> void:
 	_view_button.pressed.connect(view_toggle_pressed.emit)
 	var paint_buttons := {
-		^"SafeArea/BuildMenu/PaintButtons/AirsideButton": BuildMode.PaintKind.AIRSIDE,
-		^"SafeArea/BuildMenu/PaintButtons/LandsideButton": BuildMode.PaintKind.LANDSIDE,
 		^"SafeArea/BuildMenu/PaintButtons/WalkwayButton": BuildMode.PaintKind.WALKWAY,
 		^"SafeArea/BuildMenu/PaintButtons/RemoveButton": BuildMode.PaintKind.REMOVE_WALKWAY,
 		^"SafeArea/BuildMenu/PaintButtons/TaxiwayButton": BuildMode.PaintKind.TAXIWAY,

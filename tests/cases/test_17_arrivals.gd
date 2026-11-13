@@ -98,10 +98,8 @@ func test_baggage_claim_is_required() -> void:
 
 
 func test_claim_sits_on_the_border() -> void:
-	Airport.paint_zone(cells(Vector2i(0, 32), Vector2i(64, 32)), AirportGrid.Zone.AIRSIDE)
 	var claim := type_of(&"baggage_claim")
 	check_eq(Airport.check_placement(claim, Vector2i(20, 28), 0), "", "front landside, back airside")
-	check_eq(Airport.check_placement(claim, Vector2i(20, 28), 2), "Front must face landside, back must face airside", "facing the wrong way")
 
 
 func test_claim_in_panel_and_stats() -> void:

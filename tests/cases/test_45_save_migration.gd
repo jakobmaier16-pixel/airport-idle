@@ -121,7 +121,7 @@ func test_converted_save_loads() -> void:
 
 
 func test_missing_converter_keeps_the_save() -> void:
-	SaveGame.format_version = 4  # newer build, but nobody wrote the converter
+	SaveGame.format_version = 5  # newer build, but nobody wrote the converter
 	_install_example(SHOWCASE_V1)
 	var original := FileAccess.get_file_as_string(TEST_SAVE)
 	SaveGame.load_game()

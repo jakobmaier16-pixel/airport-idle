@@ -29,7 +29,7 @@ When a decision is made, update the design doc.
 - **Realism first:** the airport must *work* like a real one (zones, flows, staff, schedules).
 - **Building:** grid-based, freeform layout with predesigned, rotatable buildings.
 - **Zones:** automatic from the buildings; the security building is the landside / airside border.
-  (The prototype still has hand-painted zones; that will be replaced.)
+  Zones are never painted: `ZoneMap` computes them after every layout change and after load.
 - **Grid scale:** compressed, not 1:1. Terminal and landside stay near-realistic (cell = 2 m to start);
   airside (runways, taxiways, aprons) is scaled down so the whole airport fits on a playable map.
   The cell size must stay a single, easy-to-change value.
@@ -40,7 +40,7 @@ When a decision is made, update the design doc.
     No zoom; the build view gives the overview. Incident handling here is parked until much later.
   - *Build view:* top-down / bird's-eye. Understand the airport and its passenger flow, read
     statistics, and plan the layout: all building happens here, and only here. One-finger drag pans
-    (unless a tool uses it, e.g. dragging a building or painting zones), two fingers pan and zoom;
+    (unless a tool uses it, e.g. dragging a building or painting walkways), two fingers pan and zoom;
     zoom is limited and the camera stays inside the map.
 - **Simulation keeps running in the build view.** No pause for now.
 - **Input (manager view):** every finger is its own gesture (`TouchGestures.independent_drags`).

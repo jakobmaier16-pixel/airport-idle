@@ -60,7 +60,7 @@ func _on_dragged(_touch_position: Vector2, relative: Vector2) -> void:
 		_pan(relative)
 
 
-# Two fingers always pan, even while one-finger drags are used for a tool (e.g. painting zones).
+# Two fingers always pan, even while one-finger drags are used for a tool (e.g. painting walkways).
 func _on_pinch_moved(relative: Vector2) -> void:
 	if current:
 		_pan(relative)

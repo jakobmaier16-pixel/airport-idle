@@ -62,7 +62,7 @@ var buildings: Array[Building] = []
 var passenger_flow: PassengerFlow = PassengerFlow.new()
 ## Where planes can move: taxiways, stands, runways (design doc §7.5a).
 var plane_network: PlaneNetwork = PlaneNetwork.new()
-## Zones computed from the layout, next to the painted ones (step 4a: compared only, not used yet).
+## Zones computed from the layout (tech_architecture.md §4): written into `grid` after every layout change.
 var zone_map: ZoneMap = ZoneMap.new()
 var economy: Economy = Economy.new()
 ## Signed airlines and their offers (design doc §10.1). Kept for the whole game (reset, not
@@ -100,9 +100,6 @@ var _loading: bool = false
 # layout or the staff changes), and the salaries alone.
 var _running_cost_per_minute: float = 0.0
 var _salaries_per_minute: float = 0.0
-
-# Cells whose zone a placed building depends on (cell -> required Zone). They can't be repainted.
-var _zone_locks: Dictionary[Vector2i, int] = {}
 
 
 func _init() -> void:
@@ -641,10 +638,13 @@ func check_placement(type: BuildingType, origin_cell: Vector2i, rotation_steps: 
 			return "Not your land yet (%s airport)" % progression.name_of(Progression.Tier.NATIONAL)
 	if check_money and type.unlocked_at > progression.tier:
 		return "Unlocked at %s airport" % progression.name_of(type.unlocked_at as Progression.Tier)
-	var requirements := Building.zone_requirements(type, origin_cell, rotation_steps)
-	for cell in requirements:
-		if not grid.is_inside(cell) or grid.get_zone(cell) != requirements[cell]:
-			return _zone_hint(type)
+	# Zones are computed from the layout, so only border buildings (security) need room: a free row
+	# on both sides, where the landside and airside walkways go.
+	if type.zone_rule == BuildingType.ZoneRule.BORDER:
+		for front in [true, false]:
+			for cell in Building.outside_row(type.footprint, origin_cell, rotation_steps, front):
+				if not grid.is_inside(cell) or not grid.is_empty(cell):
+					return "Needs a free row in front and behind"
 	if check_money and not economy.can_afford(type.build_cost):
 		return "Not enough money (%s)" % Economy.format(type.build_cost)
 	return ""
@@ -666,9 +666,6 @@ func place_building(type: BuildingType, origin_cell: Vector2i, rotation_steps: i
 	_next_building_id += 1
 	for cell in building.get_cells():
 		grid.set_content(cell, building)
-	var requirements := Building.zone_requirements(type, origin_cell, rotation_steps)
-	for cell in requirements:
-		_zone_locks[cell] = requirements[cell]
 	buildings.append(building)
 	building_placed.emit(building)
 	if not _loading:
@@ -695,36 +692,10 @@ func demolish(building: Building) -> bool:
 	for cell in building.get_cells():
 		grid.set_content(cell, null)
 	buildings.erase(building)
-	# Rebuild the zone locks from the buildings that are left.
-	_zone_locks.clear()
-	for remaining in buildings:
-		var requirements := Building.zone_requirements(remaining.type, remaining.origin_cell, remaining.rotation_steps)
-		for cell in requirements:
-			_zone_locks[cell] = requirements[cell]
 	passenger_flow.remove_building(building)
 	building_removed.emit(building)
 	layout_changed.emit()
 	return true
-
-
-## Paints `cells` with `zone`. Cells a building depends on keep their zone.
-## Returns how many cells were blocked that way, so the player can be told.
-func paint_zone(cells: Array[Vector2i], zone: AirportGrid.Zone) -> int:
-	var blocked := 0
-	var changed := false
-	for cell in cells:
-		if not grid.is_inside(cell) or grid.get_zone(cell) == zone or not owns_cell(cell):
-			continue
-		# Taxiways stay airside (design doc §7.5a).
-		if (_zone_locks.has(cell) and _zone_locks[cell] != zone) or (grid.is_taxiway(cell) and zone != AirportGrid.Zone.AIRSIDE):
-			blocked += 1
-			continue
-		grid.set_zone(cell, zone)
-		changed = true
-	if changed:
-		zones_changed.emit()
-		layout_changed.emit()
-	return blocked
 
 
 ## Adds (or removes) walkway floor on `cells`. Works under buildings too (desks inside a hall).
@@ -754,18 +725,14 @@ func paint_walkway(cells: Array[Vector2i], walkway: bool) -> String:
 ## Returns "" if it worked, or a hint why nothing was painted.
 func paint_taxiway(cells: Array[Vector2i], taxiway: bool) -> String:
 	var changing: Array[Vector2i] = []
-	var landside := 0
 	for cell in cells:
 		if not grid.is_inside(cell) or grid.is_taxiway(cell) == taxiway or not owns_cell(cell):
-			continue
-		if taxiway and grid.get_zone(cell) != AirportGrid.Zone.AIRSIDE:
-			landside += 1
 			continue
 		if taxiway and grid.is_walkway(cell):
 			continue
 		changing.append(cell)
 	if changing.is_empty():
-		return "Taxiways go on airside only" if landside > 0 else ""
+		return ""
 	if taxiway:
 		var cost := changing.size() * Economy.TAXIWAY_COST_PER_CELL
 		if not economy.can_afford(cost):
@@ -789,6 +756,11 @@ func connection_problem(type: BuildingType, origin_cell: Vector2i, rotation_step
 		var row := Building.outside_row(type.footprint, origin_cell, rotation_steps, front)
 		if access == BuildingType.Access.WALKWAY and not row.any(grid.is_walkable):
 			return "Needs a walkway %s" % side
+		# Airside buildings can be placed anywhere; they work once the walk from the entrance
+		# through security reaches them (the zone map marks those walkways airside).
+		if access == BuildingType.Access.WALKWAY and type.zone_rule == BuildingType.ZoneRule.AIRSIDE \
+				and not row.any(func(c: Vector2i) -> bool: return grid.is_walkable(c) and grid.get_zone(c) == AirportGrid.Zone.AIRSIDE):
+			return "Not connected: build security and a walkway behind it to reach the airside"
 		if access == BuildingType.Access.STAND and not row.any(_is_aircraft_stand):
 			return "Needs an aircraft stand %s" % side
 		if access == BuildingType.Access.STAND:
@@ -809,7 +781,7 @@ func reset(with_runway: bool = true, new_seed: int = -1) -> void:
 	grid = AirportGrid.new(MAP_SIZE_CELLS, CELL_SIZE)
 	buildings.clear()
 	_next_building_id = 1
-	_zone_locks.clear()
+	zone_map.recompute(grid, buildings)
 	staff.clear()
 	passenger_flow = PassengerFlow.new()
 	passenger_flow.vip_finished.connect(_on_vip_finished)
@@ -866,7 +838,6 @@ func save_state() -> Dictionary:
 		"staff": saved_staff,
 		"next_building_id": _next_building_id,
 		"map_size": [grid.size.x, grid.size.y],
-		"zones": Marshalls.raw_to_base64(grid.get_zone_data()),
 		"walkways": Marshalls.raw_to_base64(grid.get_walkway_data()),
 		"taxiways": Marshalls.raw_to_base64(grid.get_taxiway_data()),
 		"money": economy.balance,
@@ -903,7 +874,6 @@ func load_state(data: Dictionary) -> int:
 	# JSON stores every number as a float, hence the explicit conversion.
 	var saved_size: Array = data.get("map_size", [])
 	if saved_size.size() == 2 and Vector2i(int(saved_size[0]), int(saved_size[1])) == grid.size:
-		grid.set_zone_data(Marshalls.base64_to_raw(data.get("zones", "")))
 		grid.set_walkway_data(Marshalls.base64_to_raw(data.get("walkways", "")))
 		grid.set_taxiway_data(Marshalls.base64_to_raw(data.get("taxiways", "")))
 	progression.load_state(data.get("progression", {}))
@@ -984,8 +954,8 @@ func load_state(data: Dictionary) -> int:
 	passenger_flow.satisfaction.load_state(data.get("satisfaction", {}))
 	reputation.load_state(data.get("reputation", {}))
 	airlines.load_state(data.get("airlines", {}))
-	zones_changed.emit()
 	walkways_changed.emit()
+	# Also recomputes the zones, after buildings and walkways are all in place.
 	layout_changed.emit()
 	_next_incident_in = float(data.get("next_incident_in", _next_incident_in))
 	_next_vip_in = float(data.get("next_vip_in", _next_vip_in))
@@ -1005,7 +975,9 @@ func stand_behind(gate: Building) -> Building:
 
 
 func _on_layout_changed() -> void:
+	# Zones first: everything below (walkway areas, stations) reads them.
 	zone_map.recompute(grid, buildings)
+	zones_changed.emit()
 	plane_network.rebuild(grid, buildings)
 	passenger_flow.on_layout_changed()
 	_update_running_cost()
@@ -1075,8 +1047,6 @@ func manager_start() -> Array:
 ## Lays the runway a new airport starts with, on airside (design doc §7.5a).
 func add_starting_runway() -> void:
 	var type := CATALOG.find(&"runway")
-	for cell in Building.footprint_cells(type.footprint, DEFAULT_RUNWAY_ORIGIN, 0):
-		grid.set_zone(cell, AirportGrid.Zone.AIRSIDE)
 	place_building(type, DEFAULT_RUNWAY_ORIGIN, 0, false)
 
 
@@ -1084,13 +1054,3 @@ func _is_aircraft_stand(cell: Vector2i) -> bool:
 	if not grid.is_inside(cell) or grid.is_empty(cell):
 		return false
 	return (grid.get_content(cell) as Building).type.role == BuildingType.Role.AIRCRAFT_STAND
-
-
-func _zone_hint(type: BuildingType) -> String:
-	match type.zone_rule:
-		BuildingType.ZoneRule.AIRSIDE:
-			return "Must be built on airside"
-		BuildingType.ZoneRule.BORDER:
-			return "Front must face landside, back must face airside"
-		_:
-			return "Must be built on landside"

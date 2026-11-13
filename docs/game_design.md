@@ -203,8 +203,8 @@ Two kinds of services:
 - The player places **predesigned, rotatable buildings** and draws corridors and waiting areas to connect them.
 - **Zones are not painted. They follow from the buildings.** The **security building is the border**: everything passengers reach from the entrance without passing security is landside; everything behind security is departures airside.
 - Passport control, customs and staff doors set the borders of the other zones (§5.3) the same way **(proposal)**.
-- Buildings only work in a matching zone (e.g. a duty-free shop only airside).
-- Current prototype: the player paints landside and airside by hand (prototype_reference §7.2). This will be replaced.
+- Buildings only work in a matching zone (e.g. a duty-free shop only airside); a building outside its zone can be placed but is "not connected" and unused.
+- **Placement (decided 2026-11-13):** placement checks only geometry and money. Airside buildings (gate, shop, stand, …) can be placed anywhere; until the walk from the entrance through security reaches them they show a "Not connected" hint and passengers don't use them. Border buildings (security) need a free row on both sides. **Transfer security is not a border** (it joins two airside walkways).
 
 ### 8.2 Areas (derived automatically)
 - The game groups connected zones into named **areas**, e.g. "T1 Check-in Hall", "T1 Security", "Pier A (Schengen)".

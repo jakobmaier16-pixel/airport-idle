@@ -8,10 +8,10 @@ const Role := BuildingType.Role
 
 ## Each goal: [text shown to the player, name of the check method].
 const STEPS: Array = [
-	["Build view: paint an airside zone (Airside) for gates and stands", "_has_airside"],
+	["Build Security and lay a walkway behind it: that is the airside, where gates and stands go", "_has_airside"],
 	["Paint walkways (Walkway) and build an Entrance with its back on one", "_has_entrance"],
 	["Build a Check-in facing the entrance's walkway", "_has_check_in"],
-	["Build Security on the border: front landside, back airside", "_has_security"],
+	["Build Security between the check-in hall and the airside walkway", "_has_security"],
 	["Build a Gate with a Stand behind it, and paint a Taxiway from the stand to the runway", "_has_gate"],
 	["Build a Baggage claim for arriving passengers", "_has_claim"],
 	["Hire staff: tap check-in and security in the manager view", "_has_staff"],
@@ -44,7 +44,7 @@ func text() -> String:
 
 
 func _has_airside() -> bool:
-	return world.grid.get_zone_data().has(AirportGrid.Zone.AIRSIDE)
+	return world.zone_map.airside_reached
 
 
 func _has_entrance() -> bool:
