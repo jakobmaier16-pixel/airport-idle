@@ -12,8 +12,10 @@ func _many_flights(count: int) -> Array[Flight]:
 	schedule.world = Airport.brain
 	var gate := Building.new(type_of(&"gate"), Vector2i(0, 0), 0)
 	var result: Array[Flight] = []
+	# One airline per route type, taking turns.
+	var types: Array[AirlineType] = [Airlines.CATALOG.find(&"velora"), Airlines.CATALOG.find(&"zippa"), Airlines.CATALOG.find(&"norvane")]
 	for i in count:
-		schedule._schedule(gate, 1000.0 + i * 180.0)
+		schedule._schedule(gate, 1000.0 + i * 180.0, types[i % types.size()])
 	result.assign(schedule.flights)
 	return result
 

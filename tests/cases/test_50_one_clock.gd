@@ -37,7 +37,7 @@ func test_v6_converter_moves_the_timer_to_the_clock() -> void:
 	var saved: Dictionary = JSON.parse_string(FileAccess.get_file_as_string(SHOWCASE_V6))
 	var timer := float(saved["flow"]["time"])
 	var converted := SaveGame.migrate(saved)
-	check_eq(converted["version"], 7, "now version 7")
+	check_eq(converted["version"], SaveGame.FORMAT_VERSION, "converted up to the current version")
 	check(not (converted["flow"] as Dictionary).has("time"), "the passenger timer is gone")
 	check_eq(float(converted["clock_elapsed"]), timer * Clock.GAME_PER_REAL, "the clock carries it in game seconds")
 	var loaded := _fresh(converted)
@@ -52,7 +52,7 @@ func test_v6_converter_moves_the_timer_to_the_clock() -> void:
 func test_example_v7_loads() -> void:
 	var saved: Dictionary = JSON.parse_string(FileAccess.get_file_as_string(SHOWCASE_V7))
 	check_eq(int(saved["version"]), 7, "an example save of version 7")
-	check_eq(SaveGame.migrate(saved)["version"], 7, "nothing left to convert")
+	check_eq(SaveGame.migrate(saved)["version"], SaveGame.FORMAT_VERSION, "only the later converters run")
 	var loaded := _fresh(saved)
 	check(is_equal_approx(loaded.clock.elapsed, float(saved["clock_elapsed"])), "its clock is back")
 	check(loaded.passenger_flow.passengers.size() > 0, "its passengers are back")

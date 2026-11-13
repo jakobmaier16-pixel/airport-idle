@@ -98,6 +98,34 @@ func sim_seconds(seconds: float) -> void:
 		Airport.step(Airport.SIM_STEP)
 
 
+## Runs the simulation until the timetable has turned a slot into a flight (every flight starts
+## as a slot whose arrivals window opens, so the first one appears within a few game hours at most),
+## then returns the next departure. With `gate_number` > 0 it waits for a flight at that gate.
+## Returns null if there is none within `max_seconds`.
+func first_flight(gate_number: int = 0, max_seconds: float = 1500.0) -> Flight:
+	var schedule := Airport.passenger_flow.schedule
+	for i in int(max_seconds / Airport.SIM_STEP):
+		for flight in schedule.upcoming():
+			if gate_number == 0 or Airport.passenger_flow.gate_number(flight.gate) == gate_number:
+				return flight
+		Airport.step(Airport.SIM_STEP)
+	return null
+
+
+## Runs the simulation until two flights depart at least MIN_CONNECTION apart (so passengers can
+## connect from the earlier one to the later one), and returns the earlier one. Null if none within
+## `max_seconds`.
+func first_flight_with_connection(max_seconds: float = 2400.0) -> Flight:
+	var schedule := Airport.passenger_flow.schedule
+	for i in int(max_seconds / Airport.SIM_STEP):
+		for flight in schedule.upcoming():
+			for other in schedule.flights:
+				if not other.cargo and other.departure_time >= flight.departure_time + FlightSchedule.MIN_CONNECTION:
+					return flight
+		Airport.step(Airport.SIM_STEP)
+	return null
+
+
 # --- Touch input, like a player's fingers ---
 
 func touch(index: int, pressed: bool, position: Vector2) -> void:

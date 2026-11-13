@@ -56,6 +56,12 @@ static func prepare_airport() -> void:
 	Airport.reseed(SEED)
 	ShowcaseAirport.build()
 	Airport.passenger_flow.max_passengers = PASSENGER_LIMIT
+	# The timetable opens its first flights a little after the start: wait until there are enough
+	# upcoming departures to fill the airport with.
+	for i in int(2400.0 / Airport.SIM_STEP):
+		if Airport.passenger_flow.schedule.flights.size() >= 4:
+			break
+		Airport.step(Airport.SIM_STEP)
 
 
 ## Adds up to `max_new` passengers for upcoming flights until the airport holds the target.

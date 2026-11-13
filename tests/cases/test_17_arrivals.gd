@@ -3,9 +3,7 @@ extends TestCase
 
 
 func _first_flight() -> Flight:
-	if Airport.passenger_flow.schedule.flights.is_empty():
-		Airport.step(Airport.SIM_STEP)
-	return Airport.passenger_flow.schedule.upcoming()[0]
+	return first_flight()
 
 
 func _claim() -> Station:

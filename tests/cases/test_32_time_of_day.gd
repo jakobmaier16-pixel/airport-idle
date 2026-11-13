@@ -23,7 +23,9 @@ func test_demand_follows_the_day() -> void:
 	check(absf(total / 24.0 - 0.9) < 0.1, "about the usual number over a day: %.2f" % (total / 24.0))
 
 
-func test_night_flights_are_emptier() -> void:
+func test_quiet_nights_are_more_flights_not_emptier_planes() -> void:
+	# The daily curve now shapes the number of flights (see test_51_timetable), not their load:
+	# a plane at night is as full as one in the morning.
 	var gate := Building.new(type_of(&"gate"), Vector2i(0, 0), 0)
 	var average_booked := func(hour: float) -> float:
 		Airport.clock.game_seconds = hour * 3600.0
@@ -37,7 +39,7 @@ func test_night_flights_are_emptier() -> void:
 		return float(total) / schedule.flights.size()
 	var night: float = average_booked.call(3.0)
 	var morning: float = average_booked.call(7.5)
-	check(morning > night * 2.5, "morning flights are much fuller: %.1f vs %.1f" % [morning, night])
+	check(absf(morning - night) < 3.0, "the same load whatever the hour: %.1f vs %.1f" % [morning, night])
 
 
 func test_clock_is_saved() -> void:

@@ -134,6 +134,12 @@ var clock: Clock:
 	set(value):
 		brain.clock = value
 
+var timetable: Timetable:
+	get:
+		return brain.timetable
+	set(value):
+		brain.timetable = value
+
 var goals: Goals:
 	get:
 		return brain.goals
