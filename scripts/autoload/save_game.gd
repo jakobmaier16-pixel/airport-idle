@@ -7,7 +7,7 @@ extends Node
 
 ## Bump when the save format changes in a way older code can't read, and add a converter to
 ## `migrations` for the old version (tech_architecture.md §13). Keep every old converter.
-const FORMAT_VERSION: int = 6
+const FORMAT_VERSION: int = 7
 ## Wait this long after a change before saving, so a burst of changes is saved once.
 const SAVE_DELAY: float = 1.0
 ## Money and the running airport are also saved this often while playing (seconds).
@@ -147,7 +147,7 @@ func migrate(data: Dictionary) -> Dictionary:
 
 ## The converters this build ships (tests put them back after swapping in their own).
 func default_migrations() -> Dictionary[int, Callable]:
-	return {1: _v1_to_v2, 2: _v2_to_v3, 3: _v3_to_v4, 4: _v4_to_v5, 5: _v5_to_v6}
+	return {1: _v1_to_v2, 2: _v2_to_v3, 3: _v3_to_v4, 4: _v4_to_v5, 5: _v5_to_v6, 6: _v6_to_v7}
 
 
 ## Version 1 -> 2: buildings get permanent IDs (their old list position + 1) and staff point to
@@ -207,6 +207,17 @@ func _v5_to_v6(data: Dictionary) -> Dictionary:
 		var size := Vector2i(int(map_size[0]), int(map_size[1]))
 		var records := PassengerSave.from_v5(flow["passengers"], size, AirportWorld.CELL_SIZE)
 		flow["passengers"] = PassengerSave.encode(records, size.x)
+	return data
+
+
+## Version 6 -> 7: one clock (tech_architecture.md §3). The passengers' own timer ("flow"/"time",
+## real seconds) is gone; the brain's clock now carries it as "clock_elapsed", in game seconds
+## (time x Clock.GAME_PER_REAL). The times saved inside flights and passengers stay in real seconds
+## for now, so they need no conversion.
+func _v6_to_v7(data: Dictionary) -> Dictionary:
+	var flow: Dictionary = data.get("flow", {})
+	data["clock_elapsed"] = float(flow.get("time", 0.0)) * Clock.GAME_PER_REAL
+	flow.erase("time")
 	return data
 
 

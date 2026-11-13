@@ -66,8 +66,11 @@ const TRANSFER: JourneyRecipe = preload("res://data/journeys/transfer.tres")
 
 var passengers: Array[Passenger] = []
 var schedule: FlightSchedule = FlightSchedule.new()
-## Simulation clock in seconds since the airport started (flights are timed against it).
-var time: float = 0.0
+## Seconds since the airport started (flights are timed against it). Not a clock of its own: it
+## is the brain's `Clock.elapsed` in real seconds (tech_architecture.md §3, one clock).
+var time: float:
+	get:
+		return world.clock.real_elapsed
 ## Passengers whose plane has left, and passengers who were too late for their flight.
 var departed_count: int = 0
 var missed_count: int = 0
@@ -270,7 +273,7 @@ func save_state() -> Dictionary:
 			"waiting": station.waiting.filter(func(p: Passenger) -> bool: return passenger_index.has(p)).map(func(p: Passenger) -> int: return passenger_index[p]),
 		})
 	return {
-		"time": time, "sample_timer": _sample_timer, "departed": departed_count, "missed": missed_count,
+		"sample_timer": _sample_timer, "departed": departed_count, "missed": missed_count,
 		"arrived": arrived_count, "transferred": transferred_count,
 		"schedule": schedule_data, "passengers": PassengerSave.encode(records, world.grid.size.x),
 		"stations": saved_stations,
@@ -281,7 +284,6 @@ func save_state() -> Dictionary:
 ## Anything that points at a building that is gone is dropped: a passenger can't stand at a
 ## station that no longer exists.
 func load_state(data: Dictionary, by_id: Dictionary[int, Building]) -> void:
-	time = float(data.get("time", 0.0))
 	_sample_timer = float(data.get("sample_timer", 0.0))
 	departed_count = int(data.get("departed", 0))
 	missed_count = int(data.get("missed", 0))
@@ -370,7 +372,6 @@ func load_state(data: Dictionary, by_id: Dictionary[int, Building]) -> void:
 
 
 func tick(delta: float) -> void:
-	time += delta
 	for passenger in passengers:
 		passenger.previous_position = passenger.position
 	schedule.tick(time, delta, self)

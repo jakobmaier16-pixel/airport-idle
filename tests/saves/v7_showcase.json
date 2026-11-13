@@ -1,0 +1,1490 @@
+{
+"airlines": {
+"cooldowns": {},
+"next_offer_in": 81.94710693357504,
+"offers": [
+{
+"base_fee": 13.0,
+"counter": false,
+"expires_in": 179.99999999992613,
+"fee": 13.0,
+"flights": 10,
+"id": "sunkiss",
+"renewal": false
+},
+{
+"base_fee": 8.0,
+"counter": false,
+"expires_in": 300.0999999999318,
+"fee": 8.0,
+"flights": 18,
+"id": "budjet",
+"renewal": false
+},
+{
+"base_fee": 10.0,
+"counter": false,
+"expires_in": 479.9999999999045,
+"fee": 10.0,
+"flights": 18,
+"id": "zippa",
+"renewal": true
+}
+],
+"signed": [
+{
+"complained": false,
+"contract_left": 1884.000000000382,
+"credit": 1.3333333333333712,
+"fee": 15.0,
+"flights": 20,
+"flown": 1,
+"happiness": 78.75,
+"id": "velora",
+"late": 0,
+"refused": 0,
+"renewal_offered": false
+},
+{
+"complained": false,
+"contract_left": 479.9999999999045,
+"credit": 0.8666666666667564,
+"fee": 9.0,
+"flights": 16,
+"flown": 1,
+"happiness": 78.75,
+"id": "zippa",
+"late": 0,
+"refused": 0,
+"renewal_offered": true
+},
+{
+"complained": false,
+"contract_left": 3036.0000000003824,
+"credit": 0.6333333333336952,
+"fee": 20.0,
+"flights": 14,
+"flown": 0,
+"happiness": 75.0,
+"id": "norvane",
+"late": 0,
+"refused": 0,
+"renewal_offered": false
+},
+{
+"complained": false,
+"contract_left": 3612.0000000003824,
+"credit": 0.16666666666668925,
+"fee": 32.0,
+"flights": 10,
+"flown": 1,
+"happiness": 78.75,
+"id": "orynth",
+"late": 0,
+"refused": 0,
+"renewal_offered": false
+},
+{
+"complained": false,
+"contract_left": 4187.999999998472,
+"credit": 0.16666666666671276,
+"fee": 20.0,
+"flights": 10,
+"flown": 1,
+"happiness": 78.75,
+"id": "paqet",
+"late": 0,
+"refused": 0,
+"renewal_offered": false
+}
+]
+},
+"average_profit": 154.06122016141856,
+"buildings": [
+{
+"cell": [
+6,
+57
+],
+"cost": 40000.0,
+"fast_track": false,
+"id": 1,
+"level": 1,
+"rotation": 0,
+"type": "runway",
+"upgrade_left": 0.0
+},
+{
+"cell": [
+30,
+19
+],
+"cost": 2000.0,
+"fast_track": false,
+"id": 2,
+"level": 1,
+"rotation": 0,
+"type": "entrance",
+"upgrade_left": 0.0
+},
+{
+"cell": [
+20,
+22
+],
+"cost": 3000.0,
+"fast_track": false,
+"id": 3,
+"level": 3,
+"rotation": 2,
+"type": "check_in",
+"upgrade_left": 0.0
+},
+{
+"cell": [
+39,
+22
+],
+"cost": 3000.0,
+"fast_track": false,
+"id": 4,
+"level": 1,
+"rotation": 2,
+"type": "check_in",
+"upgrade_left": 0.0
+},
+{
+"cell": [
+30,
+28
+],
+"cost": 5000.0,
+"fast_track": true,
+"id": 5,
+"level": 3,
+"rotation": 0,
+"type": "security",
+"upgrade_left": 0.0
+},
+{
+"cell": [
+14,
+34
+],
+"cost": 4000.0,
+"fast_track": false,
+"id": 6,
+"level": 1,
+"rotation": 0,
+"type": "gate",
+"upgrade_left": 0.0
+},
+{
+"cell": [
+42,
+34
+],
+"cost": 4000.0,
+"fast_track": false,
+"id": 7,
+"level": 1,
+"rotation": 0,
+"type": "gate",
+"upgrade_left": 0.0
+},
+{
+"cell": [
+10,
+39
+],
+"cost": 6000.0,
+"fast_track": false,
+"id": 8,
+"level": 1,
+"rotation": 0,
+"type": "aircraft_stand",
+"upgrade_left": 0.0
+},
+{
+"cell": [
+38,
+39
+],
+"cost": 6000.0,
+"fast_track": false,
+"id": 9,
+"level": 1,
+"rotation": 0,
+"type": "aircraft_stand",
+"upgrade_left": 0.0
+},
+{
+"cell": [
+27,
+34
+],
+"cost": 4000.0,
+"fast_track": false,
+"id": 10,
+"level": 1,
+"rotation": 0,
+"type": "gate",
+"upgrade_left": 0.0
+},
+{
+"cell": [
+22,
+39
+],
+"cost": 15000.0,
+"fast_track": false,
+"id": 11,
+"level": 1,
+"rotation": 0,
+"type": "wide_body_stand",
+"upgrade_left": 0.0
+},
+{
+"cell": [
+52,
+38
+],
+"cost": 12000.0,
+"fast_track": false,
+"id": 12,
+"level": 1,
+"rotation": 0,
+"type": "cargo_terminal",
+"upgrade_left": 0.0
+},
+{
+"cell": [
+50,
+43
+],
+"cost": 6000.0,
+"fast_track": false,
+"id": 13,
+"level": 1,
+"rotation": 0,
+"type": "aircraft_stand",
+"upgrade_left": 0.0
+},
+{
+"cell": [
+37,
+27
+],
+"cost": 6000.0,
+"fast_track": false,
+"id": 14,
+"level": 1,
+"rotation": 0,
+"type": "baggage_claim",
+"upgrade_left": 0.0
+},
+{
+"cell": [
+47,
+34
+],
+"cost": 4000.0,
+"fast_track": false,
+"id": 15,
+"level": 1,
+"rotation": 0,
+"type": "transfer_security",
+"upgrade_left": 0.0
+},
+{
+"cell": [
+22,
+34
+],
+"cost": 3500.0,
+"fast_track": false,
+"id": 16,
+"level": 1,
+"rotation": 0,
+"type": "shop",
+"upgrade_left": 0.0
+},
+{
+"cell": [
+33,
+34
+],
+"cost": 3000.0,
+"fast_track": false,
+"id": 17,
+"level": 1,
+"rotation": 0,
+"type": "cafe",
+"upgrade_left": 0.0
+},
+{
+"cell": [
+37,
+34
+],
+"cost": 10000.0,
+"fast_track": false,
+"id": 18,
+"level": 1,
+"rotation": 0,
+"type": "lounge",
+"upgrade_left": 0.0
+},
+{
+"cell": [
+46,
+21
+],
+"cost": 8000.0,
+"fast_track": false,
+"id": 19,
+"level": 1,
+"rotation": 3,
+"type": "car_park",
+"upgrade_left": 0.0
+}
+],
+"clock": 32400.000000000404,
+"clock_elapsed": 6300.000000000405,
+"flow": {
+"arrived": 84,
+"departed": 87,
+"missed": 0,
+"passengers": {
+"count": 88,
+"data": "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",
+"grid_width": 64,
+"raw_size": 9352,
+"types": [
+"business",
+"family",
+"low_cost"
+]
+},
+"sample_timer": 0.9999999999999998,
+"schedule": {
+"flights": [
+{
+"airline": "paqet",
+"arrival_delay": 14.999999999999963,
+"arrival_times": [],
+"arrival_types": [],
+"boarded": 0,
+"boarding_credit": 1.0,
+"booked": 0,
+"cargo": true,
+"delay": 0.0,
+"departure_time": 405.1,
+"deplane_credit": 9.99999999999998,
+"deplaned": 0,
+"fee": 20.0,
+"gate": 12,
+"inbound_types": [],
+"landing_booked": true,
+"missed": 0,
+"number": "PQ 104",
+"phase": 4,
+"route": "Cargo",
+"scheduled": true,
+"seats": 0,
+"spawned": 0,
+"stand": 13,
+"takeoff_booked": true,
+"tonnes": 39.344970703125,
+"tonnes_handled": 39.344970703125,
+"wide_body": false
+},
+{
+"airline": "norvane",
+"arrival_delay": 14.999999999999963,
+"arrival_times": [
+213.36013793945312,
+213.43191528320312,
+230.60470581054688,
+234.4642791748047,
+251.4232635498047,
+255.41720581054688,
+259.3047790527344,
+261.5291442871094,
+263.01263427734375,
+267.8663024902344,
+275.0613708496094,
+275.338134765625,
+280.1113586425781,
+284.24169921875,
+291.8760986328125,
+295.8115539550781,
+297.2393493652344,
+299.9224548339844,
+300.35174560546875,
+301.0359191894531,
+302.64862060546875,
+307.4938659667969,
+308.6271057128906
+],
+"arrival_types": [
+"low_cost",
+"family",
+"low_cost",
+"low_cost",
+"low_cost",
+"family",
+"low_cost",
+"business",
+"business",
+"low_cost",
+"business",
+"low_cost",
+"business",
+"business",
+"business",
+"business",
+"low_cost",
+"business",
+"business",
+"business",
+"business",
+"business",
+"business"
+],
+"boarded": 28,
+"boarding_credit": 1.0,
+"booked": 23,
+"cargo": false,
+"delay": 0.0,
+"departure_time": 450.1,
+"deplane_credit": 9.0,
+"deplaned": 30,
+"fee": 20.0,
+"gate": 6,
+"inbound_types": [
+"business",
+"business",
+"business",
+"business",
+"low_cost",
+"low_cost",
+"low_cost",
+"low_cost",
+"business",
+"low_cost",
+"low_cost",
+"low_cost",
+"family",
+"business",
+"business",
+"low_cost",
+"low_cost",
+"business",
+"low_cost",
+"business",
+"family",
+"low_cost",
+"business",
+"business",
+"business",
+"low_cost",
+"family",
+"business",
+"low_cost",
+"business"
+],
+"landing_booked": true,
+"missed": 0,
+"number": "NV 105",
+"phase": 3,
+"route": "Business",
+"scheduled": true,
+"seats": 180,
+"spawned": 23,
+"stand": 8,
+"takeoff_booked": false,
+"tonnes": 0.0,
+"tonnes_handled": 0.0,
+"wide_body": false
+},
+{
+"airline": "velora",
+"arrival_delay": 14.999999999999963,
+"arrival_times": [
+238.04052734375,
+241.6438446044922,
+245.12054443359375,
+245.29037475585938,
+245.93521118164062,
+249.07412719726562,
+260.5495910644531,
+260.8372802734375,
+266.8373718261719,
+276.9411315917969,
+286.02227783203125,
+290.1222229003906,
+290.36822509765625,
+295.36395263671875,
+295.7960205078125,
+301.8095703125,
+318.4156188964844,
+319.5068664550781
+],
+"arrival_types": [
+"family",
+"family",
+"family",
+"family",
+"family",
+"family",
+"family",
+"family",
+"low_cost",
+"family",
+"family",
+"low_cost",
+"low_cost",
+"family",
+"family",
+"family",
+"business",
+"low_cost"
+],
+"boarded": 14,
+"boarding_credit": 0.9999999999999998,
+"booked": 18,
+"cargo": false,
+"delay": 0.0,
+"departure_time": 495.1,
+"deplane_credit": 9.0,
+"deplaned": 18,
+"fee": 15.0,
+"gate": 7,
+"inbound_types": [
+"family",
+"business",
+"family",
+"family",
+"family",
+"business",
+"family",
+"family",
+"family",
+"low_cost",
+"family",
+"family",
+"family",
+"family",
+"family",
+"family",
+"low_cost",
+"family"
+],
+"landing_booked": true,
+"missed": 0,
+"number": "VR 106",
+"phase": 3,
+"route": "Holiday",
+"scheduled": true,
+"seats": 180,
+"spawned": 18,
+"stand": 9,
+"takeoff_booked": false,
+"tonnes": 0.0,
+"tonnes_handled": 0.0,
+"wide_body": false
+},
+{
+"airline": "orynth",
+"arrival_delay": 9.99999999999998,
+"arrival_times": [
+283.2801208496094,
+291.7901916503906,
+294.63226318359375,
+296.7880859375,
+303.8750915527344,
+307.471923828125,
+312.865234375,
+313.3542175292969,
+314.4953308105469,
+317.86029052734375,
+327.4839172363281,
+331.78173828125,
+342.3702697753906,
+343.78424072265625,
+344.48834228515625,
+344.9739990234375,
+346.8465270996094,
+346.98382568359375,
+348.5206604003906,
+349.22119140625,
+350.0719909667969,
+352.5734558105469,
+352.9183349609375,
+357.3122863769531,
+357.6798400878906,
+360.69219970703125,
+360.79522705078125,
+361.03033447265625,
+361.5068664550781,
+366.788818359375,
+368.71551513671875,
+372.488525390625,
+374.9895935058594,
+377.7646484375,
+378.48504638671875,
+380.2402648925781,
+380.6029968261719,
+383.3208312988281,
+386.8083190917969,
+389.9212646484375,
+396.63458251953125,
+396.92431640625,
+397.4764709472656,
+399.5084533691406,
+399.51519775390625,
+399.8291320800781
+],
+"arrival_types": [
+"family",
+"family",
+"family",
+"family",
+"family",
+"family",
+"low_cost",
+"low_cost",
+"family",
+"family",
+"family",
+"family",
+"family",
+"business",
+"family",
+"family",
+"business",
+"business",
+"family",
+"family",
+"low_cost",
+"family",
+"family",
+"low_cost",
+"family",
+"business",
+"low_cost",
+"business",
+"business",
+"business",
+"business",
+"business",
+"business",
+"low_cost",
+"business",
+"business",
+"business",
+"business",
+"business",
+"low_cost",
+"business",
+"business",
+"business",
+"business",
+"business",
+"business"
+],
+"boarded": 0,
+"boarding_credit": 0.0,
+"booked": 46,
+"cargo": false,
+"delay": 0.0,
+"departure_time": 540.1,
+"deplane_credit": 0.0,
+"deplaned": 0,
+"fee": 32.0,
+"gate": 10,
+"inbound_types": [
+"business",
+"family",
+"family",
+"family",
+"business",
+"family",
+"family",
+"business",
+"business",
+"family",
+"business",
+"low_cost",
+"family",
+"family",
+"family",
+"business",
+"business",
+"business",
+"family",
+"business",
+"family",
+"business",
+"business",
+"business",
+"business",
+"business",
+"family",
+"family",
+"business",
+"business",
+"business",
+"low_cost",
+"business",
+"business",
+"family",
+"business",
+"business",
+"family",
+"family",
+"business",
+"business",
+"business",
+"business",
+"family"
+],
+"landing_booked": false,
+"missed": 0,
+"number": "OY 107",
+"phase": 0,
+"route": "Long-haul",
+"scheduled": true,
+"seats": 360,
+"spawned": 46,
+"stand": 11,
+"takeoff_booked": false,
+"tonnes": 0.0,
+"tonnes_handled": 0.0,
+"wide_body": true
+},
+{
+"airline": "paqet",
+"arrival_delay": 0.0,
+"arrival_times": [],
+"arrival_types": [],
+"boarded": 0,
+"boarding_credit": 0.0,
+"booked": 0,
+"cargo": true,
+"delay": 0.0,
+"departure_time": 585.1,
+"deplane_credit": 0.0,
+"deplaned": 0,
+"fee": 20.0,
+"gate": 12,
+"inbound_types": [],
+"landing_booked": false,
+"missed": 0,
+"number": "PQ 108",
+"phase": 0,
+"route": "Cargo",
+"scheduled": true,
+"seats": 0,
+"spawned": 0,
+"stand": 13,
+"takeoff_booked": false,
+"tonnes": 30.932918548583984,
+"tonnes_handled": 0.0,
+"wide_body": false
+},
+{
+"airline": "zippa",
+"arrival_delay": 0.0,
+"arrival_times": [
+398.4012756347656,
+399.2590026855469,
+403.10418701171875,
+405.6578674316406,
+406.1708984375,
+406.8568420410156,
+410.3534851074219,
+416.82354736328125,
+426.77197265625,
+435.008544921875,
+440.8168029785156,
+443.2858581542969,
+443.7607727050781,
+446.72003173828125,
+447.3746032714844,
+449.483154296875,
+456.29486083984375
+],
+"arrival_types": [
+"family",
+"low_cost",
+"low_cost",
+"low_cost",
+"family",
+"family",
+"low_cost",
+"low_cost",
+"family",
+"family",
+"low_cost",
+"low_cost",
+"low_cost",
+"low_cost",
+"low_cost",
+"low_cost",
+"low_cost"
+],
+"boarded": 0,
+"boarding_credit": 0.0,
+"booked": 17,
+"cargo": false,
+"delay": 0.0,
+"departure_time": 630.1,
+"deplane_credit": 0.0,
+"deplaned": 0,
+"fee": 9.0,
+"gate": 6,
+"inbound_types": [
+"family",
+"family",
+"low_cost",
+"family",
+"family",
+"low_cost",
+"low_cost",
+"low_cost",
+"low_cost",
+"low_cost",
+"low_cost",
+"family",
+"low_cost",
+"low_cost",
+"low_cost",
+"low_cost",
+"low_cost",
+"family"
+],
+"landing_booked": false,
+"missed": 0,
+"number": "ZP 109",
+"phase": 0,
+"route": "Low-cost",
+"scheduled": true,
+"seats": 180,
+"spawned": 8,
+"stand": 8,
+"takeoff_booked": false,
+"tonnes": 0.0,
+"tonnes_handled": 0.0,
+"wide_body": false
+},
+{
+"airline": "norvane",
+"arrival_delay": 0.0,
+"arrival_times": [
+438.8686828613281,
+447.3646545410156,
+452.6529846191406,
+458.2218017578125,
+462.90997314453125,
+477.67803955078125,
+480.1549377441406,
+480.6174621582031,
+482.7874755859375,
+482.8974609375,
+482.9952697753906,
+484.6280822753906,
+485.06451416015625,
+489.2174987792969,
+490.2145690917969,
+490.453857421875,
+492.01922607421875,
+493.3838806152344,
+497.4305419921875,
+498.4251708984375,
+500.6408996582031,
+503.74609375,
+504.6527404785156,
+515.916015625,
+518.0369262695312,
+529.782958984375,
+531.53076171875,
+533.9039916992188
+],
+"arrival_types": [
+"low_cost",
+"low_cost",
+"low_cost",
+"low_cost",
+"low_cost",
+"business",
+"business",
+"business",
+"business",
+"business",
+"low_cost",
+"family",
+"business",
+"business",
+"low_cost",
+"business",
+"business",
+"low_cost",
+"business",
+"business",
+"business",
+"business",
+"business",
+"low_cost",
+"business",
+"business",
+"business",
+"business"
+],
+"boarded": 0,
+"boarding_credit": 0.0,
+"booked": 28,
+"cargo": false,
+"delay": 0.0,
+"departure_time": 675.1,
+"deplane_credit": 0.0,
+"deplaned": 0,
+"fee": 20.0,
+"gate": 7,
+"inbound_types": [
+"business",
+"business",
+"low_cost",
+"family",
+"business",
+"business",
+"business",
+"business",
+"low_cost",
+"low_cost",
+"low_cost",
+"business",
+"family",
+"low_cost",
+"business",
+"business",
+"business",
+"family",
+"business",
+"business",
+"family"
+],
+"landing_booked": false,
+"missed": 0,
+"number": "NV 110",
+"phase": 0,
+"route": "Business",
+"scheduled": true,
+"seats": 180,
+"spawned": 0,
+"stand": 9,
+"takeoff_booked": false,
+"tonnes": 0.0,
+"tonnes_handled": 0.0,
+"wide_body": false
+}
+],
+"last_planned": [
+[
+6,
+630.1
+],
+[
+7,
+675.1
+],
+[
+10,
+540.1
+],
+[
+12,
+585.1
+]
+],
+"next_number": 111,
+"runway_free_at": [
+[
+1,
+425.1000000000236
+]
+]
+},
+"stations": [
+{
+"building": 3,
+"queue": [],
+"serving": [
+[
+65,
+1.5433791875839233
+],
+null,
+[
+63,
+3.3250975608825684
+],
+null,
+null
+],
+"waiting": []
+},
+{
+"building": 4,
+"queue": [],
+"serving": [
+null,
+null,
+null
+],
+"waiting": []
+},
+{
+"building": 5,
+"queue": [],
+"serving": [
+[
+83,
+3.528672218322754
+],
+[
+54,
+1.5847440958023071
+],
+[
+31,
+1.9221447706222534
+]
+],
+"waiting": []
+},
+{
+"building": 6,
+"queue": [],
+"serving": [],
+"waiting": []
+},
+{
+"building": 7,
+"queue": [],
+"serving": [],
+"waiting": [
+7,
+16,
+0,
+6,
+15,
+1,
+3
+]
+},
+{
+"building": 10,
+"queue": [],
+"serving": [],
+"waiting": [
+4,
+12,
+10,
+11,
+27,
+21,
+14,
+5,
+47,
+44,
+8,
+45,
+9,
+28,
+25,
+22,
+46,
+50,
+29,
+48,
+30,
+13,
+55,
+51,
+49,
+52,
+43,
+2
+]
+},
+{
+"building": 14,
+"queue": [],
+"serving": [],
+"waiting": [
+38,
+37,
+40,
+57,
+60,
+62,
+64,
+69,
+70,
+71,
+79,
+77,
+78,
+75
+]
+},
+{
+"building": 15,
+"queue": [
+36,
+82,
+76,
+35
+],
+"serving": [
+[
+73,
+1.7254143953323364
+],
+[
+80,
+5.291983604431152
+]
+],
+"waiting": []
+},
+{
+"building": 16,
+"queue": [],
+"serving": [],
+"waiting": []
+},
+{
+"building": 17,
+"queue": [],
+"serving": [],
+"waiting": [
+18,
+17,
+42,
+19
+]
+},
+{
+"building": 18,
+"queue": [],
+"serving": [],
+"waiting": [
+20,
+23,
+24
+]
+},
+{
+"building": 19,
+"queue": [],
+"serving": [],
+"waiting": []
+}
+],
+"transferred": 9
+},
+"goals_hidden": false,
+"manager": {},
+"map_size": [
+64,
+64
+],
+"money": 53289.0579020266,
+"next_building_id": 20,
+"over_limit": 0.0,
+"progression": {
+"passengers": 15171,
+"tier": 2,
+"transfers": 409
+},
+"reputation": {
+"departures": 4,
+"late": 0,
+"on_time": 0.93439,
+"penalty": 0.0
+},
+"rng_state": "3724151511250689819",
+"satisfaction": {
+"journeys": 213,
+"moods": [
+100.0,
+100.0,
+100.0,
+100.0,
+100.0,
+100.0,
+100.0,
+100.0,
+100.0,
+100.0,
+100.0,
+100.0,
+100.0,
+100.0,
+100.0,
+100.0,
+100.0,
+100.0,
+100.0,
+100.0,
+100.0,
+100.0,
+100.0,
+100.0,
+100.0,
+100.0,
+100.0,
+100.0,
+100.0,
+100.0,
+100.0,
+100.0,
+100.0,
+100.0,
+100.0,
+100.0,
+100.0,
+100.0,
+100.0,
+100.0,
+100.0,
+100.0,
+100.0,
+100.0,
+100.0,
+100.0,
+100.0,
+100.0,
+100.0,
+100.0,
+100.0,
+100.0,
+100.0,
+100.0,
+100.0,
+100.0,
+100.0,
+100.0,
+100.0,
+100.0
+],
+"types": [
+"Low-cost",
+"Families",
+"Business",
+"Low-cost",
+"Business",
+"Low-cost",
+"Business",
+"Business",
+"Low-cost",
+"Business",
+"Business",
+"Business",
+"Families",
+"Business",
+"Low-cost",
+"Business",
+"Business",
+"Business",
+"Business",
+"Business",
+"Business",
+"Families",
+"Families",
+"Business",
+"Business",
+"Business",
+"Business",
+"Business",
+"Business",
+"Low-cost",
+"Business",
+"Low-cost",
+"Low-cost",
+"Families",
+"Low-cost",
+"Families",
+"Business",
+"Low-cost",
+"Low-cost",
+"Low-cost",
+"Low-cost",
+"Families",
+"Families",
+"Low-cost",
+"Low-cost",
+"Families",
+"Business",
+"Business",
+"Families",
+"Low-cost",
+"Families",
+"Families",
+"Business",
+"Low-cost",
+"Families",
+"Low-cost",
+"Families",
+"Families",
+"Low-cost",
+"Families"
+]
+},
+"seed": "3684539550",
+"staff": [
+{
+"building_id": 3,
+"name": "Noah U.",
+"served": {
+"2": 47
+},
+"supervisor": false,
+"training_left": 0.0
+},
+{
+"building_id": 3,
+"name": "Elias R.",
+"served": {
+"2": 54
+},
+"supervisor": false,
+"training_left": 0.0
+},
+{
+"building_id": 3,
+"name": "Yara T.",
+"served": {
+"2": 171
+},
+"supervisor": false,
+"training_left": 0.0
+},
+{
+"building_id": 4,
+"name": "Leni C.",
+"served": {
+"2": 227
+},
+"supervisor": false,
+"training_left": 0.0
+},
+{
+"building_id": 4,
+"name": "Leni W.",
+"served": {
+"2": 77
+},
+"supervisor": false,
+"training_left": 0.0
+},
+{
+"building_id": 4,
+"name": "Leni J.",
+"served": {
+"2": 68
+},
+"supervisor": false,
+"training_left": 0.0
+},
+{
+"building_id": 5,
+"name": "Max I.",
+"served": {
+"3": 245
+},
+"supervisor": false,
+"training_left": 0.0
+},
+{
+"building_id": 5,
+"name": "Emma Z.",
+"served": {
+"3": 90
+},
+"supervisor": false,
+"training_left": 0.0
+},
+{
+"building_id": 5,
+"name": "Paul Z.",
+"served": {
+"3": 181
+},
+"supervisor": false,
+"training_left": 0.0
+},
+{
+"building_id": 12,
+"name": "Malik T.",
+"served": {
+"12": 185
+},
+"supervisor": false,
+"training_left": 0.0
+},
+{
+"building_id": 12,
+"name": "Ida C.",
+"served": {
+"12": 192
+},
+"supervisor": false,
+"training_left": 0.0
+},
+{
+"building_id": 12,
+"name": "Luca S.",
+"served": {
+"12": 44
+},
+"supervisor": false,
+"training_left": 0.0
+},
+{
+"building_id": 12,
+"name": "Sara E.",
+"served": {
+"12": 158
+},
+"supervisor": false,
+"training_left": 0.0
+},
+{
+"building_id": 15,
+"name": "Lea Y.",
+"served": {
+"8": 20
+},
+"supervisor": false,
+"training_left": 0.0
+},
+{
+"building_id": 15,
+"name": "Clara X.",
+"served": {
+"8": 51
+},
+"supervisor": false,
+"training_left": 0.0
+}
+],
+"taxiways": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEBAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEBAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEBAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAAAAAAAAAAAAAAAAAAAAAAEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+"walkways": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQAAAAAAAAAAAAAAAAAAAAAAAAAAAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEAAAAAAAAAAAAAAAAAAAAAAAAAAAEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQEBAQEBAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEBAQEBAQEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABAQEBAQEBAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQEBAQEBAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+"version": 7,
+"build": "dev",
+"saved_at": 1794600000.0
+}

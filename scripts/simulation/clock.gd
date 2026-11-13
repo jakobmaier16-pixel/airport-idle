@@ -18,11 +18,28 @@ const DEMAND_BY_HOUR: Array[float] = [
 ]
 
 ## Game seconds since midnight of day 1.
+## Game seconds per real second, under the name the schedule code uses to convert.
+const GAME_PER_REAL: float = GAME_SECONDS_PER_SECOND
+
+## The one clock (tech_architecture.md §3): real seconds since the airport opened, only ever
+## running forward. Flights, queues and income windows are timed against it, and the time of day
+## is derived from it. (Kept in real seconds so those timings stay exactly as they were.)
+var real_elapsed: float = 0.0
+
+## The same in game seconds.
+var elapsed: float:
+	get:
+		return real_elapsed * GAME_PER_REAL
+
+## The game time since midnight of day 1: the time of day and the day number come from it.
+## Tests and dev tools may set it to jump the time of day; `real_elapsed` (and with it every
+## planned flight) stays where it is.
 var game_seconds: float = START_HOUR * 3600.0
 
 
 func tick(delta: float) -> void:
-	game_seconds += delta * GAME_SECONDS_PER_SECOND
+	real_elapsed += delta
+	game_seconds += delta * GAME_PER_REAL
 
 
 ## Hour of the day, 0.0 ..< 24.0.
@@ -59,3 +76,15 @@ static func is_curfew_hour(at_hour: float) -> bool:
 static func daylight(at_hour: float) -> float:
 	# Sunrise around 5–7, sunset around 19–21.
 	return clampf(minf((at_hour - 5.0) / 2.0, (21.0 - at_hour) / 2.0), 0.0, 1.0)
+
+
+## A new airport: 06:00 on day 1, nothing elapsed.
+func reset() -> void:
+	real_elapsed = 0.0
+	game_seconds = START_HOUR * 3600.0
+
+
+## Restores a saved clock: `saved_elapsed` game seconds have passed and it is `saved_game_seconds` now.
+func load_state(saved_elapsed: float, saved_game_seconds: float) -> void:
+	real_elapsed = saved_elapsed / GAME_PER_REAL
+	game_seconds = saved_game_seconds

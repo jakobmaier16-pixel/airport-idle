@@ -704,7 +704,7 @@ func reset(with_runway: bool = true, new_seed: int = -1) -> void:
 	airlines.reset()
 	progression.reset()
 	goals.hidden = false
-	clock.game_seconds = Clock.START_HOUR * 3600.0
+	clock.reset()
 	land_changed.emit()
 	manager_position = NOBODY_THERE
 	saved_manager = {}
@@ -758,6 +758,7 @@ func save_state() -> Dictionary:
 		"progression": progression.save_state(),
 		"goals_hidden": goals.hidden,
 		"clock": clock.game_seconds,
+		"clock_elapsed": clock.elapsed,
 		"flow": passenger_flow.save_state(),
 		"manager": {"x": manager_position.x, "z": manager_position.z, "yaw": manager_yaw} if manager_position != NOBODY_THERE else {},
 		# As text: JSON keeps numbers as decimals, which can't hold a 64-bit dice state exactly.
@@ -784,7 +785,7 @@ func load_state(data: Dictionary) -> int:
 		grid.set_taxiway_data(Marshalls.base64_to_raw(data.get("taxiways", "")))
 	progression.load_state(data.get("progression", {}))
 	goals.hidden = bool(data.get("goals_hidden", false))
-	clock.game_seconds = float(data.get("clock", Clock.START_HOUR * 3600.0))
+	clock.load_state(float(data.get("clock_elapsed", 0.0)), float(data.get("clock", Clock.START_HOUR * 3600.0)))
 	saved_manager = data.get("manager", {})
 	land_changed.emit()
 	var skipped := 0
