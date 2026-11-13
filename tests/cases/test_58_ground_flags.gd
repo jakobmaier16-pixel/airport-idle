@@ -35,12 +35,31 @@ func test_edits_update_the_texture() -> void:
 	await start_game()
 	var cells: Array[Vector2i] = [Vector2i(20, 25), Vector2i(21, 25), Vector2i(22, 25)]
 	Airport.paint_walkway(cells, true)
+	await frames(1)
 	var flags := _ground_texture()
 	check(flags.image.get_data() == _dense_flags(Airport.grid), "painted walkway is in the texture")
 	check_eq(flags.image.get_pixel(21, 25).r8, AirportGrid.WALKWAY_BIT, "the walkway bit")
 	Airport.paint_walkway(cells, false)
+	await frames(1)
 	check(flags.image.get_data() == _dense_flags(Airport.grid), "erased walkway is out of the texture")
 	check_eq(flags.image.get_pixel(21, 25).r8, 0, "empty again")
+
+
+func test_many_edits_in_one_frame_upload_once() -> void:
+	await start_game()
+	var flags := _ground_texture()
+	await frames(2)
+	var before := flags.upload_count
+	for i in 5:
+		var cells: Array[Vector2i] = [Vector2i(20 + i, 25), Vector2i(20 + i, 26)]
+		Airport.paint_walkway(cells, true)
+	Airport.paint_walkway([Vector2i(20, 25)] as Array[Vector2i], false)
+	check_eq(flags.upload_count, before, "nothing is uploaded inside the frame")
+	await frames(1)
+	check_eq(flags.upload_count, before + 1, "one upload for all edits")
+	check(flags.image.get_data() == _dense_flags(Airport.grid), "and it has every edit")
+	await frames(2)
+	check_eq(flags.upload_count, before + 1, "no change, no upload")
 
 
 func test_one_walkway_paint_marks_one_chunk() -> void:

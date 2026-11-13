@@ -16,8 +16,12 @@ var image: Image
 var texture: ImageTexture
 ## Number of chunks the last `refresh()` / `fill_all()` copied (for tests and the performance budget).
 var last_chunks_copied: int = 0
+## How many times the image was sent to the GPU (`texture.update`); a debug counter for tests.
+var upload_count: int = 0
 
 var _grid: AirportGrid
+# One chunk-sized image, reused for every chunk copy.
+var _chunk_image: Image = Image.create_empty(AirportGrid.CHUNK_SIZE, AirportGrid.CHUNK_SIZE, false, Image.FORMAT_R8)
 
 
 func _init(grid: AirportGrid) -> void:
@@ -49,6 +53,7 @@ func refresh() -> int:
 	for coord in dirty:
 		_copy_chunk(coord)
 	texture.update(image)
+	upload_count += 1
 	return dirty.size()
 
 
@@ -61,5 +66,5 @@ func _copy_chunk(coord: Vector2i) -> void:
 	if flags.is_empty():
 		image.fill_rect(area, Color(0, 0, 0))
 		return
-	var chunk_image := Image.create_from_data(AirportGrid.CHUNK_SIZE, AirportGrid.CHUNK_SIZE, false, Image.FORMAT_R8, flags)
-	image.blit_rect(chunk_image, Rect2i(Vector2i.ZERO, area.size), base)
+	_chunk_image.set_data(AirportGrid.CHUNK_SIZE, AirportGrid.CHUNK_SIZE, false, Image.FORMAT_R8, flags)
+	image.blit_rect(_chunk_image, Rect2i(Vector2i.ZERO, area.size), base)

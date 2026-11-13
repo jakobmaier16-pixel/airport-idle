@@ -12,6 +12,8 @@ var _material: ShaderMaterial
 # The whole flag layer as one R8 texture (1 texel per cell); the shader decodes the bits.
 var _flags: GroundFlagTexture
 var _flags_grid: AirportGrid
+# Set by the change signals; the texture is brought up to date once per frame in _process.
+var _cells_dirty: bool = false
 
 
 func _ready() -> void:
@@ -32,8 +34,20 @@ func _ready() -> void:
 	_update_cells()
 	_update_land()
 	Airport.land_changed.connect(_update_land)
-	Airport.zones_changed.connect(_update_cells)
-	Airport.walkways_changed.connect(_update_cells)
+	Airport.zones_changed.connect(_mark_cells_dirty)
+	Airport.walkways_changed.connect(_mark_cells_dirty)
+
+
+func _process(_delta: float) -> void:
+	if _cells_dirty:
+		_cells_dirty = false
+		_update_cells()
+
+
+# Several signals can fire for one edit (and several edits in one frame): only remember it, the
+# upload happens at most once per frame.
+func _mark_cells_dirty() -> void:
+	_cells_dirty = true
 
 
 ## The flag texture (for tests).
