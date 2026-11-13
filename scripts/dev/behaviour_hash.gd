@@ -12,14 +12,18 @@ const WALL_CLOCK_KEYS: Array[String] = ["saved_at"]
 
 
 ## SHA-256 (hex) of the canonical JSON of the save state after STEPS steps on the benchmark
-## airport. Resets the global airport; the caller's airport is gone afterwards.
+## airport. Never saves. The global airport is replaced by a fresh one with the caller's seed
+## afterwards, so the benchmark airport does not leak into whatever runs next.
 static func compute() -> String:
+	var previous_seed: int = Airport.game_seed
 	Airport.reseed(SEED)
 	ShowcaseAirport.build()
 	Airport.passenger_flow.max_passengers = Benchmark.PASSENGER_LIMIT
 	for i in STEPS:
 		Airport.step(Airport.SIM_STEP)
-	return hash_state(Airport.save_state())
+	var result := hash_state(Airport.save_state())
+	Airport.reset(true, previous_seed)
+	return result
 
 
 ## SHA-256 (hex) of `state` without wall-clock fields, keys in sorted order at every level.
@@ -28,7 +32,7 @@ static func hash_state(state: Dictionary) -> String:
 
 
 static func canonical_json(state: Dictionary) -> String:
-	return JSON.stringify(_strip(state), "", true)
+	return JSON.stringify(_strip(state), "", true, true)
 
 
 static func _strip(value: Variant) -> Variant:

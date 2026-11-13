@@ -5,4 +5,11 @@
 cd "$(dirname "$0")/.."
 GODOT=${GODOT:-/Applications/Godot.app/Contents/MacOS/Godot}
 "$GODOT" --headless --path . --import > /dev/null 2>&1
-"$GODOT" --headless --path . res://scripts/dev/behaviour_hash_cli.tscn -- --no-save 2>&1 | grep -E "^BEHAVIOUR_HASH|ERROR"
+LOG=$(mktemp "${TMPDIR:-/tmp}/behaviour_hash.XXXXXX")
+"$GODOT" --headless --path . res://scripts/dev/behaviour_hash_cli.tscn -- --no-save > "$LOG" 2>&1
+CODE=$?
+grep -E "^BEHAVIOUR_HASH|ERROR" "$LOG"
+grep -q "^BEHAVIOUR_HASH" "$LOG" || CODE=1
+grep -q "^ERROR\|SCRIPT ERROR" "$LOG" && CODE=1
+rm -f "$LOG"
+exit $CODE

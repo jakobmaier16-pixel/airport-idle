@@ -3,7 +3,7 @@ extends TestCase
 
 ## Refactors must not change this. A PR that changes behaviour on purpose updates it and says so in the PR text.
 ## Print the current value with tools/behaviour_hash.sh.
-const GOLDEN_BEHAVIOUR_HASH: String = "5bacc8f4dc6114b7d39d4e363e09841d9649be4c71271d5cd2cf2952cc8e723b"
+const GOLDEN_BEHAVIOUR_HASH: String = "3546a4ab996e0cfde893a7a7681168bde8050b68f598f031d69cfe89d2f47f75"
 
 
 func test_behaviour_hash_is_deterministic() -> void:
