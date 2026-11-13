@@ -145,7 +145,7 @@ Other rules:
 
 ## 8. Parking lot (decided later)
 
-Starting airport · day/night lighting · pause and speed controls · optional 120 Hz smooth mode (polish phase) · upgrade-in-progress details · incident handling in first person · lounge model · cargo model · reputation formula · exact tier thresholds · second terminal details · Android · online features. · save size with 1,000 passengers (~1 MB per save): round/cap stored paths if device tests show stutter
+Starting airport · day/night lighting · pause and speed controls · optional 120 Hz smooth mode (polish phase) · upgrade-in-progress details · incident handling in first person · controls are cumbersome and building info is too generic (Jakob will bring ideas) · lounge model · cargo model · reputation formula · exact tier thresholds · second terminal details · Android · online features. · save size with 1,000 passengers (~1 MB per save): round/cap stored paths if device tests show stutter
 
 ---
 
@@ -158,6 +158,7 @@ Starting airport · day/night lighting · pause and speed controls · optional 1
 | Scope | No multiplayer, no multiple airports, English only |
 | Feel | Thoughtful, clever, powerful (free to demolish), collector, architect |
 | Zones | Automatic from buildings; the security building is the border |
+| Prototype extras | Weather, incidents, VIP visits and the first-landing cutscene removed from the prototype on 2026-11-13 to focus on fundamentals; realism systems may return later, rebuilt on the new foundation |
 | First-person view | Enjoy the airport, walk around, inspect and upgrade stations and staff. Incidents come much later |
 | Top-down view | Understand the airport and passenger flow, place buildings, read statistics, enjoy |
 | Tiers | 4 tiers as built (Regional → National → International → Hub) |
@@ -175,6 +176,8 @@ Starting airport · day/night lighting · pause and speed controls · optional 1
 | Slice milestone | Reaching the first tier unlocks new land and the CT scanner step |
 | Agent workflow | Lead, builder, reviewer, performance agents; branch + pull request per task; tests in GitHub Actions (2026-11-13) |
 | Merging | For the first days the lead may merge or reject pull requests on its own (2026-11-13) |
+| Art (2026-11-13) | Realistic look within the iPhone budget (shared PBR materials / trim sheets, baked light, LOD, MultiMesh, ASTC); look-probe on the device first |
+| Two lanes (2026-11-13) | Code lane (builder, lead merges) and visual lane (artist, only Jakob merges); the visual lane is worked in a separate Visual chat |
 | Zone placement (2026-11-13) | Zones are computed, never painted. Airside buildings can be placed anywhere and are "not connected" (unused) until the airside reaches them; placement checks only geometry and money; security needs a free row on both sides |
 | Area names (for step 4c) | Plain names for the areas, e.g. "Check-in Hall", "Security", "Gates"; no codes like T1 yet |
 | Transfer security | Not a zone border yet: it joins two airside walkways |

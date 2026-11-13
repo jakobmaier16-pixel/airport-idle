@@ -65,7 +65,7 @@ func test_dice_continue_after_loading() -> void:
 		rolls_after_loading.append(Airport.rng.randi())
 	check_eq(rolls_after_loading, next_rolls, "the dice continue exactly where they were")
 	check(Airport.passenger_flow.rng == Airport.rng and Airport.airlines.rng == Airport.rng \
-		and Airport.weather.rng == Airport.rng and Airport.passenger_flow.schedule.rng == Airport.rng,
+		and Airport.passenger_flow.schedule.rng == Airport.rng,
 		"every part of the simulation rolls the same dice after loading")
 
 

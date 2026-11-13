@@ -18,8 +18,6 @@ func _busy_airport() -> void:
 # Loads a save into a brand-new brain, the way a restart would.
 func _load_fresh(saved: Dictionary) -> AirportWorld:
 	var brain := AirportWorld.new()
-	brain.weather.automatic = false
-	brain.incidents_automatic = false
 	brain.load_state(saved)
 	return brain
 

@@ -8,8 +8,6 @@ const SHOWCASE_V4: String = "res://tests/saves/v4_showcase.json"
 
 func _loaded(path: String) -> AirportWorld:
 	var brain := AirportWorld.new()
-	brain.weather.automatic = false
-	brain.incidents_automatic = false
 	brain.load_state(SaveGame.migrate(JSON.parse_string(FileAccess.get_file_as_string(path))))
 	return brain
 

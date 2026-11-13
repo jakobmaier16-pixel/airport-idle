@@ -6,9 +6,6 @@ extends Node
 
 signal building_placed(building: Building)
 signal building_upgraded(building: Building)
-signal vip_announced(flight: Flight)
-signal vip_result(happy: bool, mood: float)
-signal incident_started(building: Building)
 signal restructured(sold: PackedStringArray)
 signal staff_changed(building: Building)
 signal land_changed
@@ -17,7 +14,6 @@ signal zones_changed
 signal walkways_changed
 signal layout_changed
 signal tier_reached(tier: Progression.Tier)
-signal weather_changed(kind: Weather.Kind)
 signal offer_arrived(offer: AirlineOffer)
 signal airline_unhappy(airline: Airline)
 signal airline_left(airline: Airline)
@@ -30,12 +26,6 @@ const MAP_SIZE_CELLS: Vector2i = AirportWorld.MAP_SIZE_CELLS
 const CATALOG: BuildingCatalog = AirportWorld.CATALOG
 const SALARIES: Dictionary = AirportWorld.SALARIES
 const SIM_STEP: float = AirportWorld.SIM_STEP
-const INCIDENT_EVERY_MIN: float = AirportWorld.INCIDENT_EVERY_MIN
-const INCIDENT_SECONDS: float = AirportWorld.INCIDENT_SECONDS
-const INCIDENT_MANAGER_SPEEDUP: float = AirportWorld.INCIDENT_MANAGER_SPEEDUP
-const VIP_EVERY_MIN: float = AirportWorld.VIP_EVERY_MIN
-const VIP_REWARD: float = AirportWorld.VIP_REWARD
-const VIP_STARS: float = AirportWorld.VIP_STARS
 const NOBODY_THERE: Vector3 = AirportWorld.NOBODY_THERE
 const FAST_TRACK_COST: float = AirportWorld.FAST_TRACK_COST
 
@@ -82,9 +72,9 @@ func _notification(what: int) -> void:
 # when the brain is replaced. Called again for every new brain: it first disconnects the old one,
 # so nothing is ever connected twice.
 const SIGNALS: Array[StringName] = [
-	&"building_placed", &"building_upgraded", &"vip_announced", &"vip_result", &"incident_started",
+	&"building_placed", &"building_upgraded",
 	&"restructured", &"staff_changed", &"land_changed", &"building_removed", &"zones_changed",
-	&"walkways_changed", &"layout_changed", &"tier_reached", &"weather_changed", &"offer_arrived",
+	&"walkways_changed", &"layout_changed", &"tier_reached", &"offer_arrived",
 	&"airline_unhappy", &"airline_left", &"plane_arriving",
 ]
 var _bound: AirportWorld = null
@@ -143,12 +133,6 @@ var clock: Clock:
 		return brain.clock
 	set(value):
 		brain.clock = value
-
-var weather: Weather:
-	get:
-		return brain.weather
-	set(value):
-		brain.weather = value
 
 var goals: Goals:
 	get:
@@ -213,30 +197,12 @@ var game_seed: int:
 	set(value):
 		brain.game_seed = value
 
-var incidents_automatic: bool:
-	get:
-		return brain.incidents_automatic
-	set(value):
-		brain.incidents_automatic = value
-
 func reseed(new_seed: int) -> void:
 	brain.reseed(new_seed)
 
 
 func step(delta: float) -> void:
 	brain.step(delta)
-
-
-func start_incident(building: Building) -> void:
-	brain.start_incident(building)
-
-
-func announce_vip() -> Flight:
-	return brain.announce_vip()
-
-
-func _on_vip_finished(happy: bool, mood: float) -> void:
-	brain._on_vip_finished(happy, mood)
 
 
 func owns_cell(cell: Vector2i) -> bool:
@@ -291,16 +257,12 @@ func curfew_at(real_seconds_ahead: float = 0.0) -> bool:
 	return brain.curfew_at(real_seconds_ahead)
 
 
-func season() -> Weather.Season:
+func season() -> Seasons.Season:
 	return brain.season()
 
 
 func has_cargo_terminal() -> bool:
 	return brain.has_cargo_terminal()
-
-
-func has_deicing_pad() -> bool:
-	return brain.has_deicing_pad()
 
 
 func stars() -> float:
@@ -408,16 +370,11 @@ func connection_problem(type: BuildingType, origin_cell: Vector2i, rotation_step
 
 
 func reset(with_runway: bool = true, new_seed: int = -1) -> void:
-	# A fresh brain instead of cleaning the old one: nothing can be left over. What the old brain
-	# was told on purpose (no random weather / incidents in tests) is carried over.
+	# A fresh brain instead of cleaning the old one: nothing can be left over.
 	var next_seed := new_seed if new_seed >= 0 else int(brain.rng.randi())
-	var automatic_incidents := brain.incidents_automatic
-	var automatic_weather := brain.weather.automatic
 	var old := brain
 	brain = AirportWorld.new()
 	old.dispose()
-	brain.incidents_automatic = automatic_incidents
-	brain.weather.automatic = automatic_weather
 	_bind()
 	brain.reset(with_runway, next_seed)
 

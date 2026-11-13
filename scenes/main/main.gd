@@ -8,16 +8,12 @@ var current_view: View = View.MANAGER
 
 # How the last building_at() call decided, for the test-build tap diagnosis line.
 var _last_pick: String = ""
-# A new airline's first flight, waiting for its plane to appear for the cutscene.
-var _first_landing: Flight = null
 
 @onready var _manager: Manager = $Manager
 @onready var _manager_camera: ManagerCamera = $ManagerCamera
 @onready var _build_camera: BuildCamera = $BuildCamera
 @onready var _build_mode: BuildMode = $BuildMode
 @onready var _hud: Hud = $HUD
-@onready var _cinematic: CinematicCamera = $CinematicCamera
-@onready var _planes: PlaneLayer = $Planes
 
 
 func _ready() -> void:
@@ -60,19 +56,6 @@ func _ready() -> void:
 	TouchGestures.tapped.connect(_on_tapped)
 	Airport.restructured.connect(_on_restructured)
 	Airport.tier_reached.connect(_on_tier_reached)
-	Airport.weather_changed.connect(_on_weather_changed)
-	Airport.incident_started.connect(_on_incident_started)
-	Airport.vip_announced.connect(func(flight: Flight) -> void:
-		var seconds := ceili(flight.departure_time - Airport.passenger_flow.time)
-		_hud.notify("A VIP flies with %s in %d:%02d (gold). Short queues, fast track and a lounge keep them happy." % [
-			flight.number, seconds / 60, seconds % 60]))
-	Airport.vip_result.connect(func(happy: bool, mood: float) -> void:
-		if happy:
-			_hud.notify("The VIP was delighted (%d %%)! %s and half a star for a while." % [roundi(mood), Economy.format(Airport.VIP_REWARD)])
-		else:
-			_hud.notify("The VIP was unhappy (%d %%). The press noticed: half a star less for a while." % roundi(mood)))
-	Airport.plane_arriving.connect(_on_plane_arriving)
-	_cinematic.finished.connect(func() -> void: _manager.input_enabled = current_view == View.MANAGER)
 	Airport.offer_arrived.connect(_on_offer_arrived)
 	Airport.airline_unhappy.connect(_on_airline_unhappy)
 	Airport.airline_left.connect(_on_airline_left)
@@ -122,8 +105,6 @@ func set_view(view: View) -> void:
 
 
 func _process(_delta: float) -> void:
-	if _first_landing != null:
-		_start_first_landing()
 	_hud.set_money(Airport.economy.balance, Airport.economy.profit_per_minute())
 	var economy := Airport.economy
 	_hud.set_loan(economy.debt(), economy.interest_per_minute(), Airport.credit_limit(), Airport.restructure_in())
@@ -141,42 +122,6 @@ func _on_tier_reached(tier: Progression.Tier) -> void:
 	_hud.show_milestone("%s airport!" % Airport.progression.name_of(tier), Progression.REWARDS[tier])
 	# Newly unlocked buildings lose their "(National)" note.
 	_hud.setup_build_menu(Airport.CATALOG.types)
-
-
-# A new airline's first landing gets a short cutscene (design doc §14), in the manager view.
-# The plane's visual appears a frame later, so the cutscene starts from _process.
-func _on_plane_arriving(flight: Flight) -> void:
-	var airline := flight.airline
-	if airline == null or airline.first_landing_seen or airline.type.id == Airlines.STARTER:
-		return
-	airline.first_landing_seen = true
-	if current_view == View.MANAGER and not _cinematic.is_playing():
-		_first_landing = flight
-
-
-func _start_first_landing() -> void:
-	var flight := _first_landing
-	if not _planes.has_plane(flight):
-		return
-	_first_landing = null
-	_manager.input_enabled = false
-	_cinematic.play(_planes.plane_of(flight))
-	_hud.notify("First landing: %s comes to your airport!" % flight.airline.type.display_name)
-
-
-func _on_incident_started(building: Building) -> void:
-	_hud.notify("Unattended bag at %s: it's closed until the police clear it (1:30). Walk there to speed it up." % \
-		Airport.passenger_flow.station_label(building))
-
-
-func _on_weather_changed(kind: Weather.Kind) -> void:
-	match kind:
-		Weather.Kind.STORM:
-			_hud.notify("Thunderstorm: ground crews stop work and nothing lands until it passes. Weather delays don't count against your on-time rate.")
-		Weather.Kind.FOG:
-			_hud.notify("Fog: no landings until it lifts. Planes waiting to arrive hold.")
-		Weather.Kind.SNOW:
-			_hud.notify("Snow: every departure needs de-icing first (much faster with a de-icing pad).")
 
 
 func _on_offer_arrived(offer: AirlineOffer) -> void:
