@@ -1,0 +1,25 @@
+# Runs every walkthrough test on GitHub's servers for each pull request and each push to main.
+# This costs no Claude tokens: agents only read the green or red result.
+name: Tests
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Cache Godot
+        uses: actions/cache@v4
+        with:
+          path: /tmp/godot-4.7.2-stable
+          key: godot-4.7.2-stable-linux
+      - name: Run walkthrough tests
+        run: |
+          chmod +x tools/*.sh
+          GODOT=$(tools/setup_cloud.sh) tools/run_tests.sh
