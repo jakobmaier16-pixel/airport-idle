@@ -65,3 +65,41 @@ func _gd_files(dir_path: String) -> Array[String]:
 	for sub in DirAccess.get_directories_at(dir_path):
 		found.append_array(_gd_files(dir_path.path_join(sub)))
 	return found
+
+
+# reset() replaces the brain; the host re-binds its signals to the new one, exactly once.
+func test_reset_gives_a_fresh_brain_and_signals_fire_once() -> void:
+	var old_brain := Airport.brain
+	var placed: Array[int] = [0]
+	Airport.building_placed.connect(func(_b: Building) -> void: placed[0] += 1)
+	Airport.reset(false)
+	Airport.reset(false)
+	check(Airport.brain != old_brain, "reset created a fresh brain")
+	check(old_brain.passenger_flow.world == null, "the old brain was disposed")
+	Airport.place_building(type_of(&"check_in"), Vector2i(20, 20), 0)
+	check_eq(placed[0], 1, "building_placed fires exactly once after resets")
+	var relayed: Array[int] = [0]
+	Airport.tier_reached.connect(func(_t: Progression.Tier) -> void: relayed[0] += 1)
+	Airport.brain.progression.tier_reached.emit(Progression.Tier.REGIONAL)
+	check_eq(relayed[0], 1, "signals of the brain's parts are re-sent once too")
+
+
+# Reset keeps today's observable behaviour: the test switches for random weather / incidents survive.
+func test_reset_keeps_the_automatic_switches() -> void:
+	Airport.incidents_automatic = false
+	Airport.weather.automatic = false
+	Airport.reset(false)
+	check(not Airport.incidents_automatic, "incidents stay off")
+	check(not Airport.weather.automatic, "random weather stays off")
+
+
+# Same seed, same actions, same game: each run starts on a fresh brain (reset) and must end the same.
+func test_same_seed_gives_identical_games() -> void:
+	var results: Array[Array] = []
+	for run in 2:
+		Airport.reseed(1234)  # the reset inside build() takes its new seed from these dice
+		ShowcaseAirport.build(0.0)
+		sim_seconds(120.0)
+		results.append([Airport.economy.balance, Airport.progression.passengers, Airport.passenger_flow.passengers.size(), Airport.passenger_flow.departed_count])
+	check(results[0][1] > 0 or results[0][2] > 0, "the showcase airport had passengers (%s)" % [results[0]])
+	check_eq(results[0], results[1], "two fresh brains with the same seed end the same")
