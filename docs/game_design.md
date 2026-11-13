@@ -380,6 +380,7 @@ The details live in `tech_architecture.md` (to write) and `CLAUDE.md`. The princ
 
 Decided later, not now:
 - **Starting airport:** what the player's own airport starts with (current prototype: an empty field with one runway, €50,000 and one airline deal, prototype_reference §6.1)
+  - *Starting land (provisional, 2026-11-13):* about 2.4 × 0.8 km (6 × 2 land pieces of 400 m). Room for the 2,000 m runway with its safety strip, a parallel taxiway, one row of stands, a small terminal and the landside. Revisit when the starting airport is decided.
 - **Day/night lighting**
 - **Pause and speed controls**
 - **Upgrade-in-progress details:** what a station does and shows while it is being upgraded
