@@ -893,6 +893,10 @@ func load_state(data: Dictionary) -> int:
 ## rounded towards zero. The grid is centred on the world origin, so with an even difference every
 ## world position (metres) stays the same; with an odd one everything moves by half a cell.
 func cell_shift_from(saved_size: Vector2i) -> Vector2i:
+	# This map's size is even (AirportGrid asserts it) and so is every size this game saves, so the
+	# shift is a whole number of cells and world positions never move by half a cell.
+	if saved_size.x % 2 != 0 or saved_size.y % 2 != 0:
+		push_warning("Saved map size %s is odd: the save moves by half a cell." % saved_size)
 	return (grid.size - saved_size) / 2
 
 
