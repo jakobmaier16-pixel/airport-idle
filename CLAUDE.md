@@ -54,7 +54,7 @@ When a decision is made, update the design doc.
 - **Time:** 1 real second = 15 game seconds (a game day is 96 real minutes); a new airport opens at
   06:00 on day 1 and the clock runs all 24 hours.
 - **Fictional world:** all airlines and airports are fictional. No real names or logos.
-- **Art:** simple low-poly models.
+- **Art:** realistic look within the iPhone budget (decided 2026-11-13): few shared PBR materials / trim sheets, baked light, LOD, MultiMesh for repeated furniture, ASTC textures; a look-probe on the device comes first.
 - **Safe areas:** all UI must stay inside the safe area (notch, Dynamic Island, home indicator).
   Use `scenes/ui/safe_area_container.gd` as the root for HUD elements.
 
@@ -236,9 +236,13 @@ UI controls (buttons) consume their touches first, so taps on buttons never reac
 ## Working with agents
 
 - Roles: the **lead** (Claude in the claude.ai chat) plans from `docs/roadmap.md`, writes a spec per
-  task and merges; **builder**, **reviewer** and **performance** agents are defined in `.claude/agents/`.
+  task and merges; **builder**, **artist**, **reviewer** and **performance** agents are defined in `.claude/agents/`.
   The user decides design questions and tests on the devices.
 - One task = one branch (`task/<name>`) = one pull request. Nothing goes to `main` directly.
+- **Two lanes:** the code lane (builder; label `code`) and the visual lane (artist; label `visual`).
+  **Visual PRs are merged only by Jakob; code PRs by the lead.**
+- `art/<area>/` = Blender sources (script + .blend, ignored by Godot); `assets/models/<area>/` = exported `.glb`
+  that the game uses. Blender headless: `tools/setup_blender.sh`.
 - **GitHub Actions** (`.github/workflows/tests.yml`) runs the full suite on every pull request;
   a red check is never merged.
 - **Tests outside the Mac:** `GODOT=$(tools/setup_cloud.sh) TESTS_QUIET=1 tools/run_tests.sh`.
