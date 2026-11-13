@@ -33,7 +33,7 @@
 | `docs/game_design.md` | *What* is the game? Decisions and direction only. Short. | When a decision is made |
 | `docs/prototype_reference.md` | What does the POC do *today*? Numbers, tables, rules. Not final. | Only for reference |
 | `docs/tech_architecture.md` | *How* is it built? Structure, data, saving, performance. | With each technical decision |
-| `docs/roadmap.md` (to write) | *When / in what order?* Now / Next / Later backlog. | Every week |
+| `docs/roadmap.md` | *When / in what order?* Now / Next / Later backlog. | Every week |
 | `CLAUDE.md` | Rules for Claude Code in this project | When rules change |
 
 ---
@@ -173,6 +173,8 @@ Starting airport · day/night lighting · pause and speed controls · optional 1
 | Minimum supported iPhone | Open: decide before TestFlight |
 | Frame rate | Capped at 60 fps on iPhone and iPad; optional 120 Hz smooth mode parked for the polish phase |
 | Slice milestone | Reaching the first tier unlocks new land and the CT scanner step |
+| Agent workflow | Lead, builder, reviewer, performance agents; branch + pull request per task; tests in GitHub Actions (2026-11-13) |
+| Merging | For the first days the lead may merge or reject pull requests on its own (2026-11-13) |
 
 ---
 

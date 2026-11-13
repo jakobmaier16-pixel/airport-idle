@@ -231,3 +231,15 @@ UI controls (buttons) consume their touches first, so taps on buttons never reac
   A save that can't be loaded is put aside as a `.bak` file, never overwritten.
 - Changing a building's size or zone rule can make old saves invalid: such buildings are skipped
   on load (with a warning). Bump `SaveGame.FORMAT_VERSION` only if the file format itself changes.
+
+## Working with agents
+
+- Roles: the **lead** (Claude in the claude.ai chat) plans from `docs/roadmap.md`, writes a spec per
+  task and merges; **builder**, **reviewer** and **performance** agents are defined in `.claude/agents/`.
+  The user decides design questions and tests on the devices.
+- One task = one branch (`task/<name>`) = one pull request. Nothing goes to `main` directly.
+- **GitHub Actions** (`.github/workflows/tests.yml`) runs the full suite on every pull request;
+  a red check is never merged.
+- **Tests outside the Mac:** `GODOT=$(tools/setup_cloud.sh) TESTS_QUIET=1 tools/run_tests.sh`.
+  Agents run only the tests they touch (`--only=`) and leave the full run to GitHub Actions.
+- Keep agent output short to save tokens: quiet test runs, read only the files a task needs.
