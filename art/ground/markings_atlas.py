@@ -182,6 +182,7 @@ x, y, w, h = rect
 put(rect, L.WHITE)
 rgb[y:y + 22, x:x + w] = col(L.ANTHRACITE)
 rgb[y + h - 14:y + h, x:x + w] = col(L.ANTHRACITE)
+rgb[y + 3:y + 19, x + 4:x + 20] = col(L.SIGN_BLUE)
 blit(rect, (4, 3), text_mask("P", 16, 16, bold=0.6), L.WHITE)
 blit(rect, (24, 3), text_mask("CAR PARK", 156, 16, cap_px=11, align="left", bold=0.4), L.WHITE)
 rows = [("OPEN 24 HOURS", ""), ("UP TO 60 MIN", "2.50"), ("EACH FURTHER HOUR", "2.00"),
@@ -193,14 +194,14 @@ for i, (left, right) in enumerate(rows):
         blit(rect, (126, yy0), text_mask(right, 52, 10, cap_px=6.5, align="right", bold=0.2), L.ANTHRACITE)
 blit(rect, (4, h - 13), text_mask("PAY AT THE MACHINE BEFORE EXIT", 176, 12, cap_px=6, bold=0.2), L.YELLOW)
 
-# Parking sign "P" (0.9 × 0.9 m): white P on anthracite, white frame.
+# Parking sign "P" (0.9 × 0.9 m): white P on traffic-sign blue, white frame (as the real sign).
 rect = L.RECTS["p_sign"]
 x, y, w, h = rect
 xx, yy = local_grid(rect)
 edge = np.minimum.reduce([xx, yy, w - xx, h - yy])
 frame = coverage(np.abs(edge - 5.5) - 2.0)
-put(rect, L.ANTHRACITE)
-rgb[y:y + h, x:x + w] = col(L.ANTHRACITE) * (1 - frame[..., None]) + col(L.WHITE) * frame[..., None]
+put(rect, L.SIGN_BLUE)
+rgb[y:y + h, x:x + w] = col(L.SIGN_BLUE) * (1 - frame[..., None]) + col(L.WHITE) * frame[..., None]
 blit(rect, (14, 12), text_mask("P", 64, 68, bold=1.5), L.WHITE)
 
 # Tactile paving (0.6 × 0.6 m, 2 × 2 slabs of 0.3 m): light grey, studs or ribs, darker joints.

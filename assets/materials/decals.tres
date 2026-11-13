@@ -1,0 +1,9 @@
+[gd_resource type="StandardMaterial3D" format=3]
+
+[ext_resource type="Texture2D" uid="uid://bdfsjfxxow1rq" path="res://assets/textures/decals/decals_albedo.png" id="1_albedo"]
+
+[resource]
+resource_name = "decals"
+transparency = 1
+albedo_texture = ExtResource("1_albedo")
+roughness = 0.9

@@ -11,6 +11,7 @@ WHITE = "#E6E6E2"
 YELLOW = "#E8B830"
 RED = "#C8382E"
 ANTHRACITE = "#2E3236"
+SIGN_BLUE = "#1F5AA6"    # traffic-sign blue (German "P" sign), signs only
 
 # Real-world sizes used in the preview (metres). ICAO Annex 14 values or the minimum ICAO allows,
 # rounded to what reads in the build view.
@@ -68,10 +69,10 @@ RECTS = {
     "taxi_curve_r20": (0, 512, 512, 512),   # 24 px/m: rect 21.33 m, radius 20 m, line 0.3 m
     "taxi_curve_r10": (512, 512, 512, 512), # 48 px/m: rect 10.67 m, radius 10 m, line 0.3 m
 }
-# Road-marking letters (white, tint with vertex colour), pre-elongated: cell 30 × 92 px, row 416.
+# Road-marking letters (white, tint with vertex colour), pre-elongated: cell 28 × 92 px, row 416.
 # Map one cell onto ROAD_LETTER (width × length along the reading direction).
-ROAD_LETTERS = "ABEFIKLPSTUXY&"
-ROAD_LETTER_CELL = (30, 92)
+ROAD_LETTERS = "ABEFHIKLPSTUXY&"
+ROAD_LETTER_CELL = (28, 92)
 ROAD_LETTER = (0.5, 1.6)   # m: elongated like real road lettering (read from a moving car)
 
 

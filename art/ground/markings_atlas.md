@@ -27,10 +27,10 @@
 | `centre_dash` | `0, 308, 1024, 32` | strip, dashed | 1024 px = 50 m: 30 m dash (px 0–614), 20 m gap; 0.9 m wide | runway centreline |
 | `short_dash` | `0, 344, 1024, 32` | strip, dashed | 1024 px = 32 m: 1 m dash + 1 m gap; 0.2 m wide | dashed terminal edge, road lane divider |
 | `zebra` | `0, 380, 1024, 32` | strip, bars | 32 px/m: 1024 px = 32 m; 0.5 m bar + 0.5 m gap along U; V = bar length (any, e.g. 3 m apron, 4 m road) | zebra crossing at a right angle across a road (U = walking direction) |
-| road letters `A B E F I K L P S T U X Y &` | `30·i, 416, 30, 92` (i in that order) | piece | 0.5 × 1.6 m (width × length along travel), elongated 2.6 : 1, white | road lettering (`TAXI` tinted yellow, `BUS`, `KISS & FLY`, `EXIT`); rendered from Blender's built-in font (`atlas_text.py`) |
+| road letters `A B E F H I K L P S T U X Y &` | `28·i, 416, 28, 92` (i in that order) | piece | 0.5 × 1.6 m (width × length along travel), elongated 2.6 : 1, white | road lettering (`TAXI` tinted yellow, `BUS`, `KISS & FLY`, `EXIT`); rendered from Blender's built-in font (`atlas_text.py`) |
 | `fence_mesh` | `424, 416, 128, 92` | piece | 2 × 2 m, anthracite wires 0.1 m apart, double rails every 0.2 m | welded mesh fence panel (alpha) |
 | `parking_board` | `556, 416, 184, 92` | piece | 2 × 1 m | car park tariff board (fictional prices, English) |
-| `p_sign` | `744, 416, 92, 92` | piece | 0.9 × 0.9 m, white P on anthracite | parking sign, pay station header |
+| `p_sign` | `744, 416, 92, 92` | piece | 0.9 × 0.9 m, white P on traffic-sign blue | parking sign, pay station header |
 | `tactile_dots` | `840, 416, 88, 88` | piece | 0.6 × 0.6 m, studs (warning / boarding field) | tactile paving |
 | `tactile_ribs` | `932, 416, 88, 88` | piece | 0.6 × 0.6 m, ribs along V (direction field) | tactile paving |
 | `taxi_curve_r20` | `0, 512, 512, 512` | piece | 21.33 m square (24 px/m), radius 20 m, line 0.3 m | 90° taxi-line curve |
