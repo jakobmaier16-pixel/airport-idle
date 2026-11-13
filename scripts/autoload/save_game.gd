@@ -7,7 +7,7 @@ extends Node
 
 ## Bump when the save format changes in a way older code can't read, and add a converter to
 ## `migrations` for the old version (tech_architecture.md §13). Keep every old converter.
-const FORMAT_VERSION: int = 1
+const FORMAT_VERSION: int = 2
 ## Wait this long after a change before saving, so a burst of changes is saved once.
 const SAVE_DELAY: float = 1.0
 ## Money and the running airport are also saved this often while playing (seconds).
@@ -33,8 +33,7 @@ var away_seconds: float = 0.0
 
 ## Converters for old saves: migrations[n] takes a version-n save (a Dictionary) and returns it as
 ## version n + 1. Loading runs them one after another, so a save is never thrown away for being old.
-## Empty while there is only version 1.
-var migrations: Dictionary[int, Callable] = {}
+var migrations: Dictionary[int, Callable] = default_migrations()
 ## The version this build reads and writes. A variable only so tests can pretend to be a newer build.
 var format_version: int = FORMAT_VERSION
 ## Why the save couldn't be loaded, for the player ("" if it loaded or there was none).
@@ -124,6 +123,9 @@ func load_game() -> void:
 	_loading = false
 	if skipped > 0:
 		push_warning("%d saved buildings no longer fit and were skipped." % skipped)
+		# Nothing is lost silently: tell the player what was paid back.
+		load_problem = "%d building(s) could not be restored (%s). %s was refunded." % [
+			skipped, ", ".join(Airport.load_refunded), Economy.format(Airport.load_refund)]
 	if data.has("saved_at"):
 		apply_offline_time(Time.get_unix_time_from_system() - float(data["saved_at"]))
 
@@ -139,6 +141,26 @@ func migrate(data: Dictionary) -> Dictionary:
 		data = migrations[version].call(data)
 		version += 1
 		data["version"] = version
+	return data
+
+
+## The converters this build ships (tests put them back after swapping in their own).
+func default_migrations() -> Dictionary[int, Callable]:
+	return {1: _v1_to_v2}
+
+
+## Version 1 -> 2: buildings get permanent IDs (their old list position + 1) and staff point to
+## the ID instead of the list position (tech_architecture.md §13). Building types were already names.
+func _v1_to_v2(data: Dictionary) -> Dictionary:
+	var buildings: Array = data.get("buildings", [])
+	for i in buildings.size():
+		(buildings[i] as Dictionary)["id"] = i + 1
+	data["next_building_id"] = buildings.size() + 1
+	if data.has("staff"):
+		for entry: Dictionary in data["staff"]:
+			var index := int(entry.get("building", -1))
+			entry["building_id"] = index + 1 if index >= 0 and index < buildings.size() else 0
+			entry.erase("building")
 	return data
 
 

@@ -2,6 +2,9 @@ class_name Building
 extends RefCounted
 ## One placed building in the simulation: pure data, no visuals.
 
+## Permanent ID, stable across save and load (tech_architecture.md §13); staff in saves point to it.
+## 0 = not assigned yet (the brain assigns it when the building is placed).
+var id: int = 0
 var type: BuildingType
 ## The footprint's corner cell with the smallest x and y.
 var origin_cell: Vector2i

@@ -85,4 +85,4 @@ func _reset_world() -> void:
 	SaveGame.enabled = false
 	# Tests may pretend to be a newer build (save migration tests).
 	SaveGame.format_version = SaveGame.FORMAT_VERSION
-	SaveGame.migrations.clear()
+	SaveGame.migrations = SaveGame.default_migrations()

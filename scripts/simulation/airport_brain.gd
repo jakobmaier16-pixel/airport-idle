@@ -660,6 +660,8 @@ func place_building(type: BuildingType, origin_cell: Vector2i, rotation_steps: i
 	if pay:
 		economy.pay_construction(type.build_cost)
 	var building := Building.new(type, origin_cell, rotation_steps)
+	building.id = _next_building_id
+	_next_building_id += 1
 	for cell in building.get_cells():
 		grid.set_content(cell, building)
 	var requirements := Building.zone_requirements(type, origin_cell, rotation_steps)
@@ -804,6 +806,7 @@ func connection_problem(type: BuildingType, origin_cell: Vector2i, rotation_step
 func reset(with_runway: bool = true, new_seed: int = -1) -> void:
 	grid = AirportGrid.new(MAP_SIZE_CELLS, CELL_SIZE)
 	buildings.clear()
+	_next_building_id = 1
 	_zone_locks.clear()
 	staff.clear()
 	passenger_flow = PassengerFlow.new()
@@ -826,12 +829,21 @@ func reset(with_runway: bool = true, new_seed: int = -1) -> void:
 	_on_layout_changed()
 
 
+# The ID the next placed building gets. Never reused, so an ID always means one building.
+var _next_building_id: int = 1
+## After load_state(): money refunded for buildings that could not be restored, and their names.
+var load_refund: float = 0.0
+var load_refunded: PackedStringArray = PackedStringArray()
+
+
 ## The whole airport as plain data, for the save game.
 func save_state() -> Dictionary:
 	var saved_buildings: Array[Dictionary] = []
 	for building in buildings:
 		saved_buildings.append({
+			"id": building.id,
 			"type": String(building.type.id),
+			"cost": building.type.build_cost,
 			"cell": [building.origin_cell.x, building.origin_cell.y],
 			"rotation": building.rotation_steps,
 			"level": building.level,
@@ -843,13 +855,14 @@ func save_state() -> Dictionary:
 	for employee in staff:
 		saved_staff.append({
 			"name": employee.name,
-			"building": buildings.find(employee.workplace),
+			"building_id": employee.workplace.id,
 			"served": employee.served,
 			"training_left": employee.training_left,
 			"supervisor": employee.is_supervisor,
 		})
 	return {
 		"staff": saved_staff,
+		"next_building_id": _next_building_id,
 		"map_size": [grid.size.x, grid.size.y],
 		"zones": Marshalls.raw_to_base64(grid.get_zone_data()),
 		"walkways": Marshalls.raw_to_base64(grid.get_walkway_data()),
@@ -896,22 +909,41 @@ func load_state(data: Dictionary) -> int:
 	land_changed.emit()
 	var skipped := 0
 	_loading = true
-	# Saved building index -> loaded building (null if it was skipped).
-	var by_saved_index: Array[Building] = []
+	# Saved building ID -> loaded building (skipped buildings are missing).
+	var by_saved_id: Dictionary[int, Building] = {}
+	load_refund = 0.0
+	load_refunded = PackedStringArray()
+	var highest_id := 0
 	for entry: Dictionary in data.get("buildings", []):
 		var type := CATALOG.find(StringName(entry.get("type", "")))
 		var cell: Array = entry.get("cell", [0, 0])
 		var origin := Vector2i(int(cell[0]), int(cell[1]))
 		var building := place_building(type, origin, int(entry.get("rotation", 0)), false) if type != null else null
-		by_saved_index.append(building)
 		if building == null:
 			skipped += 1
+			# Nothing is lost silently: the price is paid back (half of it if the type is still
+			# known, like demolishing; the saved price if the type is gone).
+			var refund := type.build_cost * DEMOLISH_REFUND_SHARE if type != null else float(entry.get("cost", 0.0)) * DEMOLISH_REFUND_SHARE
+			load_refund += refund
+			load_refunded.append(str(entry.get("type", "?")))
 			continue
+		var saved_id := int(entry.get("id", 0))
+		if saved_id > 0 and not by_saved_id.has(saved_id):
+			building.id = saved_id
+			by_saved_id[saved_id] = building
+			highest_id = maxi(highest_id, saved_id)
 		building.level = clampi(int(entry.get("level", 1)), 1, type.upgrades.size() + 1)
 		building.upgrade_seconds_left = float(entry.get("upgrade_left", 0.0)) if building.next_upgrade() != null else 0.0
 		building.fast_track = bool(entry.get("fast_track", false))
 		building.closed_seconds = float(entry.get("closed", 0.0))
 	_loading = false
+	# Buildings without a saved ID (hand-made data) get fresh ones above every saved ID.
+	_next_building_id = maxi(int(data.get("next_building_id", 1)), highest_id + 1)
+	for building in buildings:
+		if not by_saved_id.has(building.id) or by_saved_id[building.id] != building:
+			building.id = _next_building_id
+			_next_building_id += 1
+			by_saved_id[building.id] = building
 	# Saves from before runways existed (design doc §7.5a) get the starting runway.
 	if not buildings.any(func(b: Building) -> bool: return b.type.role == BuildingType.Role.RUNWAY):
 		_loading = true
@@ -919,8 +951,7 @@ func load_state(data: Dictionary) -> int:
 		_loading = false
 	if data.has("staff"):
 		for entry: Dictionary in data["staff"]:
-			var index := int(entry.get("building", -1))
-			var workplace: Building = by_saved_index[index] if index >= 0 and index < by_saved_index.size() else null
+			var workplace: Building = by_saved_id.get(int(entry.get("building_id", 0)))
 			if workplace == null or not needs_staff(workplace):
 				continue
 			var employee := Employee.new()
@@ -943,6 +974,8 @@ func load_state(data: Dictionary) -> int:
 	economy.balance = float(data.get("money", Economy.STARTING_MONEY))
 	economy.over_limit_seconds = float(data.get("over_limit", 0.0))
 	economy.average_profit_per_minute = float(data.get("average_profit", 0.0))
+	if load_refund > 0.0:
+		economy.refund(load_refund)
 	passenger_flow.satisfaction.load_state(data.get("satisfaction", {}))
 	reputation.load_state(data.get("reputation", {}))
 	airlines.load_state(data.get("airlines", {}))

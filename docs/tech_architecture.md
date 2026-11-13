@@ -147,7 +147,7 @@ The milestone, upgrade and rebuild moment is the core of the game, so the slice 
 
 - **What is saved:** everything needed to continue exactly where the player left off: buildings, staff, money, the clock, the random seed, *and* the flights and passengers that are on their way. (The prototype loses flights and passengers at every load.)
 - **When:** after every change, when the app goes to the background, and a safety save every 30 seconds; each save stores a timestamp. The game writes to a temporary file first and swaps it in, so a crash can't break the save (already working).
-- **Names, not numbers.** A building type is stored as `security`, not as "type 3". Every building gets a permanent ID, and staff point to that ID, not to a position in a list. Then reordering lists or adding types can't mix up old saves.
+- **Names, not numbers.** A building type is stored as `security`, not as "type 3". Every building gets a permanent ID, and staff point to that ID, not to a position in a list. Then reordering lists or adding types can't mix up old saves. (Done in save version 2; version 1 saves are converted on load.)
 - **Save migrations.** Every save has a version number. When the format changes, a small converter upgrades old saves one step at a time (version 1 → 2 → 3 …). **A save is never thrown away.** (The prototype starts fresh when the version doesn't match.)
 - **Nothing is lost silently.** If something in an old save can't be restored (e.g. a building that no longer exists), it is refunded, and the player is told.
 - **Offline income** is worked out from the timestamp: after 36 hours or more away, 4 hours of the average profit of the last ~10 minutes.
