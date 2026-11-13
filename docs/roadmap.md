@@ -24,7 +24,7 @@
 Merged only by Jakob. Order: docs/art_direction.md first.
 
 ### Now
-1. Art direction (`docs/art_direction.md`, Jakob approves)
+1. Art direction (`docs/art_direction.md`, Jakob approves) · PR open
 
 ### Next
 2. Ground
