@@ -27,7 +27,10 @@ var _allocated_chunks: int = 0
 
 
 ## Edge length of a storage chunk in cells.
-const CHUNK_SIZE: int = 64
+const CHUNK_SHIFT: int = 6
+const CHUNK_SIZE: int = 1 << CHUNK_SHIFT
+## Masks a cell coordinate down to its position inside a chunk.
+const CHUNK_MASK: int = CHUNK_SIZE - 1
 ## Bit layout of the flag byte of a cell.
 const ZONE_MASK: int = 0x07
 const WALKWAY_BIT: int = 0x08
@@ -173,10 +176,10 @@ func set_walkway_data(data: PackedByteArray) -> void:
 func get_flags(cell: Vector2i) -> int:
 	if cell.x < 0 or cell.y < 0 or cell.x >= size.x or cell.y >= size.y:
 		return 0
-	var chunk: GridChunk = _chunks[(cell.y >> 6) * _chunks_wide + (cell.x >> 6)]
+	var chunk: GridChunk = _chunks[(cell.y >> CHUNK_SHIFT) * _chunks_wide + (cell.x >> CHUNK_SHIFT)]
 	if chunk == null:
 		return 0
-	return chunk.cells[(cell.y & 63) * CHUNK_SIZE + (cell.x & 63)]
+	return chunk.cells[(cell.y & CHUNK_MASK) * CHUNK_SIZE + (cell.x & CHUNK_MASK)]
 
 
 ## Number of chunks that hold at least one non-zero cell (the only ones that use memory).
@@ -200,6 +203,18 @@ func get_chunk_flags(chunk_coord: Vector2i) -> PackedByteArray:
 	return chunk.cells if chunk != null else PackedByteArray()
 
 
+## How many cells have any of the bits in `mask` set (e.g. WALKWAY_BIT), counted chunk by chunk.
+func count_flag(mask: int) -> int:
+	var total := 0
+	for chunk: GridChunk in _chunks:
+		if chunk == null:
+			continue
+		for value in chunk.cells:
+			if value & mask != 0:
+				total += 1
+	return total
+
+
 ## Every cell whose flag byte is not zero, chunk by chunk (cheap: unallocated chunks are skipped).
 func get_nonempty_cells() -> Array[Vector2i]:
 	var result: Array[Vector2i] = []
@@ -210,7 +225,7 @@ func get_nonempty_cells() -> Array[Vector2i]:
 		var base := Vector2i(index % _chunks_wide, index / _chunks_wide) * CHUNK_SIZE
 		for i in chunk.cells.size():
 			if chunk.cells[i] != 0:
-				result.append(base + Vector2i(i & 63, i >> 6))
+				result.append(base + Vector2i(i & CHUNK_MASK, i >> CHUNK_SHIFT))
 	return result
 
 
@@ -223,7 +238,7 @@ func _chunk_at(chunk_coord: Vector2i) -> GridChunk:
 # Sets the bits in `mask` of `cell` to `bits`; allocates the chunk on first non-zero write and frees
 # it again when its last non-zero cell is cleared.
 func _write(cell: Vector2i, mask: int, bits: int) -> void:
-	var chunk_index := (cell.y >> 6) * _chunks_wide + (cell.x >> 6)
+	var chunk_index := (cell.y >> CHUNK_SHIFT) * _chunks_wide + (cell.x >> CHUNK_SHIFT)
 	var chunk: GridChunk = _chunks[chunk_index]
 	if chunk == null:
 		if bits == 0:
@@ -231,7 +246,7 @@ func _write(cell: Vector2i, mask: int, bits: int) -> void:
 		chunk = GridChunk.new()
 		_chunks[chunk_index] = chunk
 		_allocated_chunks += 1
-	var i := (cell.y & 63) * CHUNK_SIZE + (cell.x & 63)
+	var i := (cell.y & CHUNK_MASK) * CHUNK_SIZE + (cell.x & CHUNK_MASK)
 	var old: int = chunk.cells[i]
 	var value := (old & ~mask) | bits
 	if value == old:

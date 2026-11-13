@@ -912,12 +912,8 @@ func _update_running_cost() -> void:
 	for employee in staff:
 		_salaries_per_minute += employee.salary_per_minute
 	cost += _salaries_per_minute
-	var walkway_cells := 0
-	for value in grid.get_walkway_data():
-		walkway_cells += value
-	var taxiway_cells := 0
-	for value in grid.get_taxiway_data():
-		taxiway_cells += value
+	var walkway_cells := grid.count_flag(AirportGrid.WALKWAY_BIT)
+	var taxiway_cells := grid.count_flag(AirportGrid.TAXIWAY_BIT)
 	_running_cost_per_minute = cost + walkway_cells * Economy.WALKWAY_RUNNING_COST_PER_CELL \
 		+ taxiway_cells * Economy.TAXIWAY_RUNNING_COST_PER_CELL
 

@@ -5,9 +5,11 @@ extends RefCounted
 ## find their way with Godot's grid pathfinding. Rebuilt when the layout changes.
 
 var _grid: AirportGrid
-var _paths: AStarGrid2D = AStarGrid2D.new()
-# Connected-area id per cell (row by row); -1 = not paved for planes.
-var _areas: PackedInt32Array = PackedInt32Array()
+# Sparse, like WalkwayNetwork: one AStar2D (point id = y * map width + x) with only the paved cells,
+# linked the way AStarGrid2D (no diagonals) visits neighbours, so paths and ties are unchanged.
+var _paths: AStar2D = AStar2D.new()
+# Connected-area id by cell id; a cell without an entry is not paved for planes.
+var _areas: Dictionary[int, int] = {}
 # Areas that contain a runway cell.
 var _runway_areas: Dictionary[int, bool] = {}
 var _runways: Array[Building] = []
@@ -16,20 +18,37 @@ var _runways: Array[Building] = []
 func rebuild(grid: AirportGrid, buildings: Array[Building]) -> void:
 	_grid = grid
 	_runways.clear()
+	var width := grid.size.x
+	var seen: Dictionary[int, bool] = {}
+	for cell in grid.get_nonempty_cells():
+		if grid.is_taxiway(cell):
+			seen[cell.y * width + cell.x] = true
 	for building in buildings:
 		if building.type.role == BuildingType.Role.RUNWAY:
 			_runways.append(building)
-	_paths = AStarGrid2D.new()
-	_paths.region = Rect2i(Vector2i.ZERO, grid.size)
-	_paths.cell_size = Vector2.ONE
-	_paths.diagonal_mode = AStarGrid2D.DIAGONAL_MODE_NEVER
-	_paths.update()
-	_paths.fill_solid_region(_paths.region, true)
-	for y in grid.size.y:
-		for x in grid.size.x:
-			if is_paved(Vector2i(x, y)):
-				_paths.set_point_solid(Vector2i(x, y), false)
-	_label_areas()
+		if building.type.role in [BuildingType.Role.RUNWAY, BuildingType.Role.AIRCRAFT_STAND]:
+			for cell in building.get_cells():
+				if is_paved(cell):
+					seen[cell.y * width + cell.x] = true
+	var ids := PackedInt32Array(seen.keys())
+	# Row by row, like the dense scan this replaced: area ids come out the same.
+	ids.sort()
+	_paths = AStar2D.new()
+	if not ids.is_empty():
+		_paths.reserve_space(ids.size())
+	for id in ids:
+		_paths.add_point(id, Vector2(id % width, id / width))
+	for id in ids:
+		# Top, right, bottom, left: the order AStarGrid2D visits them.
+		if seen.has(id - width):
+			_paths.connect_points(id, id - width, false)
+		if id % width < width - 1 and seen.has(id + 1):
+			_paths.connect_points(id, id + 1, false)
+		if seen.has(id + width):
+			_paths.connect_points(id, id + width, false)
+		if id % width > 0 and seen.has(id - 1):
+			_paths.connect_points(id, id - 1, false)
+	_label_areas(ids)
 
 
 ## True for cells planes can use: taxiway, stands and runways.
@@ -45,7 +64,7 @@ func is_paved(cell: Vector2i) -> bool:
 ## True if a plane can get from a runway to `cells` (e.g. the cells around a stand).
 func reaches_runway(cells: Array[Vector2i]) -> bool:
 	for cell in cells:
-		if _grid.is_inside(cell) and _runway_areas.has(_areas[cell.y * _grid.size.x + cell.x]):
+		if _grid.is_inside(cell) and _runway_areas.has(_areas.get(cell.y * _grid.size.x + cell.x, -1)):
 			return true
 	return false
 
@@ -62,7 +81,7 @@ func path_to_stand(stand: Building) -> Array[Vector2i]:
 	var best: Array[Vector2i] = []
 	for runway in _runways:
 		var runway_cell := _nearest_cell(runway, target)
-		var path := _paths.get_id_path(runway_cell, target)
+		var path := _path(runway_cell, target)
 		if not path.is_empty() and (best.is_empty() or path.size() < best.size()):
 			best = path
 	return best
@@ -81,27 +100,55 @@ func _nearest_cell(building: Building, to: Vector2i) -> Vector2i:
 		clampi(to.y, building.origin_cell.y, building.origin_cell.y + size.y - 1))
 
 
-func _label_areas() -> void:
-	var size := _grid.size
-	_areas.resize(size.x * size.y)
-	_areas.fill(-1)
+# The cells from `from` to `to`, or [] if one of them is not paved or there is no way.
+func _path(from: Vector2i, to: Vector2i) -> Array[Vector2i]:
+	var result: Array[Vector2i] = []
+	var width := _grid.size.x
+	var from_id := from.y * width + from.x
+	var to_id := to.y * width + to.x
+	if not _areas.has(from_id) or _areas.get(from_id) != _areas.get(to_id, -2):
+		return result
+	for id in _paths.get_id_path(from_id, to_id):
+		result.append(Vector2i(id % width, id / width))
+	return result
+
+
+## Number of paved cells (for tests and diagnostics).
+func paved_count() -> int:
+	return _areas.size()
+
+
+## Connected-area id of a cell, or -1 if planes can't use it.
+func area_of(cell: Vector2i) -> int:
+	if not _grid.is_inside(cell):
+		return -1
+	return _areas.get(cell.y * _grid.size.x + cell.x, -1)
+
+
+# Flood fill over the paved cells; `ids` is sorted, so area ids are numbered in row order.
+func _label_areas(ids: PackedInt32Array) -> void:
+	var width := _grid.size.x
+	_areas = {}
 	_runway_areas.clear()
 	var next_id := 0
-	var neighbours: Array[Vector2i] = [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]
-	for y in size.y:
-		for x in size.x:
-			var start := Vector2i(x, y)
-			if _areas[y * size.x + x] >= 0 or not is_paved(start):
-				continue
-			_areas[y * size.x + x] = next_id
-			var open: Array[Vector2i] = [start]
-			while not open.is_empty():
-				var cell: Vector2i = open.pop_back()
-				if runway_at(cell) != null:
-					_runway_areas[next_id] = true
-				for step in neighbours:
-					var next := cell + step
-					if _grid.is_inside(next) and _areas[next.y * size.x + next.x] < 0 and is_paved(next):
-						_areas[next.y * size.x + next.x] = next_id
-						open.append(next)
-			next_id += 1
+	var steps := PackedInt32Array([1, -1, width, -width])
+	for start in ids:
+		if _areas.has(start):
+			continue
+		_areas[start] = next_id
+		var open := PackedInt32Array([start])
+		while not open.is_empty():
+			var id := open[open.size() - 1]
+			open.resize(open.size() - 1)
+			var cell := Vector2i(id % width, id / width)
+			if runway_at(cell) != null:
+				_runway_areas[next_id] = true
+			for k in 4:
+				if (k == 0 and cell.x == width - 1) or (k == 1 and cell.x == 0):
+					continue
+				var next := id + steps[k]
+				if _areas.has(next) or not _paths.has_point(next):
+					continue
+				_areas[next] = next_id
+				open.append(next)
+		next_id += 1
