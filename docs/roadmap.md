@@ -4,10 +4,9 @@
 > Nothing is built unless it is in **Now** (master_plan.md §6).
 
 ## Now
-- Step 3 · Saving: names instead of numbers, flights and passengers saved too
+- Step 4 · Automatic zones and areas (4a computed next to painted, 4b remove painting, 4c areas)
 
 ## Next
-- Step 4 · Automatic zones and areas
 - Step 5 · Passenger journey as recipes
 - Step 6 · Daily timetable and growing demand
 
@@ -19,6 +18,7 @@
 - Then: Phase 2 gate, 5–10 outside players
 
 ## Done
+- 2026-11-13 · Step 3 · Saving: names instead of numbers, migrations, flights and passengers saved too
 - 2026-11-13 · Step 2 · The brain as one object (fresh brain on every reset)
 - 2026-11-13 · Agent workflow: roles, GitHub Actions tests, cloud test setup, this roadmap
 - 2026-11-07 · Step 1 · Safety net: seeded randomness, device benchmark, save migrations

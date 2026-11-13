@@ -145,7 +145,7 @@ Other rules:
 
 ## 8. Parking lot (decided later)
 
-Starting airport · day/night lighting · pause and speed controls · optional 120 Hz smooth mode (polish phase) · upgrade-in-progress details · incident handling in first person · lounge model · cargo model · reputation formula · exact tier thresholds · second terminal details · Android · online features.
+Starting airport · day/night lighting · pause and speed controls · optional 120 Hz smooth mode (polish phase) · upgrade-in-progress details · incident handling in first person · lounge model · cargo model · reputation formula · exact tier thresholds · second terminal details · Android · online features. · save size with 1,000 passengers (~1 MB per save): round/cap stored paths if device tests show stutter
 
 ---
 
