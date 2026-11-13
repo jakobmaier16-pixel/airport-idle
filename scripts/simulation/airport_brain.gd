@@ -179,7 +179,6 @@ func step(delta: float) -> void:
 
 # --- Airport tiers (design doc §14.1) ---
 
-## True if the airport owns `cell` (land can be built on and painted).
 ## The name of the area at a walkway cell ("Check-in Hall", "Gates", ...), "" outside any area.
 func area_name(cell: Vector2i) -> String:
 	return area_map.area_name(cell)
@@ -190,6 +189,7 @@ func areas() -> Array:
 	return area_map.areas()
 
 
+## True if the airport owns `cell` (land can be built on and painted).
 func owns_cell(cell: Vector2i) -> bool:
 	return progression.owned_land(grid.size).has_point(cell)
 
