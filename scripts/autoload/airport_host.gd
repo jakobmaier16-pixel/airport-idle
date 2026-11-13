@@ -192,6 +192,15 @@ var saved_manager: Dictionary:
 	set(value):
 		brain.saved_manager = value
 
+## What the last load_state() refunded for buildings it could not restore, and their names.
+var load_refund: float:
+	get:
+		return brain.load_refund
+
+var load_refunded: PackedStringArray:
+	get:
+		return brain.load_refunded
+
 var rng: RandomNumberGenerator:
 	get:
 		return brain.rng

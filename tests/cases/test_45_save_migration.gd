@@ -121,7 +121,7 @@ func test_converted_save_loads() -> void:
 
 
 func test_missing_converter_keeps_the_save() -> void:
-	SaveGame.format_version = 2  # newer build, but nobody wrote the converter
+	SaveGame.format_version = 3  # newer build, but nobody wrote the converter
 	_install_example(SHOWCASE_V1)
 	var original := FileAccess.get_file_as_string(TEST_SAVE)
 	SaveGame.load_game()
@@ -176,3 +176,67 @@ func test_saved_number_lists_unchanged() -> void:
 		"BAGGAGE_CLAIM", "TRANSFER_SECURITY", "CAR_PARK", "LOUNGE", "RUNWAY", "CARGO_TERMINAL"], "BuildingType.Role" + fix)
 	check_eq(Progression.Tier.keys(), ["REGIONAL", "NATIONAL", "INTERNATIONAL", "HUB"], "Progression.Tier" + fix)
 	check_eq(Weather.Kind.keys(), ["CLEAR", "RAIN", "STORM", "FOG", "SNOW"], "Weather.Kind" + fix)
+
+
+const SHOWCASE_V2: String = "res://tests/saves/v2_showcase.json"
+
+
+func test_showcase_v2_loads_completely() -> void:
+	_install_example(SHOWCASE_V2)
+	SaveGame.load_game()
+	check_eq(SaveGame.load_problem, "", "no problem loading")
+	check_eq(Airport.buildings.size(), 20, "every building is back")
+	check_eq(Airport.staff.size(), 15, "every employee is back")
+	check(Airport.staff.all(func(e: Employee) -> bool: return Airport.buildings.has(e.workplace) and Airport.needs_staff(e.workplace)),
+		"every employee works at a station")
+	_clean_up()
+
+
+func test_v1_converter_gives_ids_and_staff_ids() -> void:
+	var converted := SaveGame.migrate(_example(SHOWCASE_V1))
+	check_eq(converted["version"], 2, "now version 2")
+	var ids := {}
+	for entry: Dictionary in converted["buildings"]:
+		ids[int(entry["id"])] = true
+	check_eq(ids.size(), (converted["buildings"] as Array).size(), "every building has its own ID")
+	for entry: Dictionary in converted["staff"]:
+		check(not entry.has("building") and ids.has(int(entry["building_id"])), "staff point to a building ID")
+	# The converted v1 save loads with its staff at the right stations.
+	Airport.load_state(converted)
+	check_eq(Airport.staff.size(), 15, "every employee is back")
+	var seen := {}
+	for building in Airport.buildings:
+		check(building.id > 0 and not seen.has(building.id), "IDs are unique")
+		seen[building.id] = true
+
+
+func test_ids_survive_save_and_load_after_reset() -> void:
+	build_reference_airport()
+	var check_in: Building = Airport.buildings.filter(func(b: Building) -> bool: return b.type.id == &"check_in")[0]
+	var staff_count := Airport.staff_at(check_in).size()
+	check(staff_count > 0, "the check-in has staff")
+	var state := JSON.parse_string(JSON.stringify(Airport.save_state())) as Dictionary
+	var saved_id := check_in.id
+	Airport.reset()
+	Airport.load_state(state)
+	var again: Building = Airport.buildings.filter(func(b: Building) -> bool: return b.id == saved_id)[0]
+	check_eq(again.type.id, &"check_in", "same ID, same building")
+	check_eq(Airport.staff_at(again).size(), staff_count, "its staff are back")
+	var fresh := Airport.place_building(Airport.CATALOG.find(&"shop"), Vector2i(2, 2), 0, false)
+	check(fresh == null or fresh.id > saved_id or not Airport.buildings.any(func(b: Building) -> bool: return b != fresh and b.id == fresh.id), "a new building never reuses an ID")
+
+
+func test_vanished_building_type_is_refunded() -> void:
+	var state := {
+		"map_size": [64, 64], "money": 1000.0,
+		"buildings": [
+			{"id": 1, "type": "gone_for_good", "cell": [20, 20], "rotation": 0, "cost": 400.0},
+		],
+	}
+	check_eq(Airport.load_state(state), 1, "the building is skipped")
+	check_eq(Airport.load_refund, 200.0, "half its saved price is refunded")
+	check_eq(Airport.economy.balance, 1200.0, "the money is back")
+	_install(JSON.stringify(state.merged({"version": 2})))
+	SaveGame.load_game()
+	check(SaveGame.load_problem.contains("gone_for_good"), "the player is told which building")
+	_clean_up()
