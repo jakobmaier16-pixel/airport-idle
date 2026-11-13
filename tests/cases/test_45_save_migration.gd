@@ -121,7 +121,7 @@ func test_converted_save_loads() -> void:
 
 
 func test_missing_converter_keeps_the_save() -> void:
-	SaveGame.format_version = 3  # newer build, but nobody wrote the converter
+	SaveGame.format_version = 4  # newer build, but nobody wrote the converter
 	_install_example(SHOWCASE_V1)
 	var original := FileAccess.get_file_as_string(TEST_SAVE)
 	SaveGame.load_game()
@@ -193,7 +193,9 @@ func test_showcase_v2_loads_completely() -> void:
 
 
 func test_v1_converter_gives_ids_and_staff_ids() -> void:
+	SaveGame.format_version = 2  # stop after the v1 converter
 	var converted := SaveGame.migrate(_example(SHOWCASE_V1))
+	SaveGame.format_version = SaveGame.FORMAT_VERSION
 	check_eq(converted["version"], 2, "now version 2")
 	var ids := {}
 	for entry: Dictionary in converted["buildings"]:

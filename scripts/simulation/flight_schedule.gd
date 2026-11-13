@@ -124,6 +124,125 @@ func upcoming() -> Array[Flight]:
 	return sorted
 
 
+## The passenger type with this id (one of the three the schedule uses), or FAMILY.
+static func type_by_id(id: StringName) -> PassengerType:
+	for type in [FAMILY, LOW_COST, BUSINESS]:
+		if type.id == id:
+			return type
+	return FAMILY
+
+
+## The schedule as plain data for the save game (tech_architecture.md §13). `extra` are flights
+## that already left the schedule but that saved passengers still point to. Buildings are stored
+## by their permanent ID.
+func save_state(extra: Array[Flight]) -> Dictionary:
+	var saved: Array[Dictionary] = []
+	for flight in flights:
+		saved.append(_save_flight(flight, true))
+	for flight in extra:
+		if not flights.has(flight):
+			saved.append(_save_flight(flight, false))
+	var planned: Array = []
+	for gate in _last_planned:
+		planned.append([gate.id, _last_planned[gate]])
+	var runways: Array = []
+	for runway in _runway_free_at:
+		runways.append([runway.id, _runway_free_at[runway]])
+	return {"flights": saved, "next_number": _next_number, "last_planned": planned, "runway_free_at": runways}
+
+
+## Restores from save_state(). Returns every restored flight in saved order (flights whose gate
+## is gone are left out, so `index_map` tells where each saved index went: saved index -> Flight).
+func load_state(data: Dictionary, by_id: Dictionary[int, Building]) -> Dictionary[int, Flight]:
+	flights.clear()
+	_last_planned.clear()
+	_runway_free_at.clear()
+	_next_number = int(data.get("next_number", _next_number))
+	var index_map: Dictionary[int, Flight] = {}
+	var saved_flights: Array = data.get("flights", [])
+	for i in saved_flights.size():
+		var entry: Dictionary = saved_flights[i]
+		var gate: Building = by_id.get(int(entry.get("gate", 0)))
+		if gate == null:
+			continue
+		var flight := _load_flight(entry, gate, by_id)
+		index_map[i] = flight
+		if bool(entry.get("scheduled", true)):
+			flights.append(flight)
+	for pair: Array in data.get("last_planned", []):
+		if by_id.has(int(pair[0])):
+			_last_planned[by_id[int(pair[0])]] = float(pair[1])
+	for pair: Array in data.get("runway_free_at", []):
+		if by_id.has(int(pair[0])):
+			_runway_free_at[by_id[int(pair[0])]] = float(pair[1])
+	return index_map
+
+
+func _save_flight(flight: Flight, scheduled: bool) -> Dictionary:
+	var arrival_types: Array = []
+	for type in flight.arrival_types:
+		arrival_types.append(String(type.id))
+	var inbound_types: Array = []
+	for type in flight.inbound_types:
+		inbound_types.append(String(type.id))
+	return {
+		"scheduled": scheduled, "number": flight.number,
+		"airline": String(flight.airline.type.id) if flight.airline != null else "",
+		"wide_body": flight.wide_body, "vip_pending": flight.vip_pending, "cargo": flight.cargo,
+		"tonnes": flight.tonnes, "tonnes_handled": flight.tonnes_handled, "fee": flight.fee_per_passenger,
+		"route": flight.route, "gate": flight.gate.id, "stand": flight.stand.id if flight.stand != null else 0,
+		"departure_time": flight.departure_time, "delay": flight.delay, "arrival_delay": flight.arrival_delay,
+		"weather_delay": flight.weather_delay, "deiced": flight.deiced,
+		"landing_booked": flight.landing_booked, "takeoff_booked": flight.takeoff_booked,
+		"seats": flight.seats, "booked": flight.booked,
+		"arrival_times": Array(flight.arrival_times), "arrival_types": arrival_types,
+		"spawned": flight.spawned, "inbound_types": inbound_types, "deplaned": flight.deplaned,
+		"deplane_credit": flight.deplane_credit, "boarded": flight.boarded, "missed": flight.missed,
+		"phase": int(flight.phase), "boarding_credit": flight.boarding_credit,
+	}
+
+
+func _load_flight(entry: Dictionary, gate: Building, by_id: Dictionary[int, Building]) -> Flight:
+	var flight := Flight.new()
+	flight.number = str(entry.get("number", ""))
+	var airline_id := StringName(entry.get("airline", ""))
+	for airline in world.airlines.signed:
+		if airline.type.id == airline_id:
+			flight.airline = airline
+	flight.wide_body = bool(entry.get("wide_body", false))
+	flight.vip_pending = bool(entry.get("vip_pending", false))
+	flight.cargo = bool(entry.get("cargo", false))
+	flight.tonnes = float(entry.get("tonnes", 0.0))
+	flight.tonnes_handled = float(entry.get("tonnes_handled", 0.0))
+	flight.fee_per_passenger = float(entry.get("fee", Economy.PASSENGER_FEE))
+	flight.route = str(entry.get("route", ""))
+	flight.gate = gate
+	flight.stand = by_id.get(int(entry.get("stand", 0)), world.stand_behind(gate))
+	flight.departure_time = float(entry.get("departure_time", 0.0))
+	flight.delay = float(entry.get("delay", 0.0))
+	flight.arrival_delay = float(entry.get("arrival_delay", 0.0))
+	flight.weather_delay = float(entry.get("weather_delay", 0.0))
+	flight.deiced = float(entry.get("deiced", 0.0))
+	flight.landing_booked = bool(entry.get("landing_booked", false))
+	flight.takeoff_booked = bool(entry.get("takeoff_booked", false))
+	flight.seats = int(entry.get("seats", 0))
+	flight.booked = int(entry.get("booked", 0))
+	for time: float in entry.get("arrival_times", []):
+		flight.arrival_times.append(time)
+	for id: String in entry.get("arrival_types", []):
+		flight.arrival_types.append(type_by_id(StringName(id)))
+	flight.spawned = int(entry.get("spawned", 0))
+	for id: String in entry.get("inbound_types", []):
+		flight.inbound_types.append(type_by_id(StringName(id)))
+	flight.deplaned = int(entry.get("deplaned", 0))
+	flight.deplane_credit = float(entry.get("deplane_credit", 0.0))
+	flight.boarded = int(entry.get("boarded", 0))
+	flight.missed = int(entry.get("missed", 0))
+	flight.phase = clampi(int(entry.get("phase", 0)), 0, Flight.Phase.CANCELLED) as Flight.Phase
+	flight.boarding_credit = float(entry.get("boarding_credit", 0.0))
+	return flight
+
+
 # A gate's turnaround slot: the airline owed the most flights gets it; with no demand it stays empty.
 func _plan_slot(gate: Building, departure_time: float) -> void:
 	# Night curfew (design doc §12.4): no landing or take-off in the quiet hours.
