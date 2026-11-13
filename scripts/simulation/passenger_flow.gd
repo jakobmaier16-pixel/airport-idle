@@ -393,6 +393,7 @@ func tick(delta: float) -> void:
 				passenger.retry_in -= delta
 				if passenger.retry_in <= 0.0:
 					_plan(passenger)
+					_give_up_if_stranded(passenger)
 	if _someone_gone:
 		_someone_gone = false
 		# Compact in place, keeping the order (the order decides who rolls the dice first).
@@ -727,6 +728,20 @@ func _arrive(passenger: Passenger) -> void:
 			station.record_income(time, FAST_TRACK_FEE)
 		else:
 			station.queue.append(passenger)
+
+
+# An arriving passenger whose plane is gone (cancelled while they were getting off because the gate
+# was cut off, or already departed) and who still finds no way out is sent home: nothing is left
+# to wait for. The stuck time already cost their mood. (Passengers of a plane that still operates
+# keep waiting for the way to be restored.)
+func _give_up_if_stranded(passenger: Passenger) -> void:
+	if passenger.state != Passenger.State.STUCK or not passenger.is_arriving:
+		return
+	if passenger.flight != null and passenger.flight.is_active():
+		return
+	passenger.state = Passenger.State.GONE
+	_someone_gone = true
+	_finish_journey(passenger)
 
 
 func _set_stuck(passenger: Passenger) -> void:

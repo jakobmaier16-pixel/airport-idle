@@ -183,6 +183,7 @@ Starting airport · day/night lighting · pause and speed controls · optional 1
 | Zone placement (2026-11-13) | Zones are computed, never painted. Airside buildings can be placed anywhere and are "not connected" (unused) until the airside reaches them; placement checks only geometry and money; security needs a free row on both sides |
 | Area names (for step 4c) | Plain names for the areas, e.g. "Check-in Hall", "Security", "Gates"; no codes like T1 yet |
 | Transfer security | Not a zone border yet: it joins two airside walkways |
+| Demand (2026-11-13) | One value, updated daily from stars and on-time rate; start to the first tier's maximum in about 5 game days; falls at a quarter of that speed, never below the start; cap by tier and stars, not by infrastructure |
 
 ---
 

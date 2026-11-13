@@ -2,14 +2,9 @@ class_name Timetable
 extends RefCounted
 ## The daily timetable (tech_architecture.md §6): every flight the airport could get on a game day,
 ## planned once, shortly before the day starts (and at the first start / load if missing).
-## Flights per hour = base demand x Clock.DEMAND_BY_HOUR[hour]; none in curfew hours (a Hub flies
+## Flights per hour = Demand.value x Clock.DEMAND_BY_HOUR[hour]; none in curfew hours (a Hub flies
 ## all night). FlightSchedule turns slots into Flights. Pure data; the brain owns it and steps it.
 
-## Temporary fixed base demand (flights per game hour at demand 1.0): about 3 flights an hour is
-## more than one gate can turn around (1.3 an hour), so a single gate flies as many flights a
-## day as before the timetable existed, and three gates are kept busy at the peaks. Step 6c
-## replaces it with demand that grows with the airport.
-const BASE_FLIGHTS_PER_HOUR: float = 3.0
 const WIDE_FLIGHTS_PER_HOUR: float = 0.5
 const CARGO_FLIGHTS_PER_HOUR: float = 0.5
 ## The next day's slots are made at this hour: ahead of the first arrivals window after midnight.
@@ -51,8 +46,16 @@ func tick() -> void:
 		generate_day(day)
 	if clock.hour() >= GENERATE_HOUR and not generated_days.has(day + 1):
 		generate_day(day + 1)
-	var now := world.passenger_flow.time
-	slots = slots.filter(func(s: TimetableSlot) -> bool: return s.departure_time > now - KEEP_SECONDS)
+	# Slots are sorted by departure: only when the oldest one has expired is there anything to prune.
+	var limit := world.passenger_flow.time - KEEP_SECONDS
+	if not slots.is_empty() and slots[0].departure_time <= limit:
+		var expired := 0
+		while expired < slots.size() and slots[expired].departure_time <= limit:
+			expired += 1
+		slots = slots.slice(expired)
+	# Only the recent days matter (a day is never planned twice); the list must not grow forever.
+	while not generated_days.is_empty() and generated_days[0] < day - 2:
+		generated_days.remove_at(0)
 
 
 ## Plans the slots of game day `day` that still lie ahead (a new airport opens at 06:00, so the
@@ -69,7 +72,7 @@ func generate_day(day: int) -> void:
 		var rate := Clock.DEMAND_BY_HOUR[hour]
 		var wanted: Array[Array] = []  # [route, plane class] per slot of this hour
 		for route: String in shares:
-			_add_count(wanted, BASE_FLIGHTS_PER_HOUR * rate * shares[route] * Seasons.demand_factor(route, season), route, TimetableSlot.PlaneClass.NARROW)
+			_add_count(wanted, world.demand.value * rate * shares[route] * Seasons.demand_factor(route, season), route, TimetableSlot.PlaneClass.NARROW)
 		_add_count(wanted, WIDE_FLIGHTS_PER_HOUR * rate, "Long-haul", TimetableSlot.PlaneClass.WIDE)
 		_add_count(wanted, CARGO_FLIGHTS_PER_HOUR * rate, "Cargo", TimetableSlot.PlaneClass.CARGO)
 		_shuffle(wanted)

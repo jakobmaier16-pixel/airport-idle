@@ -6,9 +6,10 @@
 ## Code lane
 
 ### Now
-- Step 6 · Daily timetable and growing demand
+- Step 7 · Electricity
 
 ### Done
+- Step 6 · Daily timetable and growing demand (done 2026-11-13)
 - 2026-11-13 · Visual 2 · Ground stage 2: textures, markings atlas, materials, previews (#19)
 - 2026-11-13 · Visual 1 · Art direction (#17)
 - Step 5 · Passenger journey as recipes (done 2026-11-13)
@@ -22,7 +23,6 @@
   Old saves with the small stand / runway footprints must keep loading.
 
 ### Later (vertical slice)
-- Step 7 · Electricity
 - Step 8 · Security upgrade ladder up to CT scanners, visible in 3D
 - Step 9 · Milestone (first tier)
 - Step 10 · UI: separate panels, statistics in the top-down view

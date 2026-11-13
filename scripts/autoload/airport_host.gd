@@ -152,6 +152,11 @@ var progression: Progression:
 	set(value):
 		brain.progression = value
 
+var demand: Demand:
+	get:
+		return brain.demand
+	set(value):
+		brain.demand = value
 var reputation: Reputation:
 	get:
 		return brain.reputation
