@@ -3,20 +3,19 @@ extends TestCase
 
 
 func test_goals_follow_the_build() -> void:
-	var goals := Airport.goals
-	check_eq(goals.current(), 0, "a new airport starts with goal 1")
-	check(goals.text().begins_with("Goal 1/10: Build view: paint an airside zone"), "text: '%s'" % goals.text())
+	check_eq(Airport.goals.current(), 0, "a new airport starts with goal 1")
+	check(Airport.goals.text().begins_with("Goal 1/10: Build view: paint an airside zone"), "text: '%s'" % Airport.goals.text())
 	Airport.paint_zone(cells(Vector2i(8, 31), Vector2i(48, 25)), AirportGrid.Zone.AIRSIDE)
-	check_eq(goals.current(), 1, "airside painted")
+	check_eq(Airport.goals.current(), 1, "airside painted")
 	ShowcaseAirport.build(0.0)
 	Airport.progression.tier = Progression.Tier.REGIONAL
 	Airport.progression.passengers = 0  # as if it had just been built
-	check_eq(goals.current(), 7, "the showcase still waits for its first departure")
+	check_eq(Airport.goals.current(), 7, "the showcase still waits for its first departure")
 	sim_seconds(330)
-	check_eq(goals.current(), 9, "departed, two airlines: next is National")
+	check_eq(Airport.goals.current(), 9, "departed, two airlines: next is National")
 	Airport.progression.tier = Progression.Tier.NATIONAL
-	check_eq(goals.current(), -1, "all done")
-	check_eq(goals.text(), "", "nothing to show")
+	check_eq(Airport.goals.current(), -1, "all done")
+	check_eq(Airport.goals.text(), "", "nothing to show")
 
 
 func test_undone_goal_comes_back() -> void:

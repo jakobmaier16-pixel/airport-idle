@@ -25,6 +25,14 @@ signal zones_changed
 signal walkways_changed
 ## Anything about the layout changed (buildings, zones, walkways). Used for saving and connection hints.
 signal layout_changed
+## Re-sent from the parts that make them, so a listener connects to the brain once, even when a
+## part (the passenger flow) is replaced on a reset.
+signal tier_reached(tier: Progression.Tier)
+signal weather_changed(kind: Weather.Kind)
+signal offer_arrived(offer: AirlineOffer)
+signal airline_unhappy(airline: Airline)
+signal airline_left(airline: Airline)
+signal plane_arriving(flight: Flight)
 
 ## Grid cell size in meters. Terminal and landside are near-realistic at this scale; airside is
 ## scaled down (design doc §7.1). Change it only here: the ground and all tools derive from it.
@@ -103,6 +111,12 @@ func _init() -> void:
 	layout_changed.connect(_on_layout_changed)
 	passenger_flow.vip_finished.connect(_on_vip_finished)
 	progression.tier_reached.connect(_on_tier_reached)
+	progression.tier_reached.connect(tier_reached.emit)
+	weather.changed.connect(weather_changed.emit)
+	airlines.offer_arrived.connect(offer_arrived.emit)
+	airlines.airline_unhappy.connect(airline_unhappy.emit)
+	airlines.airline_left.connect(airline_left.emit)
+	passenger_flow.schedule.plane_arriving.connect(plane_arriving.emit)
 	_on_layout_changed()
 
 
@@ -134,6 +148,18 @@ func dispose() -> void:
 		passenger_flow.vip_finished.disconnect(_on_vip_finished)
 	if progression.tier_reached.is_connected(_on_tier_reached):
 		progression.tier_reached.disconnect(_on_tier_reached)
+	if progression.tier_reached.is_connected(tier_reached.emit):
+		progression.tier_reached.disconnect(tier_reached.emit)
+	if weather.changed.is_connected(weather_changed.emit):
+		weather.changed.disconnect(weather_changed.emit)
+	if airlines.offer_arrived.is_connected(offer_arrived.emit):
+		airlines.offer_arrived.disconnect(offer_arrived.emit)
+	if airlines.airline_unhappy.is_connected(airline_unhappy.emit):
+		airlines.airline_unhappy.disconnect(airline_unhappy.emit)
+	if airlines.airline_left.is_connected(airline_left.emit):
+		airlines.airline_left.disconnect(airline_left.emit)
+	if passenger_flow.schedule.plane_arriving.is_connected(plane_arriving.emit):
+		passenger_flow.schedule.plane_arriving.disconnect(plane_arriving.emit)
 	passenger_flow.world = null
 	passenger_flow.schedule.world = null
 	goals.world = null
@@ -782,6 +808,7 @@ func reset(with_runway: bool = true, new_seed: int = -1) -> void:
 	staff.clear()
 	passenger_flow = PassengerFlow.new()
 	passenger_flow.vip_finished.connect(_on_vip_finished)
+	passenger_flow.schedule.plane_arriving.connect(plane_arriving.emit)
 	reseed(new_seed if new_seed >= 0 else int(rng.randi()))
 	economy = Economy.new()
 	reputation = Reputation.new()

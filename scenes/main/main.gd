@@ -59,8 +59,8 @@ func _ready() -> void:
 			Airport.buy_fast_track(building))
 	TouchGestures.tapped.connect(_on_tapped)
 	Airport.restructured.connect(_on_restructured)
-	Airport.progression.tier_reached.connect(_on_tier_reached)
-	Airport.weather.changed.connect(_on_weather_changed)
+	Airport.tier_reached.connect(_on_tier_reached)
+	Airport.weather_changed.connect(_on_weather_changed)
 	Airport.incident_started.connect(_on_incident_started)
 	Airport.vip_announced.connect(func(flight: Flight) -> void:
 		var seconds := ceili(flight.departure_time - Airport.passenger_flow.time)
@@ -71,11 +71,11 @@ func _ready() -> void:
 			_hud.notify("The VIP was delighted (%d %%)! %s and half a star for a while." % [roundi(mood), Economy.format(Airport.VIP_REWARD)])
 		else:
 			_hud.notify("The VIP was unhappy (%d %%). The press noticed: half a star less for a while." % roundi(mood)))
-	Airport.passenger_flow.schedule.plane_arriving.connect(_on_plane_arriving)
+	Airport.plane_arriving.connect(_on_plane_arriving)
 	_cinematic.finished.connect(func() -> void: _manager.input_enabled = current_view == View.MANAGER)
-	Airport.airlines.offer_arrived.connect(_on_offer_arrived)
-	Airport.airlines.airline_unhappy.connect(_on_airline_unhappy)
-	Airport.airlines.airline_left.connect(_on_airline_left)
+	Airport.offer_arrived.connect(_on_offer_arrived)
+	Airport.airline_unhappy.connect(_on_airline_unhappy)
+	Airport.airline_left.connect(_on_airline_left)
 	# First person: start where the manager was, or inside the entrance (design doc §15).
 	var start: Array = Airport.manager_start()
 	_manager.global_position = start[0]

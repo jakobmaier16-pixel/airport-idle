@@ -57,7 +57,7 @@ func test_renewing_keeps_the_airline() -> void:
 func test_no_renewal_means_leaving() -> void:
 	var airline := _airline()
 	var left: Array[Airline] = []
-	Airport.airlines.airline_left.connect(func(a: Airline) -> void: left.append(a))
+	Airport.airline_left.connect(func(a: Airline) -> void: left.append(a))
 	airline.contract_left = Airlines.RENEWAL_NOTICE - 1.0
 	sim_seconds(0.2)
 	Airport.airlines.decline(_offered(airline))

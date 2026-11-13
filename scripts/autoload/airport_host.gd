@@ -16,6 +16,12 @@ signal building_removed(building: Building)
 signal zones_changed
 signal walkways_changed
 signal layout_changed
+signal tier_reached(tier: Progression.Tier)
+signal weather_changed(kind: Weather.Kind)
+signal offer_arrived(offer: AirlineOffer)
+signal airline_unhappy(airline: Airline)
+signal airline_left(airline: Airline)
+signal plane_arriving(flight: Flight)
 
 ## Most steps caught up in one frame, so a slow frame can't snowball.
 const MAX_STEPS_PER_FRAME: int = 5
@@ -33,7 +39,8 @@ const VIP_STARS: float = AirportWorld.VIP_STARS
 const NOBODY_THERE: Vector3 = AirportWorld.NOBODY_THERE
 const FAST_TRACK_COST: float = AirportWorld.FAST_TRACK_COST
 
-## The simulation. Replaced as a whole only by later steps (tech_architecture.md §17 step 2c).
+## The simulation. Replaced by a fresh one on every `reset()`, so never keep it (or any part of it)
+## in a variable across a reset: read it through `Airport` each time.
 var brain: AirportWorld = AirportWorld.new()
 ## How far the current frame is between the last and the next simulation step (0..1).
 var sim_alpha: float = 0.0
@@ -72,20 +79,25 @@ func _notification(what: int) -> void:
 
 
 # The brain's signals are re-emitted here, so listeners connect once to `Airport` and stay valid
-# even when the brain is replaced (later step); call this again after every replacement.
+# when the brain is replaced. Called again for every new brain: it first disconnects the old one,
+# so nothing is ever connected twice.
+const SIGNALS: Array[StringName] = [
+	&"building_placed", &"building_upgraded", &"vip_announced", &"vip_result", &"incident_started",
+	&"restructured", &"staff_changed", &"land_changed", &"building_removed", &"zones_changed",
+	&"walkways_changed", &"layout_changed", &"tier_reached", &"weather_changed", &"offer_arrived",
+	&"airline_unhappy", &"airline_left", &"plane_arriving",
+]
+var _bound: AirportWorld = null
+
+
 func _bind() -> void:
-	brain.building_placed.connect(building_placed.emit)
-	brain.building_upgraded.connect(building_upgraded.emit)
-	brain.vip_announced.connect(vip_announced.emit)
-	brain.vip_result.connect(vip_result.emit)
-	brain.incident_started.connect(incident_started.emit)
-	brain.restructured.connect(restructured.emit)
-	brain.staff_changed.connect(staff_changed.emit)
-	brain.land_changed.connect(land_changed.emit)
-	brain.building_removed.connect(building_removed.emit)
-	brain.zones_changed.connect(zones_changed.emit)
-	brain.walkways_changed.connect(walkways_changed.emit)
-	brain.layout_changed.connect(layout_changed.emit)
+	if _bound != null:
+		for name in SIGNALS:
+			if _bound.is_connected(name, Signal(self, name).emit):
+				_bound.disconnect(name, Signal(self, name).emit)
+	_bound = brain
+	for name in SIGNALS:
+		brain.connect(name, Signal(self, name).emit)
 
 
 # --- Forwards to the brain ---
@@ -391,7 +403,18 @@ func connection_problem(type: BuildingType, origin_cell: Vector2i, rotation_step
 
 
 func reset(with_runway: bool = true, new_seed: int = -1) -> void:
-	brain.reset(with_runway, new_seed)
+	# A fresh brain instead of cleaning the old one: nothing can be left over. What the old brain
+	# was told on purpose (no random weather / incidents in tests) is carried over.
+	var next_seed := new_seed if new_seed >= 0 else int(brain.rng.randi())
+	var automatic_incidents := brain.incidents_automatic
+	var automatic_weather := brain.weather.automatic
+	var old := brain
+	brain = AirportWorld.new()
+	old.dispose()
+	brain.incidents_automatic = automatic_incidents
+	brain.weather.automatic = automatic_weather
+	_bind()
+	brain.reset(with_runway, next_seed)
 
 
 func save_state() -> Dictionary:
