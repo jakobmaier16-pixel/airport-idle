@@ -104,7 +104,8 @@ scenes/<feature>/     one folder per feature: <name>.tscn + <name>.gd side by si
   ground/             map ground, sized from the grid
   ui/                 HUD, view button, joystick, safe area container, AirlinesPanel, StarRating
 scripts/autoload/     global singletons:
-                        Airport       -> simulation root: grid, zones, buildings (cell size lives here)
+                        Airport       -> thin host (airport_host.gd): owns the AirportWorld brain
+                                         (scripts/simulation/airport_brain.gd), steps it, forwards x and signals
                         SaveGame      -> autosave / load of the airport (user://savegame.json)
                         TouchGestures -> touch / mouse / trackpad -> drag, tap, pinch signals
 scripts/simulation/   pure simulation data classes (no nodes, no visuals): AirportGrid, Building,

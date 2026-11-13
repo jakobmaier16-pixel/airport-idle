@@ -18,7 +18,7 @@ config/icon="res://icon.svg"
 
 [autoload]
 
-Airport="*res://scripts/autoload/airport.gd"
+Airport="*res://scripts/autoload/airport_host.gd"
 SaveGame="*res://scripts/autoload/save_game.gd"
 TouchGestures="*res://scripts/autoload/touch_gestures.gd"
 
