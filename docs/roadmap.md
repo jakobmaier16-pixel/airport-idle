@@ -17,6 +17,7 @@
 - Step 7 · Electricity
 
 ### Done
+- 2026-11-13 · Visual 3 · Landside start kit stage 2: 3D pieces, fence, signs, trees, previews (#25)
 - Step 6 · Daily timetable and growing demand (done 2026-11-13)
 - 2026-11-13 · Visual 2 · Ground stage 2: textures, markings atlas, materials, previews (#19)
 - 2026-11-13 · Visual 1 · Art direction (#17)
@@ -35,15 +36,13 @@ Merged only by Jakob. Order: docs/art_direction.md first.
 
 ### Now
 2. Ground · stage 3 (in the game) waits for the code-lane task below
-3. Arrival area (road, drop-off, sidewalk, parking, bus stop); look-probe on the device · stage 1 (sketch) next
+3. Arrival area: stage 2 done (#25); stage 3 (in the game) waits for the code-lane task below
+4. Look-probe on Jakob's iPhone (ground + landside in the game), then decide together how to go on
 
-### Needs from the code lane (Jakob passes it on)
-- **Ground in the game** (visual task 2, stage 3): the ground shader (`scenes/ground/`) uses the new
-  materials from `assets/materials/` (grass, asphalt, concrete, markings) instead of flat zone colours:
-  grass as base, asphalt on taxiway cells, concrete on stands. Taxiway centrelines and stand markings
-  from the markings atlas (`art/ground/markings_atlas.md`): painted, flush, no shadow casting.
-  Zone colours become a toggleable overlay in the build view only. Still one draw call for the ground.
-  Then `tools/screenshots.sh` for Jakob's look-check.
+### Handoffs to the code lane
+Open GitHub issues with the label `handoff` (the code lead picks them up, Jakob doesn't relay):
+- #33 Ground textures and markings in the game
+- #34 Landside pieces in the game + iOS look-probe
 
 ### Later
 4. Terminal shell

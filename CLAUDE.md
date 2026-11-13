@@ -243,6 +243,10 @@ UI controls (buttons) consume their touches first, so taps on buttons never reac
   **Visual PRs are merged only by Jakob; code PRs by the lead.**
 - `art/<area>/` = Blender sources (script + .blend, ignored by Godot); `assets/models/<area>/` = exported `.glb`
   that the game uses. Blender headless: `tools/setup_blender.sh`.
+- **Handoffs between lanes:** a lead who needs something from the other lane opens a GitHub issue
+  with the labels `handoff` + the target lane (`code` / `visual`): what, why, source PR, done-when.
+  **Every lead checks open `handoff` issues at the start of each session** and before planning.
+  The code PR closes the issue (`Closes #n`). Jakob never has to relay tasks between chats.
 - **GitHub Actions** (`.github/workflows/tests.yml`) runs the full suite on every pull request;
   a red check is never merged.
 - **Tests outside the Mac:** `GODOT=$(tools/setup_cloud.sh) TESTS_QUIET=1 tools/run_tests.sh`.
