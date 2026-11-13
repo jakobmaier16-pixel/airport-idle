@@ -14,6 +14,7 @@ import sys
 
 import numpy as np
 
+sys.dont_write_bytecode = True  # no __pycache__ in art/
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import markings_layout as L  # noqa: E402
 from tex_io import ROOT, save_png  # noqa: E402

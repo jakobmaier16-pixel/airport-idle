@@ -31,6 +31,8 @@ ZEBRA_W = 3.0              # crossing width (length of one bar)
 ZEBRA_PERIOD = 1.0         # 0.5 m bar + 0.5 m gap
 SHORT_DASH_PERIOD = 2.0    # 1 m dash + 1 m gap
 
+# Gutters: the atlas edges (row 0-3, column 1020-1023) stay empty, so pieces that touch the
+# opposite edge don't pick up colour when the texture wraps (REPEAT) or is mipmapped.
 # Characters, left to right in row 0: 3.2 × 9.6 m cell (20 px/m), glyph 3 × 9 m centred.
 GLYPHS = "0123456789LCR"
 GLYPH_CELL = (64, 192)
@@ -39,14 +41,14 @@ GLYPH_PX_PER_M = 20.0
 
 def glyph_rect(ch: str) -> tuple:
     i = GLYPHS.index(ch)
-    return (i * GLYPH_CELL[0], 0, GLYPH_CELL[0], GLYPH_CELL[1])
+    return (i * GLYPH_CELL[0], 4, GLYPH_CELL[0], GLYPH_CELL[1])
 
 
 # Single pieces (map the whole rect onto a quad of the stated size; edges are anti-aliased).
 RECTS = {
-    "label_box":     (832, 0, 192, 96),     # 4 × 2 m stand label box (yellow frame, dark fill)
-    "stop_bar":      (832, 104, 192, 32),   # yellow stop bar, mapped onto 4 × 0.5 m
-    "threshold_bar": (832, 144, 192, 40),   # white threshold bar ("piano key"), mapped onto 30 × 1.8 m
+    "label_box":     (836, 4, 184, 92),     # 4 × 2 m stand label box (yellow frame, dark fill)
+    "stop_bar":      (836, 104, 184, 32),   # yellow stop bar, mapped onto 4 × 0.5 m
+    "threshold_bar": (836, 144, 184, 40),   # white threshold bar ("piano key"), mapped onto 30 × 1.8 m
     # Strips: span the full atlas width, so they repeat along U (set U past 1 to tile).
     "white_line":    (0, 200, 1024, 32),    # solid white: runway edge line, road edge line
     "yellow_line":   (0, 236, 1024, 32),    # solid yellow: taxiway centreline, lead-in line

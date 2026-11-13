@@ -18,6 +18,7 @@ import sys
 
 import numpy as np
 
+sys.dont_write_bytecode = True  # no __pycache__ in art/
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from tex_io import ROOT, save_png  # noqa: E402
 
@@ -125,12 +126,12 @@ def make_concrete() -> None:
     mottle = band_noise(rng, 2, 8)
     fine = band_noise(rng, 150, 450)
     lum = 1.0 + slab_tone + 0.014 * mottle + 0.025 * fine
-    lum = lum * (1.0 - 0.06 * halo) * (1.0 - 0.32 * joint)
+    lum = lum * (1.0 - 0.04 * halo) * (1.0 - 0.2 * joint)
     albedo = base[None, None, :] * lum[..., None]
 
     height = 0.4 * fine - 6.0 * np.clip(joint_half + 1.5 - d, 0.0, None) / (joint_half + 1.5)
     normal = normal_from_height(height, 0.6)
-    ao = 1.0 - 0.35 * joint - 0.08 * halo
+    ao = 1.0 - 0.2 * joint - 0.05 * halo
     rough = 0.82 + 0.02 * fine + 0.08 * joint
     orm = np.stack([ao, rough, np.zeros_like(ao)], axis=-1)
     write_set("concrete", albedo, normal, orm)
