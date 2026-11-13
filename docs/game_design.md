@@ -342,7 +342,15 @@ The details live in `tech_architecture.md` (to write) and `CLAUDE.md`. The princ
 - **Fixed simulation step** (current prototype: 10 steps per second); drawing smooths movement between steps.
 - **Only what the camera sees is drawn in detail:** culling, visibility ranges and level of detail; crowds as instanced figures, simplified when zoomed out.
 - **Content is data, not code:** buildings, airlines, passenger types and upgrade steps live in data files, so balancing needs no code changes.
-- **Real scale (decided 2026-11-13, replaces "compressed scale"):** everything is real size, 1 cell = 2 m (one easy-to-change value), also the airside: planes, stands, taxiways and the runway at full length. The map is large and is unlocked piece by piece (§13). The top-down view always shows the whole airport with very cheap far models; the first-person view loads only the area the manager is in, in full detail (§8.3). Starting runway length **(open)**.
+- **Real scale (decided 2026-11-13, replaces "compressed scale"):** everything is real size, 1 cell = 2 m (one easy-to-change value), also the airside: planes, stands, taxiways and the runway at full length. The map is large and is unlocked piece by piece (§13). The top-down view always shows the whole airport with very cheap far models; the first-person view loads only the area the manager is in, in full detail (§8.3).
+  *Details (decided 2026-11-13):*
+  - **Map:** about 4.4 × 3.2 km (2,200 × 1,600 cells).
+  - **Runway:** starts at 2,000 m; extended to about 3,200 m with the International tier.
+  - **Land:** bought in pieces of about 400 × 400 m, only next to owned land; some pieces are tied to tiers.
+  - **Old saves:** stands and runways in the old small size are removed on load with a full refund.
+  - **Taxi time:** comes from the real route; the timetable plans the taxi time per stand, so close stands are worth more.
+  - **Walking:** real distances and normal walking speed for now; moving walkways come later as an upgrade.
+  - **Planes:** two classes by wingspan (narrow-body about 37 m, wide-body about 65 m). A stand takes its own class or a smaller one.
 - **Versioned saves:** old saves are upgraded, never silently lost.
 - **Target:** smooth on older iPhones and on iPads, measured against a performance budget (master_plan.md, Phase 1).
 
