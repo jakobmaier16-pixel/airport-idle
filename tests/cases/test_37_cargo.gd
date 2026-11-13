@@ -34,7 +34,8 @@ func test_freighters_fly_from_the_cargo_terminal() -> void:
 	ShowcaseAirport.build(0.0)
 	var terminal := _terminal()
 	var freighters := 0
-	for flight in _flights_seen(900):
+	# Freighter slots are rare (about one every two game hours): look at ten game hours.
+	for flight in _flights_seen(2400):
 		if flight.gate == terminal:
 			check(flight.cargo, "only freighters at the cargo terminal")
 		if flight.cargo:
@@ -48,9 +49,11 @@ func test_freighters_fly_from_the_cargo_terminal() -> void:
 func test_cargo_pays_per_tonne() -> void:
 	ShowcaseAirport.build(0.0)
 	var paid := [0.0]
-	for i in 9000:
+	for i in 40000:  # up to a game day: until the first freighter has been paid
 		Airport.step(Airport.SIM_STEP)
 		paid[0] = maxf(paid[0], Airport.economy.source_total(Economy.CARGO))
+		if paid[0] > 0.0:
+			break
 	# A freighter carries 30-50 t at €20 per tonne, plus the landing fee.
 	check(paid[0] >= 30.0 * 20.0 + Economy.FLIGHT_FEE, "cargo income: %s" % Economy.format(paid[0]))
 
@@ -59,11 +62,13 @@ func test_handlers_load_the_freight() -> void:
 	ShowcaseAirport.build(0.0)
 	var terminal := _terminal()
 	var done: Array[Flight] = []
-	for i in 9000:
+	for i in 40000:  # up to a game day: until a freighter has left
 		Airport.step(Airport.SIM_STEP)
 		for flight in Airport.passenger_flow.schedule.flights:
 			if flight.cargo and flight.phase == Flight.Phase.DEPARTING and not done.has(flight):
 				done.append(flight)
+		if not done.is_empty():
+			break
 	check(not done.is_empty(), "a freighter left")
 	for flight in done:
 		check(is_equal_approx(flight.tonnes_handled, flight.tonnes), "all %d t loaded with four handlers" % roundi(flight.tonnes))
@@ -79,7 +84,7 @@ func test_too_few_handlers_delay_the_freighter() -> void:
 		Airport.dismiss(terminal)
 	Airport.staff_at(terminal)[0].served.clear()  # a new handler: slow
 	var late: Flight = null
-	for i in 9000:
+	for i in 40000:  # up to a game day
 		Airport.step(Airport.SIM_STEP)
 		for flight in Airport.passenger_flow.schedule.flights:
 			if flight.cargo and flight.phase == Flight.Phase.DEPARTING:
@@ -110,10 +115,12 @@ func test_cargo_airlines_need_a_terminal() -> void:
 
 func test_no_transfers_onto_freighters() -> void:
 	ShowcaseAirport.build(0.0)
-	sim_seconds(1)
 	var flow := Airport.passenger_flow
 	flow.transfer_share_override = 1.0
-	var inbound: Flight = flow.schedule.upcoming()[0]
+	var inbound: Flight = first_flight_with_connection()  # there is something to connect to
+	check(inbound != null, "a flight with a connection is planned")
+	if inbound == null:
+		return
 	for i in 300:
 		var connection := flow._connecting_flight(inbound)
 		check(connection == null or not connection.cargo, "passengers never connect to a freighter")

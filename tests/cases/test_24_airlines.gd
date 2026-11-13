@@ -31,8 +31,9 @@ func test_flights_belong_to_airlines() -> void:
 	check(flights.size() >= 6, "flights planned: %d" % flights.size())
 	var codes := {}
 	for flight in flights:
-		check(flight.airline != null, "every flight has an airline")
 		if flight.airline == null:
+			# No deal had a flight owed: the default airline filled the slot.
+			check(flight.number.begins_with(Timetable.default_airline().code + " "), "unsigned flights are the default airline's: %s" % flight.number)
 			continue
 		codes[flight.airline.type.code] = true
 		check(flight.number.begins_with(flight.airline.type.code + " "), "number with the airline code: %s" % flight.number)
@@ -41,19 +42,31 @@ func test_flights_belong_to_airlines() -> void:
 	check(codes.size() >= 2, "several airlines fly: %s" % [codes.keys()])
 
 
-func test_no_airline_no_flights() -> void:
+func test_no_deal_the_default_airline_flies() -> void:
 	ShowcaseAirport.build(0.0)
 	Airport.airlines.signed.clear()
-	check(_flights_planned(400).is_empty(), "gates stay idle without airlines")
+	var flights := _flights_planned(900)
+	check(flights.size() >= 3, "slots are still flown: %d" % flights.size())
+	var default := Timetable.default_airline()
+	for flight in flights:
+		if flight.cargo or flight.wide_body:
+			check(false, "no freighters or wide-bodies without a deal: %s" % flight.number)
+			continue
+		check(flight.airline == null and flight.number.begins_with(default.code + " "), "default airline: %s" % flight.number)
+		check_eq(flight.route, default.route, "its route type")
+		check_eq(flight.seats, FlightSchedule.SEATS, "a 180-seat narrow-body")
 
 
 func test_flights_follow_the_deal() -> void:
 	ShowcaseAirport.build(0.0)
 	Airport.airlines.signed.clear()
 	Airport.airlines.sign_deal(_type(&"zippa"), 6, 9.0)
-	var count := _flights_planned(1800).size()
-	# 6 per hour for half an hour = 3, plus the first one right away.
-	check(count >= 3 and count <= 5, "about 3–4 flights in 30 minutes: %d" % count)
+	var flights := _flights_planned(1800)
+	var count := flights.filter(func(f: Flight) -> bool: return f.airline != null).size()
+	# 6 per hour for half an hour = 3, plus the first one right away; the other slots of the
+	# timetable go to the default airline.
+	check(count >= 3 and count <= 5, "about 3–4 deal flights in 30 minutes: %d" % count)
+	check(flights.size() > count, "the rest of the timetable is flown by the default airline")
 
 
 func test_too_few_gates_refuse_flights() -> void:
@@ -212,9 +225,8 @@ func test_counter_offer_through_the_panel() -> void:
 
 func test_planes_wear_airline_colors() -> void:
 	ShowcaseAirport.build(0.0)
-	sim_seconds(1)
+	var flight := first_flight()
 	await start_game()
-	var flight: Flight = Airport.passenger_flow.schedule.upcoming()[0]
 	sim_seconds(flight.departure_time - Airport.passenger_flow.time - 60.0)
 	await frames(2)
 	var planes := main.get_node("Planes") as PlaneLayer

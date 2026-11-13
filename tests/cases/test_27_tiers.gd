@@ -70,9 +70,11 @@ func test_passengers_are_counted() -> void:
 
 func test_hub_doubles_connections() -> void:
 	ShowcaseAirport.build(0.0)
-	sim_seconds(1)
 	var flow := Airport.passenger_flow
-	var inbound: Flight = flow.schedule.upcoming()[0]
+	var inbound: Flight = first_flight_with_connection()  # there is something to connect to
+	check(inbound != null, "a flight with a connection is planned")
+	if inbound == null:
+		return
 	inbound.route = "Business"  # 25 % connect
 	var share := func() -> float:
 		var connecting := 0

@@ -26,14 +26,13 @@ func test_wide_body_stand_unlocks_at_international() -> void:
 
 func test_long_haul_flies_from_the_wide_body_gate() -> void:
 	ShowcaseAirport.build(0.0)
-	# Only a few long-haul flights in 15 minutes: fixed random numbers, so averages don't wobble.
-	Airport.passenger_flow.schedule.rng.seed = 7
 	var wide := 0
 	var wide_booked := 0
 	var narrow_booked := 0
 	var narrow := 0
-	for flight in _flights_planned(900):
-		if flight.airline.type.wide_body:
+	# Long-haul slots are rare (about 0.5 an hour): a span of ten game hours gives a handful.
+	for flight in _flights_planned(2400):
+		if flight.wide_body:
 			wide += 1
 			wide_booked += flight.booked
 			check(flight.wide_body, "long-haul airlines fly wide-body planes")
@@ -43,7 +42,9 @@ func test_long_haul_flies_from_the_wide_body_gate() -> void:
 			narrow += 1
 			narrow_booked += flight.booked
 	check(wide >= 2, "long-haul flights: %d" % wide)
-	check(float(wide_booked) / wide > 1.6 * float(narrow_booked) / narrow, "big planes carry far more passengers")
+	check(narrow >= 2, "narrow-body flights: %d" % narrow)
+	if wide > 0 and narrow > 0:
+		check(float(wide_booked) / wide > 1.6 * float(narrow_booked) / narrow, "big planes carry far more passengers")
 
 
 func test_wide_stand_prefers_wide_airlines() -> void:
@@ -97,7 +98,7 @@ func test_wide_body_plane_is_bigger() -> void:
 	ShowcaseAirport.build(0.0)
 	await start_game()
 	var wide_flight: Flight = null
-	for i in 9000:
+	for i in 40000:  # long-haul slots are rare: wait up to a game day
 		Airport.step(Airport.SIM_STEP)
 		for flight in Airport.passenger_flow.schedule.flights:
 			if flight.wide_body and flight.phase == Flight.Phase.AT_STAND:

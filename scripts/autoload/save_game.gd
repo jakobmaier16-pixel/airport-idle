@@ -7,7 +7,7 @@ extends Node
 
 ## Bump when the save format changes in a way older code can't read, and add a converter to
 ## `migrations` for the old version (tech_architecture.md §13). Keep every old converter.
-const FORMAT_VERSION: int = 7
+const FORMAT_VERSION: int = 8
 ## Wait this long after a change before saving, so a burst of changes is saved once.
 const SAVE_DELAY: float = 1.0
 ## Money and the running airport are also saved this often while playing (seconds).
@@ -147,7 +147,7 @@ func migrate(data: Dictionary) -> Dictionary:
 
 ## The converters this build ships (tests put them back after swapping in their own).
 func default_migrations() -> Dictionary[int, Callable]:
-	return {1: _v1_to_v2, 2: _v2_to_v3, 3: _v3_to_v4, 4: _v4_to_v5, 5: _v5_to_v6, 6: _v6_to_v7}
+	return {1: _v1_to_v2, 2: _v2_to_v3, 3: _v3_to_v4, 4: _v4_to_v5, 5: _v5_to_v6, 6: _v6_to_v7, 7: _v7_to_v8}
 
 
 ## Version 1 -> 2: buildings get permanent IDs (their old list position + 1) and staff point to
@@ -212,12 +212,34 @@ func _v5_to_v6(data: Dictionary) -> Dictionary:
 
 ## Version 6 -> 7: one clock (tech_architecture.md §3). The passengers' own timer ("flow"/"time",
 ## real seconds) is gone; the brain's clock now carries it as "clock_elapsed", in game seconds
-## (time x Clock.GAME_PER_REAL). The times saved inside flights and passengers stay in real seconds
+## (time x 15). The times saved inside flights and passengers stay in real seconds
 ## for now, so they need no conversion.
 func _v6_to_v7(data: Dictionary) -> Dictionary:
 	var flow: Dictionary = data.get("flow", {})
-	data["clock_elapsed"] = float(flow.get("time", 0.0)) * Clock.GAME_PER_REAL
+	data["clock_elapsed"] = float(flow.get("time", 0.0)) * 15.0  # game seconds per real second, as it was then
 	flow.erase("time")
+	return data
+
+
+## Version 7 -> 8: the daily timetable (tech_architecture.md §6). Its slots are built from the
+## saved state: every flight that is already planned becomes a filled slot, and no day counts as
+## planned, so the first step plans the rest of today (and tomorrow) with the saved dice.
+func _v7_to_v8(data: Dictionary) -> Dictionary:
+	var day := int(float(data.get("clock", Clock.START_HOUR * 3600.0)) / 86400.0) + 1
+	var slots: Array = []
+	for entry: Dictionary in data.get("flow", {}).get("schedule", {}).get("flights", []):
+		if not bool(entry.get("scheduled", true)):
+			continue
+		var wide := bool(entry.get("wide_body", false))
+		var cargo := bool(entry.get("cargo", false))
+		var number := str(entry.get("number", ""))
+		slots.append({
+			"time": float(entry.get("departure_time", 0.0)), "day": day,
+			"class": int(TimetableSlot.PlaneClass.CARGO) if cargo else (int(TimetableSlot.PlaneClass.WIDE) if wide else int(TimetableSlot.PlaneClass.NARROW)),
+			"route": str(entry.get("route", "Holiday")), "seats": int(entry.get("seats", 0)),
+			"state": int(TimetableSlot.State.FILLED), "airline": number.get_slice(" ", 0), "number": number,
+		})
+	data["timetable"] = {"generated_days": [], "slots": slots}
 	return data
 
 

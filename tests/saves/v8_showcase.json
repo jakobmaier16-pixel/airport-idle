@@ -1,0 +1,1655 @@
+{
+"airlines": {
+"cooldowns": {},
+"next_offer_in": 278.13260498044383,
+"offers": [
+{
+"base_fee": 13.0,
+"counter": false,
+"expires_in": 370.2999999999478,
+"fee": 13.0,
+"flights": 10,
+"id": "sunkiss",
+"renewal": false
+},
+{
+"base_fee": 8.0,
+"counter": false,
+"expires_in": 490.3999999999751,
+"fee": 8.0,
+"flights": 16,
+"id": "budjet",
+"renewal": false
+}
+],
+"signed": [
+{
+"complained": false,
+"contract_left": 2074.300000000209,
+"credit": 1.2761111111111478,
+"fee": 15.0,
+"flights": 20,
+"flown": 0,
+"happiness": 75.0,
+"id": "velora",
+"late": 0,
+"refused": 0,
+"renewal_offered": false
+},
+{
+"complained": false,
+"contract_left": 670.2999999999478,
+"credit": 1.0208888888889465,
+"fee": 9.0,
+"flights": 16,
+"flown": 0,
+"happiness": 75.0,
+"id": "zippa",
+"late": 0,
+"refused": 0,
+"renewal_offered": false
+},
+{
+"complained": false,
+"contract_left": 3226.3000000002094,
+"credit": 0.8932777777779165,
+"fee": 20.0,
+"flights": 14,
+"flown": 0,
+"happiness": 75.0,
+"id": "norvane",
+"late": 0,
+"refused": 0,
+"renewal_offered": false
+},
+{
+"complained": false,
+"contract_left": 3802.3000000002094,
+"credit": 1.6380555555556553,
+"fee": 32.0,
+"flights": 10,
+"flown": 0,
+"happiness": 75.0,
+"id": "orynth",
+"late": 0,
+"refused": 0,
+"renewal_offered": false
+},
+{
+"complained": false,
+"contract_left": 4378.299999999164,
+"credit": 1.6380555555556553,
+"fee": 20.0,
+"flights": 10,
+"flown": 0,
+"happiness": 75.0,
+"id": "paqet",
+"late": 0,
+"refused": 0,
+"renewal_offered": false
+}
+]
+},
+"average_profit": -120.67305932782362,
+"build": "dev",
+"buildings": [
+{
+"cell": [
+6,
+57
+],
+"cost": 40000.0,
+"fast_track": false,
+"id": 1,
+"level": 1,
+"rotation": 0,
+"type": "runway",
+"upgrade_left": 0.0
+},
+{
+"cell": [
+30,
+19
+],
+"cost": 2000.0,
+"fast_track": false,
+"id": 2,
+"level": 1,
+"rotation": 0,
+"type": "entrance",
+"upgrade_left": 0.0
+},
+{
+"cell": [
+20,
+22
+],
+"cost": 3000.0,
+"fast_track": false,
+"id": 3,
+"level": 2,
+"rotation": 2,
+"type": "check_in",
+"upgrade_left": 39.999999999999716
+},
+{
+"cell": [
+39,
+22
+],
+"cost": 3000.0,
+"fast_track": false,
+"id": 4,
+"level": 1,
+"rotation": 2,
+"type": "check_in",
+"upgrade_left": 0.0
+},
+{
+"cell": [
+30,
+28
+],
+"cost": 5000.0,
+"fast_track": true,
+"id": 5,
+"level": 3,
+"rotation": 0,
+"type": "security",
+"upgrade_left": 0.0
+},
+{
+"cell": [
+14,
+34
+],
+"cost": 4000.0,
+"fast_track": false,
+"id": 6,
+"level": 1,
+"rotation": 0,
+"type": "gate",
+"upgrade_left": 0.0
+},
+{
+"cell": [
+42,
+34
+],
+"cost": 4000.0,
+"fast_track": false,
+"id": 7,
+"level": 1,
+"rotation": 0,
+"type": "gate",
+"upgrade_left": 0.0
+},
+{
+"cell": [
+10,
+39
+],
+"cost": 6000.0,
+"fast_track": false,
+"id": 8,
+"level": 1,
+"rotation": 0,
+"type": "aircraft_stand",
+"upgrade_left": 0.0
+},
+{
+"cell": [
+38,
+39
+],
+"cost": 6000.0,
+"fast_track": false,
+"id": 9,
+"level": 1,
+"rotation": 0,
+"type": "aircraft_stand",
+"upgrade_left": 0.0
+},
+{
+"cell": [
+27,
+34
+],
+"cost": 4000.0,
+"fast_track": false,
+"id": 10,
+"level": 1,
+"rotation": 0,
+"type": "gate",
+"upgrade_left": 0.0
+},
+{
+"cell": [
+22,
+39
+],
+"cost": 15000.0,
+"fast_track": false,
+"id": 11,
+"level": 1,
+"rotation": 0,
+"type": "wide_body_stand",
+"upgrade_left": 0.0
+},
+{
+"cell": [
+52,
+38
+],
+"cost": 12000.0,
+"fast_track": false,
+"id": 12,
+"level": 1,
+"rotation": 0,
+"type": "cargo_terminal",
+"upgrade_left": 0.0
+},
+{
+"cell": [
+50,
+43
+],
+"cost": 6000.0,
+"fast_track": false,
+"id": 13,
+"level": 1,
+"rotation": 0,
+"type": "aircraft_stand",
+"upgrade_left": 0.0
+},
+{
+"cell": [
+37,
+27
+],
+"cost": 6000.0,
+"fast_track": false,
+"id": 14,
+"level": 1,
+"rotation": 0,
+"type": "baggage_claim",
+"upgrade_left": 0.0
+},
+{
+"cell": [
+47,
+34
+],
+"cost": 4000.0,
+"fast_track": false,
+"id": 15,
+"level": 1,
+"rotation": 0,
+"type": "transfer_security",
+"upgrade_left": 0.0
+},
+{
+"cell": [
+22,
+34
+],
+"cost": 3500.0,
+"fast_track": false,
+"id": 16,
+"level": 1,
+"rotation": 0,
+"type": "shop",
+"upgrade_left": 0.0
+},
+{
+"cell": [
+33,
+34
+],
+"cost": 3000.0,
+"fast_track": false,
+"id": 17,
+"level": 1,
+"rotation": 0,
+"type": "cafe",
+"upgrade_left": 0.0
+},
+{
+"cell": [
+37,
+34
+],
+"cost": 10000.0,
+"fast_track": false,
+"id": 18,
+"level": 1,
+"rotation": 0,
+"type": "lounge",
+"upgrade_left": 0.0
+},
+{
+"cell": [
+46,
+21
+],
+"cost": 8000.0,
+"fast_track": false,
+"id": 19,
+"level": 1,
+"rotation": 3,
+"type": "car_park",
+"upgrade_left": 0.0
+}
+],
+"clock": 29545.5,
+"clock_elapsed": 3445.4999999998686,
+"flow": {
+"arrived": 2,
+"departed": 0,
+"missed": 0,
+"passengers": {
+"count": 57,
+"data": "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",
+"grid_width": 64,
+"raw_size": 5922,
+"types": [
+"family",
+"low_cost",
+"business"
+]
+},
+"sample_timer": 0.6999999999999998,
+"schedule": {
+"flights": [
+{
+"airline": "velora",
+"arrival_delay": 0.0,
+"arrival_times": [
+34.86675262451172,
+36.678611755371094,
+53.63636016845703,
+56.104225158691406,
+56.89948272705078,
+63.123390197753906,
+63.89073944091797,
+67.00882720947266,
+67.17801666259766,
+78.70691680908203,
+80.32022857666016,
+88.8667984008789,
+94.66405487060547,
+99.74431610107422,
+101.1253890991211,
+113.10218048095703
+],
+"arrival_types": [
+"family",
+"family",
+"family",
+"family",
+"family",
+"family",
+"family",
+"family",
+"family",
+"family",
+"family",
+"family",
+"family",
+"business",
+"business",
+"low_cost"
+],
+"boarded": 16,
+"boarding_credit": 1.0,
+"booked": 16,
+"cargo": false,
+"delay": 0.0,
+"departure_time": 289.68482208251953,
+"deplane_credit": 4.000000000000002,
+"deplaned": 21,
+"fee": 15.0,
+"gate": 6,
+"inbound_types": [
+"family",
+"family",
+"low_cost",
+"family",
+"family",
+"business",
+"family",
+"family",
+"family",
+"low_cost",
+"family",
+"family",
+"family",
+"family",
+"family",
+"family",
+"business",
+"low_cost",
+"family",
+"family",
+"family"
+],
+"landing_booked": true,
+"missed": 0,
+"number": "VR 101",
+"phase": 3,
+"route": "Holiday",
+"scheduled": true,
+"seats": 180,
+"spawned": 16,
+"stand": 8,
+"takeoff_booked": false,
+"tonnes": 0.0,
+"tonnes_handled": 0.0,
+"wide_body": false
+},
+{
+"airline": "zippa",
+"arrival_delay": 0.0,
+"arrival_times": [
+92.25752258300781,
+99.87904357910156,
+99.94789123535156,
+107.61036682128906,
+126.24830627441406,
+126.39811706542969,
+129.85272216796875,
+130.42469787597656,
+134.16018676757812,
+144.2490692138672,
+145.24012756347656,
+148.833251953125,
+152.88526916503906,
+155.1558380126953,
+156.95242309570312,
+162.86473083496094,
+164.03302001953125,
+166.95623779296875,
+167.183349609375,
+173.72972106933594,
+187.73646545410156
+],
+"arrival_types": [
+"family",
+"low_cost",
+"low_cost",
+"low_cost",
+"low_cost",
+"low_cost",
+"low_cost",
+"low_cost",
+"low_cost",
+"low_cost",
+"low_cost",
+"low_cost",
+"low_cost",
+"family",
+"family",
+"low_cost",
+"low_cost",
+"low_cost",
+"low_cost",
+"low_cost",
+"low_cost"
+],
+"boarded": 0,
+"boarding_credit": 0.0,
+"booked": 21,
+"cargo": false,
+"delay": 0.0,
+"departure_time": 338.97017097473145,
+"deplane_credit": 0.7999999999999998,
+"deplaned": 5,
+"fee": 9.0,
+"gate": 7,
+"inbound_types": [
+"low_cost",
+"low_cost",
+"low_cost",
+"family",
+"low_cost",
+"low_cost",
+"low_cost",
+"low_cost",
+"low_cost",
+"family",
+"low_cost",
+"low_cost",
+"low_cost",
+"low_cost",
+"business",
+"low_cost",
+"low_cost",
+"family"
+],
+"landing_booked": true,
+"missed": 0,
+"number": "ZP 102",
+"phase": 2,
+"route": "Low-cost",
+"scheduled": true,
+"seats": 180,
+"spawned": 21,
+"stand": 9,
+"takeoff_booked": false,
+"tonnes": 0.0,
+"tonnes_handled": 0.0,
+"wide_body": false
+},
+{
+"airline": "norvane",
+"arrival_delay": 0.0,
+"arrival_times": [
+139.49215698242188,
+159.45358276367188,
+167.2743377685547,
+174.7735595703125,
+184.41978454589844,
+184.91868591308594,
+206.01075744628906,
+208.33592224121094,
+216.52407836914062,
+220.83291625976562,
+221.0796661376953,
+225.6822052001953,
+229.93382263183594,
+236.84344482421875,
+237.17979431152344,
+238.99703979492188,
+240.59579467773438,
+241.8404083251953,
+245.04869079589844,
+256.0220947265625
+],
+"arrival_types": [
+"family",
+"low_cost",
+"low_cost",
+"low_cost",
+"low_cost",
+"low_cost",
+"business",
+"business",
+"family",
+"business",
+"business",
+"low_cost",
+"low_cost",
+"business",
+"business",
+"business",
+"low_cost",
+"business",
+"low_cost",
+"business"
+],
+"boarded": 0,
+"boarding_credit": 0.0,
+"booked": 20,
+"cargo": false,
+"delay": 0.0,
+"departure_time": 397.07239151000977,
+"deplane_credit": 0.0,
+"deplaned": 0,
+"fee": 20.0,
+"gate": 10,
+"inbound_types": [
+"low_cost",
+"low_cost",
+"business",
+"business",
+"family",
+"business",
+"business",
+"family",
+"business",
+"business",
+"business",
+"business",
+"low_cost",
+"low_cost",
+"business",
+"business",
+"low_cost",
+"low_cost",
+"business",
+"family"
+],
+"landing_booked": false,
+"missed": 0,
+"number": "NV 103",
+"phase": 0,
+"route": "Business",
+"scheduled": true,
+"seats": 180,
+"spawned": 12,
+"stand": 11,
+"takeoff_booked": false,
+"tonnes": 0.0,
+"tonnes_handled": 0.0,
+"wide_body": false
+}
+],
+"last_planned": [
+[
+6,
+289.68482208251953
+],
+[
+7,
+338.97017097473145
+],
+[
+10,
+397.07239151000977
+]
+],
+"next_number": 104,
+"runway_free_at": [
+[
+1,
+228.9999999999924
+]
+]
+},
+"stations": [
+{
+"building": 3,
+"queue": [],
+"serving": [
+null,
+null,
+null,
+null
+],
+"waiting": []
+},
+{
+"building": 4,
+"queue": [],
+"serving": [
+null,
+null,
+null
+],
+"waiting": []
+},
+{
+"building": 5,
+"queue": [],
+"serving": [
+null,
+[
+46,
+0.17730212211608887
+],
+[
+37,
+0.18509888648986816
+]
+],
+"waiting": []
+},
+{
+"building": 6,
+"queue": [],
+"serving": [],
+"waiting": []
+},
+{
+"building": 7,
+"queue": [],
+"serving": [],
+"waiting": [
+1,
+2,
+3,
+10,
+8,
+5,
+13,
+6,
+4,
+12,
+14,
+0,
+22,
+15,
+18,
+19
+]
+},
+{
+"building": 10,
+"queue": [],
+"serving": [],
+"waiting": [
+16,
+31
+]
+},
+{
+"building": 14,
+"queue": [],
+"serving": [],
+"waiting": [
+27,
+30,
+26,
+28,
+38,
+42,
+51
+]
+},
+{
+"building": 15,
+"queue": [],
+"serving": [
+null,
+null
+],
+"waiting": []
+},
+{
+"building": 16,
+"queue": [],
+"serving": [],
+"waiting": [
+9
+]
+},
+{
+"building": 17,
+"queue": [],
+"serving": [],
+"waiting": [
+11,
+21,
+23,
+33
+]
+},
+{
+"building": 18,
+"queue": [],
+"serving": [],
+"waiting": []
+},
+{
+"building": 19,
+"queue": [],
+"serving": [],
+"waiting": []
+}
+],
+"transferred": 0
+},
+"goals_hidden": false,
+"manager": {},
+"map_size": [
+64,
+64
+],
+"money": 49873.15562139559,
+"next_building_id": 20,
+"over_limit": 0.0,
+"progression": {
+"passengers": 15002,
+"tier": 2,
+"transfers": 400
+},
+"reputation": {
+"departures": 0,
+"late": 0,
+"on_time": 0.9,
+"penalty": 0.0
+},
+"rng_state": "-5429304291810857064",
+"satisfaction": {
+"journeys": 18,
+"moods": [
+100.0,
+100.0,
+100.0,
+100.0,
+100.0,
+100.0,
+100.0,
+100.0,
+100.0,
+100.0,
+100.0,
+100.0,
+100.0,
+100.0,
+100.0,
+100.0,
+100.0,
+100.0
+],
+"types": [
+"Families",
+"Families",
+"Families",
+"Families",
+"Families",
+"Families",
+"Families",
+"Families",
+"Families",
+"Low-cost",
+"Families",
+"Families",
+"Families",
+"Families",
+"Business",
+"Business",
+"Low-cost",
+"Business"
+]
+},
+"saved_at": 1794600000.0,
+"seed": "53751361",
+"staff": [
+{
+"building_id": 3,
+"name": "Ben B.",
+"served": {
+"2": 98
+},
+"supervisor": false,
+"training_left": 0.0
+},
+{
+"building_id": 3,
+"name": "Lena U.",
+"served": {
+"2": 159
+},
+"supervisor": false,
+"training_left": 0.0
+},
+{
+"building_id": 3,
+"name": "Clara L.",
+"served": {
+"2": 176
+},
+"supervisor": false,
+"training_left": 0.0
+},
+{
+"building_id": 4,
+"name": "Paul P.",
+"served": {
+"2": 130
+},
+"supervisor": false,
+"training_left": 0.0
+},
+{
+"building_id": 4,
+"name": "Elias J.",
+"served": {
+"2": 162
+},
+"supervisor": false,
+"training_left": 0.0
+},
+{
+"building_id": 4,
+"name": "Leni L.",
+"served": {
+"2": 102
+},
+"supervisor": false,
+"training_left": 0.0
+},
+{
+"building_id": 5,
+"name": "Sara N.",
+"served": {
+"3": 66
+},
+"supervisor": false,
+"training_left": 0.0
+},
+{
+"building_id": 5,
+"name": "Elias H.",
+"served": {
+"3": 25
+},
+"supervisor": false,
+"training_left": 0.0
+},
+{
+"building_id": 5,
+"name": "Max D.",
+"served": {
+"3": 196
+},
+"supervisor": false,
+"training_left": 0.0
+},
+{
+"building_id": 12,
+"name": "Ida H.",
+"served": {
+"12": 145
+},
+"supervisor": false,
+"training_left": 0.0
+},
+{
+"building_id": 12,
+"name": "Sofia Z.",
+"served": {
+"12": 11
+},
+"supervisor": false,
+"training_left": 0.0
+},
+{
+"building_id": 12,
+"name": "Luca L.",
+"served": {
+"12": 169
+},
+"supervisor": false,
+"training_left": 0.0
+},
+{
+"building_id": 12,
+"name": "Ben N.",
+"served": {
+"12": 136
+},
+"supervisor": false,
+"training_left": 0.0
+},
+{
+"building_id": 15,
+"name": "Felix L.",
+"served": {
+"8": 65
+},
+"supervisor": false,
+"training_left": 0.0
+},
+{
+"building_id": 15,
+"name": "Sara A.",
+"served": {
+"8": 37
+},
+"supervisor": false,
+"training_left": 0.0
+}
+],
+"taxiways": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEBAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEBAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEBAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAAAAAAAAAAAAAAAAAAAAAAEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+"timetable": {
+"generated_days": [
+1
+],
+"slots": [
+{
+"airline": "VR",
+"class": 0,
+"day": 1,
+"number": "VR 101",
+"route": "Business",
+"seats": 180,
+"state": 1,
+"time": 289.68482208251953
+},
+{
+"airline": "ZP",
+"class": 0,
+"day": 1,
+"number": "ZP 102",
+"route": "Holiday",
+"seats": 180,
+"state": 1,
+"time": 338.97017097473145
+},
+{
+"airline": "NV",
+"class": 0,
+"day": 1,
+"number": "NV 103",
+"route": "Holiday",
+"seats": 180,
+"state": 1,
+"time": 397.07239151000977
+},
+{
+"airline": "",
+"class": 0,
+"day": 1,
+"number": "",
+"route": "Holiday",
+"seats": 180,
+"state": 2,
+"time": 439.8517781496048
+},
+{
+"airline": "",
+"class": 0,
+"day": 1,
+"number": "",
+"route": "Low-cost",
+"seats": 180,
+"state": 0,
+"time": 528.345844745636
+},
+{
+"airline": "",
+"class": 0,
+"day": 1,
+"number": "",
+"route": "Business",
+"seats": 180,
+"state": 0,
+"time": 561.6212940216064
+},
+{
+"airline": "",
+"class": 1,
+"day": 1,
+"number": "",
+"route": "Long-haul",
+"seats": 360,
+"state": 0,
+"time": 622.655189037323
+},
+{
+"airline": "",
+"class": 0,
+"day": 1,
+"number": "",
+"route": "Holiday",
+"seats": 180,
+"state": 0,
+"time": 683.5225486755371
+},
+{
+"airline": "",
+"class": 0,
+"day": 1,
+"number": "",
+"route": "Low-cost",
+"seats": 180,
+"state": 0,
+"time": 791.6282892227173
+},
+{
+"airline": "",
+"class": 2,
+"day": 1,
+"number": "",
+"route": "Cargo",
+"seats": 0,
+"state": 0,
+"time": 833.0388259887695
+},
+{
+"airline": "",
+"class": 0,
+"day": 1,
+"number": "",
+"route": "Low-cost",
+"seats": 180,
+"state": 0,
+"time": 943.1500840187073
+},
+{
+"airline": "",
+"class": 0,
+"day": 1,
+"number": "",
+"route": "Holiday",
+"seats": 180,
+"state": 0,
+"time": 978.615757226944
+},
+{
+"airline": "",
+"class": 1,
+"day": 1,
+"number": "",
+"route": "Long-haul",
+"seats": 360,
+"state": 0,
+"time": 1055.304468870163
+},
+{
+"airline": "",
+"class": 0,
+"day": 1,
+"number": "",
+"route": "Holiday",
+"seats": 180,
+"state": 0,
+"time": 1129.1523027420044
+},
+{
+"airline": "",
+"class": 2,
+"day": 1,
+"number": "",
+"route": "Cargo",
+"seats": 0,
+"state": 0,
+"time": 1163.6271443367004
+},
+{
+"airline": "",
+"class": 0,
+"day": 1,
+"number": "",
+"route": "Holiday",
+"seats": 180,
+"state": 0,
+"time": 1199.8780138492584
+},
+{
+"airline": "",
+"class": 0,
+"day": 1,
+"number": "",
+"route": "Business",
+"seats": 180,
+"state": 0,
+"time": 1254.4458231925964
+},
+{
+"airline": "",
+"class": 0,
+"day": 1,
+"number": "",
+"route": "Low-cost",
+"seats": 180,
+"state": 0,
+"time": 1315.8353576660156
+},
+{
+"airline": "",
+"class": 1,
+"day": 1,
+"number": "",
+"route": "Long-haul",
+"seats": 360,
+"state": 0,
+"time": 1346.0989894866943
+},
+{
+"airline": "",
+"class": 0,
+"day": 1,
+"number": "",
+"route": "Low-cost",
+"seats": 180,
+"state": 0,
+"time": 1401.8550288677216
+},
+{
+"airline": "",
+"class": 0,
+"day": 1,
+"number": "",
+"route": "Business",
+"seats": 180,
+"state": 0,
+"time": 1454.2234003543854
+},
+{
+"airline": "",
+"class": 2,
+"day": 1,
+"number": "",
+"route": "Cargo",
+"seats": 0,
+"state": 0,
+"time": 1546.3532280921936
+},
+{
+"airline": "",
+"class": 0,
+"day": 1,
+"number": "",
+"route": "Holiday",
+"seats": 180,
+"state": 0,
+"time": 1604.5486235618591
+},
+{
+"airline": "",
+"class": 1,
+"day": 1,
+"number": "",
+"route": "Long-haul",
+"seats": 360,
+"state": 0,
+"time": 1636.8463153839111
+},
+{
+"airline": "",
+"class": 2,
+"day": 1,
+"number": "",
+"route": "Cargo",
+"seats": 0,
+"state": 0,
+"time": 1695.2435703277588
+},
+{
+"airline": "",
+"class": 0,
+"day": 1,
+"number": "",
+"route": "Holiday",
+"seats": 180,
+"state": 0,
+"time": 1751.6895961761475
+},
+{
+"airline": "",
+"class": 0,
+"day": 1,
+"number": "",
+"route": "Business",
+"seats": 180,
+"state": 0,
+"time": 1803.693775177002
+},
+{
+"airline": "",
+"class": 0,
+"day": 1,
+"number": "",
+"route": "Holiday",
+"seats": 180,
+"state": 0,
+"time": 1837.3649654388428
+},
+{
+"airline": "",
+"class": 1,
+"day": 1,
+"number": "",
+"route": "Long-haul",
+"seats": 360,
+"state": 0,
+"time": 1896.0187854766846
+},
+{
+"airline": "",
+"class": 0,
+"day": 1,
+"number": "",
+"route": "Holiday",
+"seats": 180,
+"state": 0,
+"time": 1923.1947240829468
+},
+{
+"airline": "",
+"class": 0,
+"day": 1,
+"number": "",
+"route": "Low-cost",
+"seats": 180,
+"state": 0,
+"time": 1976.428460597992
+},
+{
+"airline": "",
+"class": 2,
+"day": 1,
+"number": "",
+"route": "Cargo",
+"seats": 0,
+"state": 0,
+"time": 2026.3519949913025
+},
+{
+"airline": "",
+"class": 0,
+"day": 1,
+"number": "",
+"route": "Business",
+"seats": 180,
+"state": 0,
+"time": 2092.3295288085938
+},
+{
+"airline": "",
+"class": 0,
+"day": 1,
+"number": "",
+"route": "Business",
+"seats": 180,
+"state": 0,
+"time": 2135.5409202575684
+},
+{
+"airline": "",
+"class": 0,
+"day": 1,
+"number": "",
+"route": "Low-cost",
+"seats": 180,
+"state": 0,
+"time": 2157.2921590805054
+},
+{
+"airline": "",
+"class": 0,
+"day": 1,
+"number": "",
+"route": "Holiday",
+"seats": 180,
+"state": 0,
+"time": 2216.6531596183777
+},
+{
+"airline": "",
+"class": 0,
+"day": 1,
+"number": "",
+"route": "Low-cost",
+"seats": 180,
+"state": 0,
+"time": 2282.4479598999023
+},
+{
+"airline": "",
+"class": 0,
+"day": 1,
+"number": "",
+"route": "Holiday",
+"seats": 180,
+"state": 0,
+"time": 2314.5142736434937
+},
+{
+"airline": "",
+"class": 0,
+"day": 1,
+"number": "",
+"route": "Holiday",
+"seats": 180,
+"state": 0,
+"time": 2373.1179428100586
+},
+{
+"airline": "",
+"class": 0,
+"day": 1,
+"number": "",
+"route": "Holiday",
+"seats": 180,
+"state": 0,
+"time": 2397.9330039024353
+},
+{
+"airline": "",
+"class": 2,
+"day": 1,
+"number": "",
+"route": "Cargo",
+"seats": 0,
+"state": 0,
+"time": 2437.563408613205
+},
+{
+"airline": "",
+"class": 0,
+"day": 1,
+"number": "",
+"route": "Low-cost",
+"seats": 180,
+"state": 0,
+"time": 2475.045530796051
+},
+{
+"airline": "",
+"class": 0,
+"day": 1,
+"number": "",
+"route": "Business",
+"seats": 180,
+"state": 0,
+"time": 2515.821704864502
+},
+{
+"airline": "",
+"class": 1,
+"day": 1,
+"number": "",
+"route": "Long-haul",
+"seats": 360,
+"state": 0,
+"time": 2563.883225917816
+},
+{
+"airline": "",
+"class": 0,
+"day": 1,
+"number": "",
+"route": "Low-cost",
+"seats": 180,
+"state": 0,
+"time": 2594.104218006134
+},
+{
+"airline": "",
+"class": 2,
+"day": 1,
+"number": "",
+"route": "Cargo",
+"seats": 0,
+"state": 0,
+"time": 2660.7739391326904
+},
+{
+"airline": "",
+"class": 1,
+"day": 1,
+"number": "",
+"route": "Long-haul",
+"seats": 360,
+"state": 0,
+"time": 2694.077525138855
+},
+{
+"airline": "",
+"class": 0,
+"day": 1,
+"number": "",
+"route": "Holiday",
+"seats": 180,
+"state": 0,
+"time": 2754.219400405884
+},
+{
+"airline": "",
+"class": 0,
+"day": 1,
+"number": "",
+"route": "Business",
+"seats": 180,
+"state": 0,
+"time": 2782.868152856827
+},
+{
+"airline": "",
+"class": 0,
+"day": 1,
+"number": "",
+"route": "Business",
+"seats": 180,
+"state": 0,
+"time": 2841.508047580719
+},
+{
+"airline": "",
+"class": 0,
+"day": 1,
+"number": "",
+"route": "Holiday",
+"seats": 180,
+"state": 0,
+"time": 2899.1715878248215
+},
+{
+"airline": "",
+"class": 0,
+"day": 1,
+"number": "",
+"route": "Low-cost",
+"seats": 180,
+"state": 0,
+"time": 2949.419399499893
+},
+{
+"airline": "",
+"class": 1,
+"day": 1,
+"number": "",
+"route": "Long-haul",
+"seats": 360,
+"state": 0,
+"time": 3025.4170310497284
+},
+{
+"airline": "",
+"class": 0,
+"day": 1,
+"number": "",
+"route": "Low-cost",
+"seats": 180,
+"state": 0,
+"time": 3102.095067501068
+},
+{
+"airline": "",
+"class": 1,
+"day": 1,
+"number": "",
+"route": "Long-haul",
+"seats": 360,
+"state": 0,
+"time": 3158.306887149811
+},
+{
+"airline": "",
+"class": 0,
+"day": 1,
+"number": "",
+"route": "Business",
+"seats": 180,
+"state": 0,
+"time": 3196.8694603443146
+},
+{
+"airline": "",
+"class": 0,
+"day": 1,
+"number": "",
+"route": "Holiday",
+"seats": 180,
+"state": 0,
+"time": 3251.457928419113
+},
+{
+"airline": "",
+"class": 0,
+"day": 1,
+"number": "",
+"route": "Low-cost",
+"seats": 180,
+"state": 0,
+"time": 3326.625473499298
+},
+{
+"airline": "",
+"class": 0,
+"day": 1,
+"number": "",
+"route": "Business",
+"seats": 180,
+"state": 0,
+"time": 3378.9235764741898
+},
+{
+"airline": "",
+"class": 0,
+"day": 1,
+"number": "",
+"route": "Holiday",
+"seats": 180,
+"state": 0,
+"time": 3449.1282480955124
+},
+{
+"airline": "",
+"class": 2,
+"day": 1,
+"number": "",
+"route": "Cargo",
+"seats": 0,
+"state": 0,
+"time": 3521.01998090744
+},
+{
+"airline": "",
+"class": 2,
+"day": 1,
+"number": "",
+"route": "Cargo",
+"seats": 0,
+"state": 0,
+"time": 3591.9864177703857
+},
+{
+"airline": "",
+"class": 0,
+"day": 1,
+"number": "",
+"route": "Low-cost",
+"seats": 180,
+"state": 0,
+"time": 3648.1253147125244
+},
+{
+"airline": "",
+"class": 0,
+"day": 1,
+"number": "",
+"route": "Holiday",
+"seats": 180,
+"state": 0,
+"time": 3732.105185985565
+},
+{
+"airline": "",
+"class": 0,
+"day": 1,
+"number": "",
+"route": "Business",
+"seats": 180,
+"state": 0,
+"time": 3822.8934824466705
+}
+]
+},
+"version": 8,
+"walkways": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQAAAAAAAAAAAAAAAAAAAAAAAAAAAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEAAAAAAAAAAAAAAAAAAAAAAAAAAAEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQEBAQEBAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEBAQEBAQEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABAQEBAQEBAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQEBAQEBAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=="
+}

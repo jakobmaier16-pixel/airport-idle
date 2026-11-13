@@ -102,7 +102,8 @@ func test_old_save_starts_empty_apron() -> void:
 	var loaded := _load_fresh(state)
 	check_eq(loaded.passenger_flow.passengers.size(), 0, "no passengers in a save without any")
 	check_eq(loaded.passenger_flow.schedule.flights.size(), 0, "no flights either")
-	for i in int(30.0 / AirportWorld.SIM_STEP):
+	# The timetable (a slot opens a flight every minute or two) keeps planning them.
+	for i in int(600.0 / AirportWorld.SIM_STEP):
 		loaded.step(AirportWorld.SIM_STEP)
 	check(loaded.passenger_flow.schedule.flights.size() > 0, "new flights get planned as before")
 	loaded.dispose()

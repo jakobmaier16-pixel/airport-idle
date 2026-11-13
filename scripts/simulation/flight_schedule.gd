@@ -1,17 +1,15 @@
 class_name FlightSchedule
 extends RefCounted
-## Plans and runs flights (design doc §8.5): one departure after another at every usable gate.
+## Turns the timetable's slots into flights and runs them (design doc §8.5).
 ## Pure data. PassengerFlow owns it and passes itself into tick() (no stored back reference,
 ## so the two never keep each other alive).
 
-## Seconds between two departures at the same gate.
+## The least time between two departures at the same gate (a turnaround).
 const INTERVAL: float = 180.0
-## A newly usable gate's first departure is this far in the future (after the arrival window).
+## Slots are only planned this far ahead of now (just after their arrivals window opens).
 const FIRST_DEPARTURE_DELAY: float = 270.0
-## Gates that become usable at the same moment are spread out by this much.
-const GATE_STAGGER: float = 60.0
-## The earliest any passenger type arrives before departure (see data/passengers/); the next
-## flight at a gate is planned this long before it departs.
+## The earliest any passenger type arrives before departure (see data/passengers/); a slot becomes
+## a flight this long before it departs.
 const ARRIVALS_START: float = 260.0
 ## The plane starts taxiing onto the stand this long before departure.
 const PLANE_ARRIVES: float = 130.0
@@ -45,8 +43,6 @@ const BAGS_UNTIL: float = 90.0
 const SEATS: int = 180
 const BOOKED_MIN: int = 12
 const BOOKED_MAX: int = 20
-## Flight numbers without an airline (tests only).
-const NO_AIRLINE_CODE: String = "XX"
 ## Passenger types (design doc §8.7).
 const FAMILY: PassengerType = preload("res://data/passengers/family.tres")
 const LOW_COST: PassengerType = preload("res://data/passengers/low_cost.tres")
@@ -99,18 +95,10 @@ func tick(now: float, delta: float, flow: PassengerFlow) -> void:
 			_last_planned.erase(flight.gate)
 	flights = flights.filter(func(f: Flight) -> bool: return f.is_active())
 
-	# Plan ahead: each gate always has its next flight planned before its passengers must arrive.
-	var new_gates := 0
-	# Gates opening together share the 3-minute slot evenly, so their runway movements interleave.
-	var opening := usable.filter(func(g: Building) -> bool: return not _last_planned.has(g)).size()
-	var stagger := minf(GATE_STAGGER, INTERVAL / maxi(opening, 1))
-	for gate in usable:
-		if not _last_planned.has(gate):
-			_plan_slot(gate, now + FIRST_DEPARTURE_DELAY + new_gates * stagger)
-			new_gates += 1
-		# The next slot is planned exactly when its passengers have to start arriving.
-		while _last_planned[gate] + INTERVAL - now <= ARRIVALS_START:
-			_plan_slot(gate, _last_planned[gate] + INTERVAL)
+	# The timetable's slots become flights exactly when their passengers have to start arriving.
+	for slot in world.timetable.slots:
+		if slot.state == TimetableSlot.State.PENDING and slot.departure_time - now <= ARRIVALS_START:
+			_fill_slot(slot, usable, now)
 
 	for flight in flights:
 		_advance(flight, now, delta, flow)
@@ -239,50 +227,95 @@ func _load_flight(entry: Dictionary, gate: Building, by_id: Dictionary[int, Buil
 	return flight
 
 
-# A gate's turnaround slot: the airline owed the most flights gets it; with no demand it stays empty.
-func _plan_slot(gate: Building, departure_time: float) -> void:
+# Turns a slot into a flight at a gate that fits it, or drops the slot (no gate, no airline).
+func _fill_slot(slot: TimetableSlot, usable: Array[Building], now: float) -> void:
+	slot.state = TimetableSlot.State.DROPPED
 	# Night curfew (design doc §12.4): no landing or take-off in the quiet hours.
-	var now := world.passenger_flow.time
-	if world.curfew_at(departure_time - now) or world.curfew_at(departure_time - PLANE_ARRIVES - now):
-		_last_planned[gate] = departure_time
+	if world.timetable.in_curfew(slot.departure_time):
 		return
-	var stand := world.stand_behind(gate)
-	var cargo := gate.type.role == BuildingType.Role.CARGO_TERMINAL
-	var airline := world.airlines.next_airline(stand != null and stand.type.wide_body, cargo)
-	if airline != null:
-		_schedule(gate, departure_time, airline)
-	else:
-		_last_planned[gate] = departure_time
+	var gate := _gate_for(slot, usable)
+	if gate == null:
+		return
+	# Signed deals fill their quotas first; without a deal the default airline flies the narrow-bodies.
+	var airline := world.airlines.claim_for_slot(slot.plane_class, slot.route)
+	var type: AirlineType = airline.type if airline != null else null
+	if type == null:
+		if slot.plane_class != TimetableSlot.PlaneClass.NARROW:
+			return
+		type = Timetable.default_airline()
+	slot.state = TimetableSlot.State.FILLED
+	var flight := _schedule(gate, slot.departure_time, type, airline)
+	slot.airline_code = type.code
+	slot.flight_number = flight.number
 
 
-func _schedule(gate: Building, departure_time: float, airline: Airline = null) -> void:
+# The gate that takes `slot` with the least waste: free for a turnaround before it, and the one
+# whose last flight is closest (so the others stay free for later slots). Wide-body slots need a
+# wide-body stand (stand_behind decides what fits), so narrow-body slots keep off those gates
+# while another one is free.
+func _gate_for(slot: TimetableSlot, usable: Array[Building]) -> Building:
+	var best: Building = null
+	var best_wide := false
+	var best_last := -INF
+	for gate in usable:
+		if (gate.type.role == BuildingType.Role.CARGO_TERMINAL) != (slot.plane_class == TimetableSlot.PlaneClass.CARGO):
+			continue
+		var stand := world.stand_behind(gate)
+		var wide_stand := stand != null and stand.type.wide_body
+		if slot.plane_class == TimetableSlot.PlaneClass.WIDE and not wide_stand:
+			continue
+		var last: float = _last_planned.get(gate, -INF)
+		if last + INTERVAL > slot.departure_time:
+			continue
+		if wide_stand and slot.plane_class == TimetableSlot.PlaneClass.NARROW and _wide_slot_near(slot):
+			continue  # a wide-body slot needs this gate right about now
+		var better := best == null or (best_wide and not wide_stand) or (best_wide == wide_stand and last > best_last)
+		if better:
+			best = gate
+			best_wide = wide_stand
+			best_last = last
+	return best
+
+
+# Makes the flight (tests call it directly; no type means the default airline).
+# True if a wide-body slot still waits for its flight within a turnaround of `slot`.
+func _wide_slot_near(slot: TimetableSlot) -> bool:
+	for other in world.timetable.slots:
+		if other.plane_class == TimetableSlot.PlaneClass.WIDE and other.state == TimetableSlot.State.PENDING \
+				and absf(other.departure_time - slot.departure_time) < INTERVAL:
+			return true
+	return false
+
+
+func _schedule(gate: Building, departure_time: float, type: AirlineType = null, airline: Airline = null) -> Flight:
+	if type == null:
+		type = Timetable.default_airline()
 	var flight := Flight.new()
 	flight.airline = airline
-	flight.number = "%s %d" % [airline.type.code if airline != null else NO_AIRLINE_CODE, _next_number]
+	flight.number = "%s %d" % [type.code, _next_number]
 	_next_number += 1
 	flight.gate = gate
 	flight.stand = world.stand_behind(gate)
-	# The airline's route type sets the passenger mix (design doc §10.1); random without one.
-	flight.route = airline.type.route if airline != null else ROUTES.keys()[rng.randi() % ROUTES.size()]
-	flight.wide_body = airline != null and airline.type.wide_body
+	# The airline's route type sets the passenger mix (design doc §10.1).
+	flight.route = type.route
+	flight.wide_body = type.wide_body
 	flight.departure_time = departure_time
-	if airline != null and airline.type.cargo:
+	if type.cargo:
 		# A freighter (design doc §10.3): freight instead of passengers.
 		flight.cargo = true
 		flight.tonnes = rng.randf_range(CARGO_TONNES_MIN, CARGO_TONNES_MAX)
 		flight.fee_per_passenger = airline.fee  # per tonne
 		_last_planned[gate] = departure_time
 		flights.append(flight)
-		return
+		return flight
 	var size_factor := WIDE_BODY_FACTOR if flight.wide_body else 1.0
 	flight.seats = roundi(SEATS * size_factor)
-	# Busy mornings and evenings, quiet nights (design doc §12.1), holiday peaks in summer (§12.2).
-	size_factor *= Clock.demand_factor(world.clock.hour_at(departure_time - world.passenger_flow.time))
+	# Busy mornings and evenings are more flights now (the timetable); holiday peaks in summer
+	# fill the planes (design doc §12.2).
 	size_factor *= Seasons.demand_factor(flight.route, world.season())
 	flight.booked = roundi(_passenger_count() * size_factor)
 	flight.departure_time = departure_time
-	if airline != null:
-		flight.fee_per_passenger = airline.fee
+	flight.fee_per_passenger = airline.fee if airline != null else type.expected_fee
 	_plan_arrivals(flight)
 	# The inbound leg: the same plane brings passengers before it takes new ones (turnaround).
 	var mix := PackedFloat32Array(ROUTES[flight.route])
@@ -291,6 +324,7 @@ func _schedule(gate: Building, departure_time: float, airline: Airline = null) -
 		flight.inbound_types.append(types[rng.rand_weighted(mix)])
 	_last_planned[gate] = departure_time
 	flights.append(flight)
+	return flight
 
 
 # Passengers on one leg: a well-rated airport attracts more of them (design doc §11.7).

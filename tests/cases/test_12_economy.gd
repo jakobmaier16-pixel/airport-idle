@@ -77,8 +77,7 @@ func test_running_costs() -> void:
 
 func test_flights_earn_money() -> void:
 	ShowcaseAirport.build(0.0)
-	sim_seconds(1)
-	var flight: Flight = Airport.passenger_flow.schedule.upcoming()[0]
+	var flight := first_flight()
 	# Just before the doors close, then just after: the difference is the fees minus 0.4 s of costs.
 	sim_seconds(flight.departure_time - Airport.passenger_flow.time - 0.2)
 	var before := Airport.economy.balance

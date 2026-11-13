@@ -162,6 +162,23 @@ func next_airline(wide_stand: bool = false, cargo_slot: bool = false) -> Airline
 	return best
 
 
+## The signed airline that fills a timetable slot of `plane_class` (the one owed the most flights;
+## among equals the one flying the slot's `route`), or null. Takes one owed flight from it.
+func claim_for_slot(plane_class: TimetableSlot.PlaneClass, route: String) -> Airline:
+	var best: Airline = null
+	for airline in signed:
+		var fits := airline.type.cargo == (plane_class == TimetableSlot.PlaneClass.CARGO) \
+			and (airline.type.wide_body and not airline.type.cargo) == (plane_class == TimetableSlot.PlaneClass.WIDE)
+		if not fits or airline.credit < MIN_CREDIT:
+			continue
+		if best == null or airline.credit > best.credit \
+				or (is_equal_approx(airline.credit, best.credit) and airline.type.route == route and best.type.route != route):
+			best = airline
+	if best != null:
+		best.credit -= 1.0
+	return best
+
+
 ## How likely the airline agrees to `fee` and `flights` said in `tone`, 0..1.
 func chance(offer: AirlineOffer, fee: float, flights: int, tone: AirlineType.Tone, stars: float) -> float:
 	var type := offer.type
