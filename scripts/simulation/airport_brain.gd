@@ -62,6 +62,8 @@ var buildings: Array[Building] = []
 var passenger_flow: PassengerFlow = PassengerFlow.new()
 ## Where planes can move: taxiways, stands, runways (design doc §7.5a).
 var plane_network: PlaneNetwork = PlaneNetwork.new()
+## Zones computed from the layout, next to the painted ones (step 4a: compared only, not used yet).
+var zone_map: ZoneMap = ZoneMap.new()
 var economy: Economy = Economy.new()
 ## Signed airlines and their offers (design doc §10.1). Kept for the whole game (reset, not
 ## replaced), so the HUD's signal connections stay valid.
@@ -1003,6 +1005,7 @@ func stand_behind(gate: Building) -> Building:
 
 
 func _on_layout_changed() -> void:
+	zone_map.recompute(grid, buildings)
 	plane_network.rebuild(grid, buildings)
 	passenger_flow.on_layout_changed()
 	_update_running_cost()
