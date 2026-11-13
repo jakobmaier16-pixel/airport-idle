@@ -191,7 +191,7 @@ func test_v7_converter_builds_slots_from_the_saved_flights() -> void:
 func test_example_v8_loads() -> void:
 	var saved: Dictionary = JSON.parse_string(FileAccess.get_file_as_string(SHOWCASE_V8))
 	check_eq(int(saved["version"]), 8, "an example save of version 8")
-	check_eq(SaveGame.migrate(saved)["version"], 8, "nothing left to convert")
+	check_eq(SaveGame.migrate(saved)["version"], SaveGame.FORMAT_VERSION, "converted to the newest version")
 	check((saved["timetable"]["slots"] as Array).size() > 10, "it has slots")
 	var loaded := AirportWorld.new()
 	loaded.load_state(saved)

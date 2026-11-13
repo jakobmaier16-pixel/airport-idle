@@ -283,7 +283,7 @@ func save_state() -> Dictionary:
 ## Restores from save_state() once the buildings are back (`by_id`: saved ID -> building).
 ## Anything that points at a building that is gone is dropped: a passenger can't stand at a
 ## station that no longer exists.
-func load_state(data: Dictionary, by_id: Dictionary[int, Building]) -> void:
+func load_state(data: Dictionary, by_id: Dictionary[int, Building], cell_shift: Vector2i = Vector2i.ZERO) -> void:
 	_sample_timer = float(data.get("sample_timer", 0.0))
 	departed_count = int(data.get("departed", 0))
 	missed_count = int(data.get("missed", 0))
@@ -299,6 +299,7 @@ func load_state(data: Dictionary, by_id: Dictionary[int, Building]) -> void:
 		width = int((saved as Dictionary).get("grid_width", width))
 	elif saved is Array:
 		records = PassengerSave.from_v5(saved, world.grid.size, world.grid.cell_size)
+		cell_shift = Vector2i.ZERO  # made from world positions on this grid: nothing to move
 	# Saved index -> loaded passenger (dropped ones are missing).
 	var loaded: Dictionary[int, Passenger] = {}
 	passengers.clear()
@@ -323,7 +324,7 @@ func load_state(data: Dictionary, by_id: Dictionary[int, Building]) -> void:
 		passenger.previous_position = passenger.position
 		passenger.offset = entry["offset"]
 		# Only the way still ahead is saved; it starts again from its first cell.
-		passenger.path = PassengerSave.remap_path(entry["path"], width, world.grid.size)
+		passenger.path = PassengerSave.remap_path(entry["path"], width, world.grid.size, cell_shift)
 		passenger.path_index = 0
 		passenger.color_index = int(entry["color"])
 		passenger.queued_since = entry["queued_since"]

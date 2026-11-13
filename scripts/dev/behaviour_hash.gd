@@ -32,7 +32,22 @@ static func hash_state(state: Dictionary) -> String:
 
 
 static func canonical_json(state: Dictionary) -> String:
-	return JSON.stringify(_strip(state), "", true, true)
+	return JSON.stringify(_strip(_canonical_layers(state)), "", true, true)
+
+
+# The hash must not depend on how a save stores the map. Format 9 saves walkways and taxiways as
+# chunk lists; they are turned back into the dense base64 text of formats 1-8 (over the whole map:
+# fine here, this is a dev tool), so the hash stays what it was before the format change.
+static func _canonical_layers(state: Dictionary) -> Dictionary:
+	var result := state.duplicate()
+	var map_size: Array = state.get("map_size", [])
+	if map_size.size() != 2:
+		return result
+	var size := Vector2i(int(map_size[0]), int(map_size[1]))
+	for key in ["walkways", "taxiways"]:
+		if state.get(key) is Array:
+			result[key] = Marshalls.raw_to_base64(GridSave.to_dense(state[key], size))
+	return result
 
 
 static func _strip(value: Variant) -> Variant:

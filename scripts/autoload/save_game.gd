@@ -7,7 +7,7 @@ extends Node
 
 ## Bump when the save format changes in a way older code can't read, and add a converter to
 ## `migrations` for the old version (tech_architecture.md §13). Keep every old converter.
-const FORMAT_VERSION: int = 8
+const FORMAT_VERSION: int = 9
 ## Wait this long after a change before saving, so a burst of changes is saved once.
 const SAVE_DELAY: float = 1.0
 ## Money and the running airport are also saved this often while playing (seconds).
@@ -147,7 +147,7 @@ func migrate(data: Dictionary) -> Dictionary:
 
 ## The converters this build ships (tests put them back after swapping in their own).
 func default_migrations() -> Dictionary[int, Callable]:
-	return {1: _v1_to_v2, 2: _v2_to_v3, 3: _v3_to_v4, 4: _v4_to_v5, 5: _v5_to_v6, 6: _v6_to_v7, 7: _v7_to_v8}
+	return {1: _v1_to_v2, 2: _v2_to_v3, 3: _v3_to_v4, 4: _v4_to_v5, 5: _v5_to_v6, 6: _v6_to_v7, 7: _v7_to_v8, 8: _v8_to_v9}
 
 
 ## Version 1 -> 2: buildings get permanent IDs (their old list position + 1) and staff point to
@@ -240,6 +240,17 @@ func _v7_to_v8(data: Dictionary) -> Dictionary:
 			"state": int(TimetableSlot.State.FILLED), "airline": number.get_slice(" ", 0), "number": number,
 		})
 	data["timetable"] = {"generated_days": [], "slots": slots}
+	return data
+
+
+## Version 8 -> 9: walkways and taxiways are lists of non-empty 64 x 64 chunks (see GridSave)
+## instead of one dense array over the whole map, so a save does not grow with the map.
+func _v8_to_v9(data: Dictionary) -> Dictionary:
+	var map_size: Variant = data.get("map_size", [AirportWorld.MAP_SIZE_CELLS.x, AirportWorld.MAP_SIZE_CELLS.y])
+	var size := Vector2i(int(map_size[0]), int(map_size[1]))
+	for key in ["walkways", "taxiways"]:
+		if data.get(key) is String:
+			data[key] = GridSave.from_dense(Marshalls.base64_to_raw(data[key]), size)
 	return data
 
 
