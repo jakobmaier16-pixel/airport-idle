@@ -235,7 +235,8 @@ UI controls (buttons) consume their touches first, so taps on buttons never reac
 ## Working with agents
 
 - Roles: the **lead** (Claude in the claude.ai chat) plans from `docs/roadmap.md`, writes a spec per
-  task and merges; **builder**, **artist**, **reviewer** and **performance** agents are defined in `.claude/agents/`.
+  task and merges; **builder**, **artist**, **reviewer**, **performance** and **playtest** agents are defined in `.claude/agents/`.
+  **playtest** runs only on request: it prepares the showcase airport for a device test and writes Jakob a German step-by-step guide.
   The user decides design questions and tests on the devices.
 - One task = one branch (`task/<name>`) = one pull request. Nothing goes to `main` directly.
 - **Two lanes:** the code lane (builder; label `code`) and the visual lane (artist; label `visual`).
