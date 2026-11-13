@@ -244,24 +244,17 @@ func save_state() -> Dictionary:
 	for i in all_flights.size():
 		flight_index[all_flights[i]] = i
 	var passenger_index: Dictionary[Passenger, int] = {}
-	var saved_passengers: Array[Dictionary] = []
+	var records: Array[Dictionary] = []
 	for passenger in passengers:
-		passenger_index[passenger] = saved_passengers.size()
-		# The save format still stores positions (changes in save format 6).
-		var flat := PackedFloat32Array()
-		for i in passenger.path.size():
-			var point := _waypoint(passenger, i)
-			flat.append_array(PackedFloat32Array([point.x, point.y, point.z]))
-		saved_passengers.append({
+		passenger_index[passenger] = records.size()
+		records.append({
 			"state": int(passenger.state), "flight": flight_index.get(passenger.flight, -1),
 			"type": String(passenger.type.id) if passenger.type != null else "",
 			"arriving": passenger.is_arriving, "transfer": passenger.is_transfer,
 			"by_car": passenger.by_car, "has_bag": passenger.has_bag, "bag_ready_at": passenger.bag_ready_at,
 			"goal": int(passenger.goal), "target": passenger.target.id if passenger.target != null else 0,
-			"position": [passenger.position.x, passenger.position.y, passenger.position.z],
-			"previous_position": [passenger.previous_position.x, passenger.previous_position.y, passenger.previous_position.z],
-			"path": Array(flat), "path_index": passenger.path_index,
-			"offset": [passenger.offset.x, passenger.offset.y, passenger.offset.z],
+			"position": passenger.position, "offset": passenger.offset,
+			"path": passenger.path.slice(passenger.path_index),
 			"color": passenger.color_index, "queued_since": passenger.queued_since,
 			"visit_left": passenger.visit_left, "after_shop": int(passenger.after_shop),
 			"leave_shop_by": passenger.leave_shop_by, "mood": passenger.mood,
@@ -282,7 +275,8 @@ func save_state() -> Dictionary:
 	return {
 		"time": time, "sample_timer": _sample_timer, "departed": departed_count, "missed": missed_count,
 		"arrived": arrived_count, "transferred": transferred_count,
-		"schedule": schedule_data, "passengers": saved_passengers, "stations": saved_stations,
+		"schedule": schedule_data, "passengers": PassengerSave.encode(records, world.grid.size.x),
+		"stations": saved_stations,
 	}
 
 
@@ -297,45 +291,50 @@ func load_state(data: Dictionary, by_id: Dictionary[int, Building]) -> void:
 	arrived_count = int(data.get("arrived", 0))
 	transferred_count = int(data.get("transferred", 0))
 	var flights := schedule.load_state(data.get("schedule", {}), by_id)
-	var saved_passengers: Array = data.get("passengers", [])
+	# Save format 6 packs the passengers; an old list (not converted by SaveGame) is read as well.
+	var saved: Variant = data.get("passengers", {})
+	var width := world.grid.size.x
+	var records: Array[Dictionary] = []
+	if saved is Dictionary:
+		records = PassengerSave.decode(saved)
+		width = int((saved as Dictionary).get("grid_width", width))
+	elif saved is Array:
+		records = PassengerSave.from_v5(saved, world.grid.size, world.grid.cell_size)
 	# Saved index -> loaded passenger (dropped ones are missing).
 	var loaded: Dictionary[int, Passenger] = {}
 	passengers.clear()
-	for i in saved_passengers.size():
-		var entry: Dictionary = saved_passengers[i]
-		var flight: Flight = flights.get(int(entry.get("flight", -1)))
+	for i in records.size():
+		var entry: Dictionary = records[i]
+		var flight: Flight = flights.get(int(entry["flight"]))
 		if flight == null:
 			continue
 		var passenger := Passenger.new()
 		passenger.flight = flight
-		passenger.state = clampi(int(entry.get("state", 0)), 0, Passenger.State.STUCK) as Passenger.State
-		var type_id := StringName(entry.get("type", ""))
-		passenger.type = FlightSchedule.type_by_id(type_id)
-		passenger.is_arriving = bool(entry.get("arriving", false))
-		passenger.is_transfer = bool(entry.get("transfer", false))
-		passenger.by_car = bool(entry.get("by_car", false))
-		passenger.has_bag = bool(entry.get("has_bag", false))
-		passenger.bag_ready_at = float(entry.get("bag_ready_at", 0.0))
-		passenger.goal = int(entry.get("goal", 0)) as Role
-		passenger.target = by_id.get(int(entry.get("target", 0)))
-		passenger.position = _vector(entry.get("position"))
-		passenger.previous_position = _vector(entry.get("previous_position"))
-		var flat: Array = entry.get("path", [])
-		for k in range(0, flat.size() - 2, 3):
-			var point := Vector3(flat[k], flat[k + 1], flat[k + 2]) - passenger.offset
-			var cell := world.grid.world_to_cell(point)
-			passenger.path.append(cell.y * world.grid.size.x + cell.x)
-		passenger.path_index = int(entry.get("path_index", 0))
-		passenger.offset = _vector(entry.get("offset"))
-		passenger.color_index = int(entry.get("color", 0))
-		passenger.queued_since = float(entry.get("queued_since", 0.0))
-		passenger.visit_left = float(entry.get("visit_left", 0.0))
-		passenger.after_shop = int(entry.get("after_shop", Role.GATE)) as Role
-		passenger.leave_shop_by = float(entry.get("leave_shop_by", 0.0))
+		passenger.state = clampi(int(entry["state"]), 0, Passenger.State.STUCK) as Passenger.State
+		passenger.type = FlightSchedule.type_by_id(StringName(entry["type"]))
+		passenger.is_arriving = entry["arriving"]
+		passenger.is_transfer = entry["transfer"]
+		passenger.by_car = entry["by_car"]
+		passenger.has_bag = entry["has_bag"]
+		passenger.bag_ready_at = entry["bag_ready_at"]
+		passenger.goal = int(entry["goal"]) as Role
+		passenger.target = by_id.get(int(entry["target"]))
+		passenger.position = entry["position"]
+		# tick() sets this from the position at the start of every step anyway.
+		passenger.previous_position = passenger.position
+		passenger.offset = entry["offset"]
+		# Only the way still ahead is saved; it starts again from its first cell.
+		passenger.path = PassengerSave.remap_path(entry["path"], width, world.grid.size)
+		passenger.path_index = 0
+		passenger.color_index = int(entry["color"])
+		passenger.queued_since = entry["queued_since"]
+		passenger.visit_left = entry["visit_left"]
+		passenger.after_shop = int(entry["after_shop"]) as Role
+		passenger.leave_shop_by = entry["leave_shop_by"]
 		_restore_journey(passenger)
-		passenger.mood = float(entry.get("mood", 100.0))
-		passenger.walked = float(entry.get("walked", 0.0))
-		passenger.retry_in = float(entry.get("retry_in", 0.0))
+		passenger.mood = entry["mood"]
+		passenger.walked = entry["walked"]
+		passenger.retry_in = entry["retry_in"]
 		loaded[i] = passenger
 		passengers.append(passenger)
 	# Put the passengers back into their queues, counters and waiting rooms.
@@ -372,11 +371,6 @@ func load_state(data: Dictionary, by_id: Dictionary[int, Building]) -> void:
 					_plan(passenger)
 	if not lost.is_empty():
 		_remove(lost)
-
-
-static func _vector(values: Variant) -> Vector3:
-	var list: Array = values if values is Array else [0.0, 0.0, 0.0]
-	return Vector3(float(list[0]), float(list[1]), float(list[2]))
 
 
 func tick(delta: float) -> void:

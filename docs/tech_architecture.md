@@ -147,6 +147,7 @@ The milestone, upgrade and rebuild moment is the core of the game, so the slice 
 
 - **What is saved:** everything needed to continue exactly where the player left off: buildings, staff, money, the clock, the random seed, *and* the flights and passengers that are on their way. **Done** (save version 3, 2026-11-13): passengers (position, path, mood, queue place), flights (phase, delays, planned arrivals) and the schedule's bookkeeping are saved by building ID; a loaded game then runs exactly like the saved one (tested). Not saved: the stations' statistics windows and the money charts (they refill within minutes).
 - **When:** after every change, when the app goes to the background, and a safety save every 30 seconds; each save stores a timestamp. The game writes to a temporary file first and swaps it in, so a crash can't break the save (already working).
+- **Passengers (save version 6, 2026-11-13):** one deflated, base64 block of packed columns (`PassengerSave`), paths as grid cells with the grid width stored, positions at the engine's 32-bit precision and times at 64 bits, so a loaded game continues exactly. About 1,000 passengers take 60 KB instead of 1,030 KB. Version 5 -> 6 converts the old list.
 - **Names, not numbers.** A building type is stored as `security`, not as "type 3". Every building gets a permanent ID, and staff point to that ID, not to a position in a list. Then reordering lists or adding types can't mix up old saves. (Done in save version 2; version 1 saves are converted on load. Version 2 → 3 only adds the in-flight data; older saves start with an empty apron.)
 - **Save migrations.** Every save has a version number. When the format changes, a small converter upgrades old saves one step at a time (version 1 → 2 → 3 …). **A save is never thrown away.** (The prototype starts fresh when the version doesn't match.)
 - **Nothing is lost silently.** If something in an old save can't be restored (e.g. a building that no longer exists), it is refunded, and the player is told.
@@ -229,7 +230,7 @@ From the prototype audit (keep / refactor / rewrite):
 2. The brain as one object (no global) **(done 2026-11-13)**
 3. Saving: names instead of numbers, migrations, flights and passengers included
 4. Automatic zones and areas
-5. Passenger journey as recipes (**5a done**: recipes in `data/journeys/`, passengers carry recipe and step; 5b speed done (heartbeat about halved), 5c save format 6 follows)
+5. Passenger journey as recipes (**5a done**: recipes in `data/journeys/`, passengers carry recipe and step; 5b speed done (heartbeat about halved), 5c done: save format 6, the passengers as one compressed block, about 1,030 KB -> 60 KB with 1,000 passengers)
 6. Daily timetable and growing demand
 7. Electricity
 8. Security upgrade ladder with CT scanners in 3D
