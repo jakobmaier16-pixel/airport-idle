@@ -18,10 +18,14 @@ texture noise, so the build view (top-down) stays readable and the iPhone stays 
 
 - **1 grid cell = 2 m** (landside and terminal). The value lives in one place in code; models are
   built in **real metres** around it, so a 2 × 3 building is 4 m × 6 m.
-- **Airside is compressed** (runways, taxiways, aprons): their footprint follows the grid, but
-  planes, vehicles and people keep real size. Never scale a person or a door to fit.
+- **Real scale everywhere** (decided 2026-11-13): airside too. Planes, vehicles, stands, taxiways
+  and the runway are real size. Never scale anything to fit; if it doesn't fit, the footprint grows.
+- **Two ways to be seen:** the build view shows the *whole* airport from above, so every asset needs
+  a very cheap far version (`_lodfar`: a box, a flat quad or nothing). The manager view loads only
+  the manager's area, where LOD0 is used.
 - Reference sizes: person 1.75 m, door 2.2 m high, ceiling 3.5 m (landside halls 6–8 m),
-  lane width 3.5 m, curb 0.15 m, parking bay 2.5 × 5 m, bus 12 m.
+  lane width 3.5 m, curb 0.15 m, parking bay 2.5 × 5 m, bus 12 m; narrow-body plane ~38 × 36 m,
+  wide-body ~70 × 65 m, taxiway 23 m wide, runway 45 m wide.
 - Blender: units metric, scale 1.0, **+Z up in Blender, exported as glTF +Y up** (default).
   Origin at the **ground centre of the footprint**, facing −Y in Blender (= −Z / "forward" in Godot).
 

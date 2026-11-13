@@ -333,7 +333,7 @@ The details live in `tech_architecture.md` (to write) and `CLAUDE.md`. The princ
 - **Fixed simulation step** (current prototype: 10 steps per second); drawing smooths movement between steps.
 - **Only what the camera sees is drawn in detail:** culling, visibility ranges and level of detail; crowds as instanced figures, simplified when zoomed out.
 - **Content is data, not code:** buildings, airlines, passenger types and upgrade steps live in data files, so balancing needs no code changes.
-- **Compressed scale:** the terminal and landside stay close to real size (current prototype: 1 cell = 2 m, one easy-to-change value); the airside is scaled down so the whole airport fits on one map.
+- **Real scale (decided 2026-11-13, replaces "compressed scale"):** everything is real size, 1 cell = 2 m (one easy-to-change value), also the airside: planes, stands, taxiways and the runway at full length. The map is large and is unlocked piece by piece (§13). The top-down view always shows the whole airport with very cheap far models; the first-person view loads only the area the manager is in, in full detail (§8.3). Starting runway length **(open)**.
 - **Versioned saves:** old saves are upgraded, never silently lost.
 - **Target:** smooth on older iPhones and on iPads, measured against a performance budget (master_plan.md, Phase 1).
 
