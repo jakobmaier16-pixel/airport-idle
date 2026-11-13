@@ -876,6 +876,9 @@ func save_state() -> Dictionary:
 		"progression": progression.save_state(),
 		"goals_hidden": goals.hidden,
 		"clock": clock.game_seconds,
+		"flow": passenger_flow.save_state(),
+		"next_incident_in": _next_incident_in,
+		"next_vip_in": _next_vip_in,
 		"manager": {"x": manager_position.x, "z": manager_position.z, "yaw": manager_yaw} if manager_position != NOBODY_THERE else {},
 		"weather": weather.save_state(),
 		# As text: JSON keeps numbers as decimals, which can't hold a 64-bit dice state exactly.
@@ -982,6 +985,12 @@ func load_state(data: Dictionary) -> int:
 	zones_changed.emit()
 	walkways_changed.emit()
 	layout_changed.emit()
+	_next_incident_in = float(data.get("next_incident_in", _next_incident_in))
+	_next_vip_in = float(data.get("next_vip_in", _next_vip_in))
+	# Flights and passengers on their way (saves before version 3 have none), after the layout
+	# so the stations exist.
+	if data.has("flow"):
+		passenger_flow.load_state(data["flow"], by_saved_id)
 	return skipped
 
 

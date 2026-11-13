@@ -7,7 +7,7 @@ extends Node
 
 ## Bump when the save format changes in a way older code can't read, and add a converter to
 ## `migrations` for the old version (tech_architecture.md §13). Keep every old converter.
-const FORMAT_VERSION: int = 2
+const FORMAT_VERSION: int = 3
 ## Wait this long after a change before saving, so a burst of changes is saved once.
 const SAVE_DELAY: float = 1.0
 ## Money and the running airport are also saved this often while playing (seconds).
@@ -93,7 +93,8 @@ func save_now() -> void:
 	if file == null:
 		push_error("Could not write save game: %s" % error_string(FileAccess.get_open_error()))
 		return
-	file.store_string(JSON.stringify(data))
+	# Full precision: the default writes ~14 digits, which would nudge times and money at every load.
+	file.store_string(JSON.stringify(data, "", true, true))
 	file.close()
 	DirAccess.rename_absolute(ProjectSettings.globalize_path(temp_path), ProjectSettings.globalize_path(save_path))
 
@@ -146,7 +147,7 @@ func migrate(data: Dictionary) -> Dictionary:
 
 ## The converters this build ships (tests put them back after swapping in their own).
 func default_migrations() -> Dictionary[int, Callable]:
-	return {1: _v1_to_v2}
+	return {1: _v1_to_v2, 2: _v2_to_v3}
 
 
 ## Version 1 -> 2: buildings get permanent IDs (their old list position + 1) and staff point to
@@ -161,6 +162,12 @@ func _v1_to_v2(data: Dictionary) -> Dictionary:
 			var index := int(entry.get("building", -1))
 			entry["building_id"] = index + 1 if index >= 0 and index < buildings.size() else 0
 			entry.erase("building")
+	return data
+
+
+## Version 2 -> 3: flights and passengers on their way are saved (key "flow"). An older save has
+## none: it starts with an empty apron, as every load did before. Nothing to convert.
+func _v2_to_v3(data: Dictionary) -> Dictionary:
 	return data
 
 

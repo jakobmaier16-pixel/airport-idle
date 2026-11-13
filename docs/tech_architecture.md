@@ -33,7 +33,7 @@ The game is split into three parts that are kept strictly apart:
 ## 3. The brain's heartbeat
 
 - **10 heartbeats per second.** The brain thinks in fixed steps, whatever the screen does. The drawing smooths movement between two heartbeats. (Already working in the prototype.)
-- **One clock** for everything. The prototype has two (time of day, and a passenger timer that restarts at every load); they become one. One real second is 15 game seconds; a new airport opens at 06:00 on day 1.
+- **One clock** for everything. The prototype has two (time of day, and a passenger timer that restarts at every load); they become one (**follow-up**: today the passenger timer is saved with the game, so timing survives a load; merging it into the clock is not needed for that). One real second is 15 game seconds; a new airport opens at 06:00 on day 1.
 - **Dice with a seed.** All randomness (passenger types, arrival times, names) comes from one random generator that starts from a number, the *seed*. The same seed gives exactly the same game, so a bug can be replayed and tests always behave the same. The seed is saved with the game.
   - **Done** (2026-11-06): today the dice live in the global airport object (`Airport.rng`) and are shared with every part of the brain; every test runs with its own fixed seed.
   - **When the brain becomes one object, the shared dice move with it:** the brain object owns them, every part of the brain gets them from the brain, and they are saved with it. Nothing may keep its own dice or fall back to the global ones.
@@ -145,9 +145,9 @@ The milestone, upgrade and rebuild moment is the core of the game, so the slice 
 
 ## 13. Saving
 
-- **What is saved:** everything needed to continue exactly where the player left off: buildings, staff, money, the clock, the random seed, *and* the flights and passengers that are on their way. (The prototype loses flights and passengers at every load.)
+- **What is saved:** everything needed to continue exactly where the player left off: buildings, staff, money, the clock, the random seed, *and* the flights and passengers that are on their way. **Done** (save version 3, 2026-11-13): passengers (position, path, mood, queue place), flights (phase, delays, planned arrivals) and the schedule's bookkeeping are saved by building ID; a loaded game then runs exactly like the saved one (tested). Not saved: the stations' statistics windows and the money charts (they refill within minutes).
 - **When:** after every change, when the app goes to the background, and a safety save every 30 seconds; each save stores a timestamp. The game writes to a temporary file first and swaps it in, so a crash can't break the save (already working).
-- **Names, not numbers.** A building type is stored as `security`, not as "type 3". Every building gets a permanent ID, and staff point to that ID, not to a position in a list. Then reordering lists or adding types can't mix up old saves. (Done in save version 2; version 1 saves are converted on load.)
+- **Names, not numbers.** A building type is stored as `security`, not as "type 3". Every building gets a permanent ID, and staff point to that ID, not to a position in a list. Then reordering lists or adding types can't mix up old saves. (Done in save version 2; version 1 saves are converted on load. Version 2 → 3 only adds the in-flight data; older saves start with an empty apron.)
 - **Save migrations.** Every save has a version number. When the format changes, a small converter upgrades old saves one step at a time (version 1 → 2 → 3 …). **A save is never thrown away.** (The prototype starts fresh when the version doesn't match.)
 - **Nothing is lost silently.** If something in an old save can't be restored (e.g. a building that no longer exists), it is refunded, and the player is told.
 - **Offline income** is worked out from the timestamp: after 36 hours or more away, 4 hours of the average profit of the last ~10 minutes.
