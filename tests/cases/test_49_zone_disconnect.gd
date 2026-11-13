@@ -77,14 +77,30 @@ func test_demolishing_security_with_passengers_airside() -> void:
 	var rotation := security.rotation_steps
 	Airport.demolish(security)
 	sim_seconds(2400)
-	# Departing passengers go home when their flight is cancelled. (Arriving passengers who had
-	# just left a plane when the gates were cut off wait for the way to be restored: that depends
-	# on where the planes happen to be, so they are not counted here.)
-	var stuck_leaving := Airport.passenger_flow.passengers.filter(func(p: Passenger) -> bool: return p.state == Passenger.State.STUCK and not p.is_arriving)
-	check_eq(stuck_leaving.size(), 0, "nobody stays stuck for good")
+	# Departing passengers go home when their flight is cancelled; arriving passengers whose plane
+	# is gone and who have no way out are sent home too.
+	var stuck := Airport.passenger_flow.passengers.filter(func(p: Passenger) -> bool: return p.state == Passenger.State.STUCK)
+	check_eq(stuck.size(), 0, "nobody stays stuck for good")
 	var rebuilt := Airport.place_building(type, origin, rotation)
 	check(rebuilt != null, "security rebuilt")
 	Airport.staff_fully(rebuilt)
 	var departed := flow.departed_count
 	sim_seconds(1200)
 	check(flow.departed_count > departed, "flow is restored: %d -> %d departures" % [departed, flow.departed_count])
+
+
+func test_arrivals_of_a_cancelled_flight_are_not_stranded() -> void:
+	# Planes are being unloaded around then; cutting the airside off cancels their flights while
+	# passengers are still getting off (before the fix some of them stayed stuck for good). Several
+	# moments, so the check doesn't depend on where one seed puts the planes.
+	var flow: PassengerFlow
+	for wait in [30.0, 60.0, 90.0, 120.0]:
+		ShowcaseAirport.build(300.0)
+		flow = Airport.passenger_flow
+		sim_seconds(wait)
+		Airport.demolish(_security())
+		sim_seconds(900)
+		var stranded := flow.passengers.filter(func(p: Passenger) -> bool: return p.is_arriving and p.state == Passenger.State.STUCK)
+		check_eq(stranded.size(), 0, "nobody who got off a cancelled plane stays stuck (after %d s)" % int(wait))
+		var left_over := flow.passengers.filter(func(p: Passenger) -> bool: return p.is_arriving and p.flight != null and not p.flight.is_active())
+		check_eq(left_over.size(), 0, "no arriving passenger of a gone plane is left (after %d s)" % int(wait))
