@@ -12,6 +12,8 @@ sys.dont_write_bytecode = True  # no __pycache__ in art/
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
 import landside_kit as K  # noqa: E402
 
+PERSON_COLOURS = {"person_coat_red": "#8E3B32", "person_coat_beige": "#B8A68A",
+                  "person_coat_blue": "#3D5873", "person_coat_grey": "#7D8287"}
 CAR_COLOURS = {"car_silver": "#9A9EA2", "car_anthracite": "#33373B", "car_ivory": "#D9D6CC"}
 
 
@@ -20,7 +22,10 @@ def make_materials() -> dict:
     mats["car_window"] = K.flat("car_window", "#1C2226", 0.1)
     mats["car_tyre"] = K.flat("car_tyre", "#1E1E1E", 0.8)
     mats["bus_white"] = K.flat("bus_white", "#D8DADA", 0.4)
-    mats["person"] = K.flat("person", "#4A4F57", 0.7)
+    for n, h in PERSON_COLOURS.items():
+        mats[n] = K.flat(n, h, 0.8)
+    mats["person_legs"] = K.flat("person_legs", "#2B2E33", 0.8)
+    mats["person_skin"] = K.flat("person_skin", "#B89A84", 0.6)
     return mats
 
 
@@ -69,13 +74,14 @@ def bus() -> K.MB:
     return mb
 
 
-def person() -> K.MB:
+def person(coat: str) -> K.MB:
+    """1.75 m figure: two legs, torso, arms, head (reads as a person, not a post)."""
     mb = K.MB()
-    n = 6
-    ring = [(0.2 * math.cos(2 * math.pi * i / n), 0.14 * math.sin(2 * math.pi * i / n)) for i in range(n)]
-    for i in range(n):
-        a, b = ring[i], ring[(i + 1) % n]
-        mb.face([(*a, 0.0), (*b, 0.0), (*b, 1.48), (*a, 1.48)], [(0, 0)] * 4, "person")
-    mb.face([(*p, 1.48) for p in ring], [(0, 0)] * n, "person")
-    K.box(mb, -0.1, -0.11, 1.48, 0.1, 0.11, 1.75, "person")
+    for x in (-0.11, 0.03):
+        K.box(mb, x, -0.08, 0.0, x + 0.08, 0.06, 0.85, "person_legs")
+    K.box(mb, -0.2, -0.11, 0.85, 0.2, 0.11, 1.45, coat)
+    for x in (-0.27, 0.2):
+        K.box(mb, x, -0.06, 0.8, x + 0.07, 0.06, 1.42, coat)
+    K.box(mb, -0.05, -0.05, 1.45, 0.05, 0.05, 1.52, "person_skin")
+    K.box(mb, -0.1, -0.11, 1.52, 0.1, 0.1, 1.75, "person_skin")
     return mb
