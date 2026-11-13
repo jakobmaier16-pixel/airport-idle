@@ -5,12 +5,12 @@ extends TestCase
 func test_route_messages_guide_the_player() -> void:
 	var flow := Airport.passenger_flow
 	check(flow.status_text().contains("build an entrance"), "empty map")
-	Airport.paint_walkway(cells(Vector2i(18, 21), Vector2i(28, 7)), true)
-	Airport.place_building(type_of(&"entrance"), Vector2i(30, 19), 0)
+	Airport.paint_walkway(cells(at(Vector2i(18, 21)), Vector2i(28, 7)), true)
+	Airport.place_building(type_of(&"entrance"), at(Vector2i(30, 19)), 0)
 	check(flow.status_text().contains("check-in"), "after entrance: %s" % flow.status_text())
-	Airport.place_building(type_of(&"check_in"), Vector2i(20, 22), 2)
+	Airport.place_building(type_of(&"check_in"), at(Vector2i(20, 22)), 2)
 	check(flow.status_text().contains("security"), "after check-in: %s" % flow.status_text())
-	Airport.place_building(type_of(&"security"), Vector2i(30, 28), 0)
+	Airport.place_building(type_of(&"security"), at(Vector2i(30, 28)), 0)
 	check(flow.status_text().contains("gate"), "after security: %s" % flow.status_text())
 
 
@@ -54,10 +54,10 @@ func test_queues_form_at_busy_security() -> void:
 func test_recovers_after_walkway_cut() -> void:
 	build_reference_airport()
 	sim_seconds(120)
-	Airport.paint_walkway(cells(Vector2i(10, 31), Vector2i(44, 3)), false)
+	Airport.paint_walkway(cells(at(Vector2i(10, 31)), Vector2i(44, 3)), false)
 	check(not Airport.passenger_flow.route_problem.is_empty(), "route broken without the airside walkway")
 	sim_seconds(10)
-	Airport.paint_walkway(cells(Vector2i(10, 31), Vector2i(44, 3)), true)
+	Airport.paint_walkway(cells(at(Vector2i(10, 31)), Vector2i(44, 3)), true)
 	sim_seconds(30)
 	var stuck := Airport.passenger_flow.passengers.filter(func(p: Passenger) -> bool: return p.state == Passenger.State.STUCK)
 	check_eq(stuck.size(), 0, "nobody stuck once the walkway is back")

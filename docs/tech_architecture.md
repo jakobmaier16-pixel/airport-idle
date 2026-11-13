@@ -47,6 +47,7 @@ The game is split into three parts that are kept strictly apart:
 ## 4. Map, buildings, automatic zones and areas
 
 - **One grid map, real scale** (decided 2026-11-13). Everything is real size, also the airside (1 cell = 2 m, one value that is easy to change). The map is large (a full-length runway alone is ~1,250 cells), so the top-down view draws the whole airport with very cheap far models, and the first-person view loads only the manager's area in full detail.
+  **Anchoring (PR 6A):** showcase, tests and the behaviour hash do not use absolute cells. Layouts are written in cells of a 64 × 64 reference map and moved to the same spot relative to the map centre by `MapAnchor` (`scripts/simulation/map_anchor.gd`); `BehaviourHash` moves cells back the same way and ignores the map size, so the hash is the same on every map size.
 - **Buildings** come from a catalog in data files (§13): size, price, which sides passengers use, what the building does.
 - **Automatic zones.** After every change, the brain "walks" from the entrance along all walkways. Everything it reaches without passing security is **landside**; everything behind security is **departures airside**. The player never paints zones.
 - **Areas.** Connected walkways of the same zone get a name ("Check-in Hall", "Security", "Gates"). The statistics are grouped by area, and the first-person view draws the area the manager is in in full detail.

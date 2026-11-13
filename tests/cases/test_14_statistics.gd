@@ -21,7 +21,7 @@ func test_stations_record_queue_and_wait() -> void:
 
 
 func test_old_waits_are_forgotten() -> void:
-	var building := Airport.place_building(type_of(&"check_in"), Vector2i(10, 10), 0)
+	var building := Airport.place_building(type_of(&"check_in"), at(Vector2i(10, 10)), 0)
 	var station := Station.new(building)
 	station.record_wait(0.0, 30.0)
 	check_eq(station.average_wait(10.0), 30.0, "recent wait counts")

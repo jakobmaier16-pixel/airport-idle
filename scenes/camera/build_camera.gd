@@ -10,12 +10,19 @@ extends Camera3D
 ## (directional_shadow_max_distance on the Sun node), or shadows get blurry and unstable.
 const HEIGHT_ABOVE_GROUND: float = 40.0
 
-## How many meters of the map are visible vertically when the build view first opens.
-@export var view_height: float = 50.0
+## How many meters of the map are visible vertically when the build view first opens: about 250 m
+## around the terminal (the view opens above the manager).
+@export var view_height: float = 250.0
 ## Closest zoom: visible height in meters.
 @export var min_view_height: float = 16.0
-## Farthest zoom: visible height in meters. Also limited so the view never shows more than the map.
-@export var max_view_height: float = 100.0
+## Farthest zoom: visible height in meters: the whole map (3.2 km high). The camera shows the whole
+## map at once, so the view never needs to be bigger than that.
+@export var max_view_height: float = 3200.0
+## Zoomed out further than this many meters, the sun's shadows are switched off: one shadow map
+## cannot cover a kilometre sharply, and it costs frame time for nothing.
+@export var shadows_max_view_height: float = 400.0
+## The sun whose shadows are switched off when zoomed far out.
+@export var sun: DirectionalLight3D
 ## Keyboard panning speed (Mac testing), in screen heights per second.
 @export var key_pan_speed: float = 0.8
 
@@ -46,6 +53,13 @@ func _process(delta: float) -> void:
 		position.x += step.x
 		position.z += step.y
 		_apply_limits()
+
+
+## Shadows on in the manager view and when zoomed in, off in the build view when zoomed far out.
+## Main calls it after every view switch.
+func update_shadows() -> void:
+	if sun != null:
+		sun.shadow_enabled = not current or view_height <= shadows_max_view_height
 
 
 ## Moves the view so `world_position` is in the center (as far as the map edges allow).
@@ -87,9 +101,11 @@ func _apply_limits() -> void:
 	var aspect := viewport_size.x / viewport_size.y
 	var map := Airport.grid.get_world_rect()
 
-	var largest := minf(max_view_height, minf(map.size.y, map.size.x / aspect))
+	# The farthest zoom shows the whole map: its height, or on a wide screen its width.
+	var largest := minf(max_view_height, maxf(map.size.y, map.size.x / aspect))
 	view_height = clampf(view_height, min_view_height, maxf(largest, min_view_height))
 	size = view_height  # Orthographic size = visible height in meters.
+	update_shadows()
 
 	var half_view := Vector2(view_height * aspect, view_height) * 0.5
 	position.x = _clamp_axis(position.x, map.position.x + half_view.x, map.end.x - half_view.x)

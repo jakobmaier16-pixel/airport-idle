@@ -10,11 +10,21 @@ func _make_excellent() -> void:
 
 func test_regional_airport_owns_the_middle() -> void:
 	check_eq(Airport.progression.tier, Progression.Tier.REGIONAL, "a new airport is regional")
-	check_eq(Airport.progression.owned_land(Airport.grid.size), Rect2i(8, 8, 48, 56), "the middle columns, down to the runway")
-	check_eq(Airport.check_placement(type_of(&"check_in"), Vector2i(2, 2), 0), "Not your land yet (National airport)", "no building outside")
-	Airport.paint_walkway(cells(Vector2i(0, 20), Vector2i(12, 1)), true)
-	check(not Airport.grid.is_walkway(Vector2i(3, 20)), "no painting outside")
-	check(Airport.grid.is_walkway(Vector2i(9, 20)), "painting inside works")
+	var land := Airport.progression.owned_land(Airport.grid.size)
+	check_eq(land, Progression.STARTING_LAND, "the starting land (one named constant)")
+	check_eq(land.position % 200, Vector2i.ZERO, "aligned to the 200-cell land grid")
+	check_eq(land.size % 200, Vector2i.ZERO, "a whole number of land pieces")
+	var map := Rect2i(Vector2i.ZERO, Airport.grid.size)
+	check(map.encloses(land), "inside the map")
+	check(absi(land.get_center().x - map.get_center().x) <= 200, "about centred horizontally (within one land piece)")
+	check(land.has_point(MapAnchor.from_centre(Vector2i.ZERO, Airport.grid.size)), "the map centre is owned")
+	check(land.has_point(at(Vector2i(30, 56))), "the land reaches down to the runway")
+	var outside := land.position - Vector2i(2, 2)
+	check_eq(Airport.check_placement(type_of(&"check_in"), outside, 0), "Not your land yet (National airport)", "no building outside")
+	var row := land.position + Vector2i(-4, 20)
+	Airport.paint_walkway(cells(row, Vector2i(12, 1)), true)
+	check(not Airport.grid.is_walkway(row + Vector2i(3, 0)), "no painting outside")
+	check(Airport.grid.is_walkway(row + Vector2i(9, 0)), "painting inside works")
 
 
 func test_reaching_national() -> void:
@@ -30,7 +40,7 @@ func test_reaching_national() -> void:
 	sim_seconds(0.2)
 	check_eq(progression.tier, Progression.Tier.NATIONAL, "national with enough passengers and 3 stars")
 	check_eq(reached, [Progression.Tier.NATIONAL] as Array[Progression.Tier], "milestone sent once")
-	check(Airport.check_placement(type_of(&"check_in"), Vector2i(2, 2), 0) != "Not your land yet (National airport)", "new land")
+	check(Airport.check_placement(type_of(&"check_in"), Progression.STARTING_LAND.position - Vector2i(2, 2), 0) != "Not your land yet (National airport)", "new land")
 	check(Airport.airlines.find_signed(Airlines.CATALOG.find(&"norvane")) != null \
 		or Airport.airlines.offers.any(func(o: AirlineOffer) -> bool: return o.type.id == &"norvane"), "a major airline makes an offer")
 
@@ -110,11 +120,17 @@ func test_ground_shows_owned_land() -> void:
 	await start_game()
 	var material := (main.get_node("Ground/MeshInstance3D") as MeshInstance3D).mesh.surface_get_material(0) as ShaderMaterial
 	var rect: Vector4 = material.get_shader_parameter(&"owned_rect")
-	check_eq(rect, Vector4(-48.0, -48.0, 48.0, 64.0), "regional land shaded")
+	var grid := Airport.grid
+	var land := Progression.STARTING_LAND
+	var corner := Vector2(grid.origin.x, grid.origin.z)
+	var from := corner + Vector2(land.position) * grid.cell_size
+	var to := corner + Vector2(land.end) * grid.cell_size
+	check_eq(rect, Vector4(from.x, from.y, to.x, to.y), "regional land shaded")
 	Airport.progression.tier = Progression.Tier.NATIONAL
 	Airport.land_changed.emit()
 	rect = material.get_shader_parameter(&"owned_rect")
-	check_eq(rect, Vector4(-64.0, -64.0, 64.0, 64.0), "the whole map after National")
+	var world := grid.get_world_rect()
+	check_eq(rect, Vector4(world.position.x, world.position.y, world.end.x, world.end.y), "the whole map after National")
 
 
 func test_progression_saved_and_old_buildings_kept() -> void:

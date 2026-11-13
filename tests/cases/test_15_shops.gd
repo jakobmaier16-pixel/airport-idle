@@ -54,7 +54,7 @@ func test_landside_cafe_gets_customers_before_security() -> void:
 		type.shop_chance = 1.0 / PassengerFlow.DEPARTURE.step_at(1).detour_chance_factor
 	ShowcaseAirport.build(0.0)
 	# A café in the landside hall (rows 21..27), front facing the hall.
-	var cafe := Airport.place_building(type_of(&"cafe"), Vector2i(26, 24), 2)
+	var cafe := Airport.place_building(type_of(&"cafe"), at(Vector2i(26, 24)), 2)
 	check(cafe != null, "café placed landside")
 	var station := Airport.passenger_flow.station_for(cafe)
 	var visited := false
@@ -71,10 +71,10 @@ func test_landside_cafe_gets_customers_before_security() -> void:
 
 
 func test_zone_rules_for_shops() -> void:
-	check_eq(Airport.check_placement(type_of(&"shop"), Vector2i(10, 10), 0), "", "a shop can be placed anywhere")
-	check_eq(Airport.check_placement(type_of(&"cafe"), Vector2i(10, 10), 0), "", "café allowed landside")
-	check_eq(Airport.check_placement(type_of(&"cafe"), Vector2i(10, 40), 0), "", "café allowed airside")
-	check_eq(Airport.connection_problem(type_of(&"shop"), Vector2i(10, 40), 0), "Needs a walkway in front", "shops need a walkway in front")
+	check_eq(Airport.check_placement(type_of(&"shop"), at(Vector2i(10, 10)), 0), "", "a shop can be placed anywhere")
+	check_eq(Airport.check_placement(type_of(&"cafe"), at(Vector2i(10, 10)), 0), "", "café allowed landside")
+	check_eq(Airport.check_placement(type_of(&"cafe"), at(Vector2i(10, 40)), 0), "", "café allowed airside")
+	check_eq(Airport.connection_problem(type_of(&"shop"), at(Vector2i(10, 40)), 0), "Needs a walkway in front", "shops need a walkway in front")
 
 
 func test_shop_panel_and_stats() -> void:

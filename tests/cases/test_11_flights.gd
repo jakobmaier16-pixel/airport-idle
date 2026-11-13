@@ -101,7 +101,7 @@ func test_unusable_gate_cancels_its_flight() -> void:
 	var flow := Airport.passenger_flow
 	var missed_before := flow.missed_count
 	# Remove the walkway in front of gate 1 (gate at x 14..18, front row y 33).
-	Airport.paint_walkway(cells(Vector2i(14, 33), Vector2i(5, 1)), false)
+	Airport.paint_walkway(cells(at(Vector2i(14, 33)), Vector2i(5, 1)), false)
 	sim_seconds(1)
 	check_eq(flight.phase, Flight.Phase.CANCELLED, "flight at the unusable gate is cancelled")
 	check_eq(flow.passengers.filter(func(p: Passenger) -> bool: return p.flight == flight).size(), 0, "its passengers left")

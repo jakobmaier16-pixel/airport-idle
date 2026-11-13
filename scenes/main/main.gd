@@ -233,6 +233,7 @@ func _set_view(view: View) -> void:
 		_build_camera.make_current()
 	else:
 		_manager_camera.make_current()
+	_build_camera.update_shadows()
 
 	_manager.input_enabled = not building
 	_hud.joystick.enabled = not building

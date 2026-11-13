@@ -32,8 +32,8 @@ signal plane_arriving(flight: Flight)
 ## Grid cell size in meters. Terminal and landside are near-realistic at this scale; airside is
 ## scaled down (design doc §7.1). Change it only here: the ground and all tools derive from it.
 const CELL_SIZE: float = 2.0
-## Map size in cells: 64 x 64 cells = 128 x 128 m (design doc §7.1).
-const MAP_SIZE_CELLS: Vector2i = Vector2i(64, 64)
+## Map size in cells: 2,200 x 1,600 cells = 4.4 x 3.2 km (design doc §16, real scale).
+const MAP_SIZE_CELLS: Vector2i = Vector2i(2200, 1600)
 ## Every building type in the game.
 const CATALOG: BuildingCatalog = preload("res://data/buildings/catalog.tres")
 ## Salary per minute for the stations that need staff (design doc §9.1).
@@ -900,12 +900,13 @@ func cell_shift_from(saved_size: Vector2i) -> Vector2i:
 	return (grid.size - saved_size) / 2
 
 
-# The map size of a save (this map's size if the save doesn't say).
+# The map size of a save (the old 64 x 64 map if the save doesn't say: every save made before
+# the map size was stored came from it).
 func _saved_map_size(data: Dictionary) -> Vector2i:
 	var saved: Variant = data.get("map_size", [])
 	if saved is Array and (saved as Array).size() == 2 and int(saved[0]) > 0 and int(saved[1]) > 0:
 		return Vector2i(int(saved[0]), int(saved[1]))
-	return grid.size
+	return MapAnchor.REFERENCE_SIZE
 
 
 # Walkways and taxiways of a save (chunk lists, GridSave), moved by `shift` cells. Cells that don't
@@ -982,8 +983,9 @@ func _stand_reaches_runway(type: BuildingType, origin_cell: Vector2i, rotation_s
 	return plane_network.reaches_runway(paved)
 
 
-## The runway every new airport starts with (design doc §7.5a): along the south edge.
-const DEFAULT_RUNWAY_ORIGIN: Vector2i = Vector2i(6, 57)
+## The runway every new airport starts with (design doc §7.5a), as an offset in cells from the map
+## centre to the runway's origin cell; it lies in the south part of the starting land.
+const DEFAULT_RUNWAY_ORIGIN: Vector2i = Vector2i(-26, 25)
 
 
 ## Where the manager starts (first person, design doc §15): where they were when the game was
@@ -1009,7 +1011,7 @@ func manager_start() -> Array:
 ## Lays the runway a new airport starts with, on airside (design doc §7.5a).
 func add_starting_runway() -> void:
 	var type := CATALOG.find(&"runway")
-	place_building(type, DEFAULT_RUNWAY_ORIGIN + (grid.size - MAP_SIZE_CELLS) / 2, 0, false)
+	place_building(type, MapAnchor.centre_of(grid.size) + DEFAULT_RUNWAY_ORIGIN, 0, false)
 
 
 func _is_aircraft_stand(cell: Vector2i) -> bool:

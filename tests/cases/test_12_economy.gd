@@ -6,7 +6,7 @@ func test_starting_money_and_construction_cost() -> void:
 	check_eq(Airport.economy.balance, Economy.STARTING_MONEY, "start with €50,000")
 	await start_game()
 	await open_build_view()
-	check(await place("Check-in", Vector2i(30, 20)), "check-in placed")
+	check(await place("Check-in", at(Vector2i(30, 20))), "check-in placed")
 	check_eq(Airport.economy.balance, Economy.STARTING_MONEY - 3000.0, "check-in cost €3,000")
 	check_eq(Economy.format(Airport.economy.balance), "€47,000", "formatted balance")
 
@@ -16,12 +16,12 @@ func test_price_shown_while_placing() -> void:
 	await open_build_view()
 	await pick_building("Security")  # Security
 	var hint := (ui("ToolPanel/HintLabel") as Label).text
-	build_mode()._set_preview_origin(Vector2i(20, 20))
+	build_mode()._set_preview_origin(at(Vector2i(20, 20)))
 	hint = (ui("ToolPanel/HintLabel") as Label).text
 	check(hint.contains("€") or hint.begins_with("Front must"), "hint names the price or the problem: '%s'" % hint)
 	await press(ui("ToolPanel/ToolBar/CancelButton"))
 	await pick_building("Check-in")  # Check-in on landside: allowed
-	build_mode()._set_preview_origin(Vector2i(20, 20))
+	build_mode()._set_preview_origin(at(Vector2i(20, 20)))
 	hint = (ui("ToolPanel/HintLabel") as Label).text
 	check(hint.ends_with("€3,000"), "valid spot shows the price: '%s'" % hint)
 
@@ -31,7 +31,7 @@ func test_not_enough_money_blocks_placing() -> void:
 	await start_game()
 	await open_build_view()
 	await pick_building("Check-in")  # Check-in, €3,000
-	build_mode()._set_preview_origin(Vector2i(30, 20))
+	build_mode()._set_preview_origin(at(Vector2i(30, 20)))
 	var place_button := ui("ToolPanel/ToolBar/PlaceButton") as Button
 	check(place_button.disabled, "Place disabled without enough money")
 	check_eq((ui("ToolPanel/HintLabel") as Label).text, "Not enough money (€3,000)", "hint")
@@ -43,9 +43,9 @@ func test_not_enough_money_blocks_placing() -> void:
 func test_walkway_costs_per_cell_and_removal_is_free() -> void:
 	await start_game()
 	await open_build_view()
-	await paint("WalkwayButton", Vector2i(28, 28), Vector2i(32, 29))  # 10 cells
+	await paint("WalkwayButton", at(Vector2i(28, 28)), at(Vector2i(32, 29)))  # 10 cells
 	check_eq(Airport.economy.balance, Economy.STARTING_MONEY - 200.0, "10 cells x €20")
-	await paint("RemoveButton", Vector2i(28, 28), Vector2i(32, 29))
+	await paint("RemoveButton", at(Vector2i(28, 28)), at(Vector2i(32, 29)))
 	check_eq(Airport.economy.balance, Economy.STARTING_MONEY - 200.0, "removing is free, no refund")
 
 
@@ -54,7 +54,7 @@ func test_walkway_too_expensive_paints_nothing() -> void:
 	await start_game()
 	await open_build_view()
 	await press(ui("BuildMenu/PaintButtons/WalkwayButton"))
-	drag(screen_of_cell(Vector2i(28, 28)), screen_of_cell(Vector2i(32, 29)))  # 10 cells = €200
+	drag(screen_of_cell(at(Vector2i(28, 28))), screen_of_cell(at(Vector2i(32, 29))))  # 10 cells = €200
 	var hint := (ui("ToolPanel/HintLabel") as Label).text
 	check_eq(hint, "Not enough money (€200 for 10 cells)", "hint")
 	var walkway := 0
@@ -65,7 +65,7 @@ func test_walkway_too_expensive_paints_nothing() -> void:
 
 
 func test_running_costs() -> void:
-	Airport.place_building(type_of(&"check_in"), Vector2i(10, 10), 0)
+	Airport.place_building(type_of(&"check_in"), at(Vector2i(10, 10)), 0)
 	var after_building := Airport.economy.balance
 	check_eq(Airport.running_cost_per_minute(), 6.0, "one check-in building costs €6 per minute")
 	Airport.hire(Airport.buildings[0])

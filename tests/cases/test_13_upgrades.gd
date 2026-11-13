@@ -10,7 +10,7 @@ func _building(id: StringName) -> Building:
 
 
 func test_small_upgrade_is_instant() -> void:
-	var check_in := Airport.place_building(type_of(&"check_in"), Vector2i(10, 10), 0)
+	var check_in := Airport.place_building(type_of(&"check_in"), at(Vector2i(10, 10)), 0)
 	var balance := Airport.economy.balance
 	check_eq(check_in.service_slots(), 3, "3 counters at level 1")
 	check(Airport.start_upgrade(check_in), "upgrade started")
@@ -22,7 +22,7 @@ func test_small_upgrade_is_instant() -> void:
 
 func test_big_upgrade_takes_time() -> void:
 	# Security must sit on the border: landside in front (row 9), airside behind (row 13).
-	var security := Airport.place_building(type_of(&"security"), Vector2i(10, 10), 0)
+	var security := Airport.place_building(type_of(&"security"), at(Vector2i(10, 10)), 0)
 	check(security != null, "security placed on the border")
 	security.level = 2
 	check_eq(security.service_time(), 6.0, "6 s per passenger before")
@@ -39,7 +39,7 @@ func test_big_upgrade_takes_time() -> void:
 
 
 func test_upgrade_needs_money() -> void:
-	var check_in := Airport.place_building(type_of(&"check_in"), Vector2i(10, 10), 0)
+	var check_in := Airport.place_building(type_of(&"check_in"), at(Vector2i(10, 10)), 0)
 	Airport.economy.balance = 1000.0
 	check_eq(Airport.upgrade_problem(check_in), "Not enough money (€2,500)", "hint")
 	check(not Airport.start_upgrade(check_in), "no upgrade without money")
@@ -47,7 +47,7 @@ func test_upgrade_needs_money() -> void:
 
 
 func test_gates_have_no_upgrades_yet() -> void:
-	var gate := Airport.place_building(type_of(&"gate"), Vector2i(10, 40), 0)
+	var gate := Airport.place_building(type_of(&"gate"), at(Vector2i(10, 40)), 0)
 	check_eq(Airport.upgrade_problem(gate), "No upgrades for this building yet", "gate")
 
 
@@ -80,7 +80,7 @@ func test_tap_station_opens_panel_and_upgrades() -> void:
 	security.level = 2  # the showcase's security is fully upgraded; one step back for this test
 	await start_game()
 	# Stand south of security on the airside walkway, looking at it.
-	await stand_and_look(Vector2i(32, 33), security)
+	await stand_and_look(at(Vector2i(32, 33)), security)
 	var center := Airport.grid.block_center(security.origin_cell, Vector2i(5, 3)) + Vector3(0.0, 1.5, 0.0)
 	# Like a real finger: the tap wobbles a little before it is lifted.
 	var at := manager_camera().unproject_position(center)
@@ -102,7 +102,7 @@ func test_tap_station_opens_panel_and_upgrades() -> void:
 	check(button.disabled, "button disabled while building")
 
 	# Tapping empty ground closes the panel.
-	tap(manager_camera().unproject_position(Airport.grid.cell_to_world(Vector2i(39, 32))))
+	tap(manager_camera().unproject_position(Airport.grid.cell_to_world(at(Vector2i(39, 32)))))
 	await frames(1)
 	check(not ui("StationPanel").visible, "tapping elsewhere closes the panel")
 
@@ -128,7 +128,7 @@ func test_station_found_on_screen_without_physics() -> void:
 	ShowcaseAirport.build(0.0)
 	await start_game()
 	var security := _building(&"security")
-	await stand_and_look(Vector2i(32, 33), security)
+	await stand_and_look(at(Vector2i(32, 33)), security)
 	var center := Airport.grid.block_center(security.origin_cell, Vector2i(5, 3)) + Vector3(0.0, 1.0, 0.0)
 	check(main._station_on_screen(manager_camera().unproject_position(center)) == security, "found by its box on screen")
 	check(main._station_on_screen(Vector2(5, 5)) == null, "nothing in the corner of the screen")
@@ -138,7 +138,7 @@ func test_tap_report_line() -> void:
 	ShowcaseAirport.build(0.0)
 	await start_game()
 	var security := _building(&"security")
-	await stand_and_look(Vector2i(32, 33), security)
+	await stand_and_look(at(Vector2i(32, 33)), security)
 	tap(manager_camera().unproject_position(Airport.grid.block_center(security.origin_cell, Vector2i(5, 3)) + Vector3(0.0, 1.5, 0.0)))
 	await frames(1)
 	var feedback := hud().get_node("TapFeedback") as TapFeedback

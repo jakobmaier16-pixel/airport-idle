@@ -19,9 +19,9 @@ func _flights_planned(seconds: float) -> Array[Flight]:
 
 func test_wide_body_stand_unlocks_at_international() -> void:
 	var type := type_of(&"wide_body_stand")
-	check_eq(Airport.check_placement(type, Vector2i(20, 36), 0), "Unlocked at International airport", "not before International")
+	check_eq(Airport.check_placement(type, at(Vector2i(20, 36)), 0), "Unlocked at International airport", "not before International")
 	Airport.progression.tier = Progression.Tier.INTERNATIONAL
-	check_eq(Airport.check_placement(type, Vector2i(20, 36), 0), "", "then it can be built")
+	check_eq(Airport.check_placement(type, at(Vector2i(20, 36)), 0), "", "then it can be built")
 
 
 func test_long_haul_flies_from_the_wide_body_gate() -> void:

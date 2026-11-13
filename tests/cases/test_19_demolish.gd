@@ -8,21 +8,21 @@ func _building(role: BuildingType.Role, index: int = 0) -> Building:
 
 
 func test_refund_and_removal() -> void:
-	var check_in := Airport.place_building(type_of(&"check_in"), Vector2i(10, 10), 0)
+	var check_in := Airport.place_building(type_of(&"check_in"), at(Vector2i(10, 10)), 0)
 	Airport.staff_fully(check_in)
 	var balance := Airport.economy.balance
 	check_eq(Airport.demolish_refund(check_in), 1500.0, "half of €3,000")
 	check(Airport.demolish(check_in), "demolished")
 	check_eq(Airport.economy.balance, balance + 1500.0, "€1,500 refunded")
 	check(not Airport.buildings.has(check_in), "gone from the list")
-	check(Airport.grid.is_empty(Vector2i(11, 11)), "its cells are free")
+	check(Airport.grid.is_empty(at(Vector2i(11, 11))), "its cells are free")
 	check_eq(Airport.staff.size(), 0, "its staff were dismissed")
 	check_eq(Airport.running_cost_per_minute(), 0.0, "no running costs or salaries left")
-	check(Airport.can_place(type_of(&"check_in"), Vector2i(10, 10), 0), "the spot can be built on again")
+	check(Airport.can_place(type_of(&"check_in"), at(Vector2i(10, 10)), 0), "the spot can be built on again")
 
 
 func test_upgrades_are_not_refunded() -> void:
-	var check_in := Airport.place_building(type_of(&"check_in"), Vector2i(10, 10), 0)
+	var check_in := Airport.place_building(type_of(&"check_in"), at(Vector2i(10, 10)), 0)
 	Airport.start_upgrade(check_in)
 	check_eq(Airport.demolish_refund(check_in), 1500.0, "only half the build price, not the upgrade")
 
@@ -68,9 +68,9 @@ func test_demolished_stand_stops_its_gate() -> void:
 
 func test_demolishing_security_makes_the_airside_landside() -> void:
 	build_basic_terminal()
-	check_eq(Airport.grid.get_zone(Vector2i(20, 32)), AirportGrid.Zone.AIRSIDE, "airside behind security")
+	check_eq(Airport.grid.get_zone(at(Vector2i(20, 32))), AirportGrid.Zone.AIRSIDE, "airside behind security")
 	Airport.demolish(_building(BuildingType.Role.SECURITY))
-	check_eq(Airport.grid.get_zone(Vector2i(20, 32)), AirportGrid.Zone.LANDSIDE, "landside without it")
+	check_eq(Airport.grid.get_zone(at(Vector2i(20, 32))), AirportGrid.Zone.LANDSIDE, "landside without it")
 
 
 func test_demolish_by_touch() -> void:

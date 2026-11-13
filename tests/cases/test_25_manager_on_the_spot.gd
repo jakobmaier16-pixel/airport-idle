@@ -19,7 +19,7 @@ func _stand_near(building: Building, extra_meters: float) -> void:
 
 
 func test_distance_rules() -> void:
-	var check_in := Airport.place_building(type_of(&"check_in"), Vector2i(20, 20), 0)
+	var check_in := Airport.place_building(type_of(&"check_in"), at(Vector2i(20, 20)), 0)
 	check_eq(Airport.manage_problem(check_in), "Walk here to manage", "nobody there")
 	var center := Airport.grid.block_center(check_in.origin_cell, Vector2i(5, 3))
 	Airport.manager_position = center
@@ -65,7 +65,7 @@ func test_presence_speeds_up_staff() -> void:
 	var service_time := func(manager_near: bool) -> float:
 		Airport.manager_position = Airport.grid.block_center(security.origin_cell, Vector2i(5, 3)) if manager_near else Airport.NOBODY_THERE
 		var passenger := Passenger.new()
-		passenger.position = Airport.grid.cell_to_world(Vector2i(32, 27))
+		passenger.position = Airport.grid.cell_to_world(at(Vector2i(32, 27)))
 		station.queue.append(passenger)
 		flow.rng.seed = 42
 		flow._tick_station(station, Airport.SIM_STEP)

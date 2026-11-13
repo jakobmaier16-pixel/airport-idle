@@ -197,11 +197,20 @@ func close_build_view() -> void:
 		await frames(1)
 
 
-## Zooms the build camera all the way out and centers it on the map.
+## Shows the area the tests build in: the 64 x 64 reference area (MapAnchor) around the map centre,
+## centered and as big as the camera allows. (The whole map is far too big to tap cells on.)
 func show_whole_map() -> void:
-	wheel(false, 30)
-	build_camera().center_on(Vector3.ZERO)
+	var camera := build_camera()
+	var reference := Vector2(MapAnchor.REFERENCE_SIZE) * Airport.grid.cell_size
+	camera.view_height = minf(100.0, minf(reference.y, reference.x / (screen_size().x / screen_size().y)))
+	camera.center_on(Vector3.ZERO)
 	await frames(1)
+
+
+## A cell of the 64 x 64 reference map (where the showcase and the tests are drawn) on the real map:
+## the same spot relative to the map centre, whatever the map size.
+func at(reference_cell: Vector2i) -> Vector2i:
+	return MapAnchor.cell(reference_cell, Airport.grid.size)
 
 
 func screen_of_cell(cell: Vector2i) -> Vector2:
@@ -287,10 +296,10 @@ func type_of(id: StringName) -> BuildingType:
 ## walkway behind it (gates and shops can go along that walkway). No money or tier needed.
 func build_basic_terminal() -> void:
 	Airport.economy.balance = 1.0e9
-	Airport.paint_walkway(cells(Vector2i(18, 21), Vector2i(28, 7)), true)
-	Airport.paint_walkway(cells(Vector2i(10, 31), Vector2i(44, 3)), true)
-	Airport.place_building(type_of(&"entrance"), Vector2i(30, 19), 0)
-	Airport.place_building(type_of(&"security"), Vector2i(30, 28), 0)
+	Airport.paint_walkway(cells(at(Vector2i(18, 21)), Vector2i(28, 7)), true)
+	Airport.paint_walkway(cells(at(Vector2i(10, 31)), Vector2i(44, 3)), true)
+	Airport.place_building(type_of(&"entrance"), at(Vector2i(30, 19)), 0)
+	Airport.place_building(type_of(&"security"), at(Vector2i(30, 28)), 0)
 
 
 ## The showcase airport (scripts/dev/showcase_airport.gd), without passengers yet.

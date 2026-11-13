@@ -59,7 +59,8 @@ view = NodePath("../ManagerCamera")
 [node name="ManagerCamera" parent="." node_paths=PackedStringArray("target") instance=ExtResource("3_camera")]
 target = NodePath("../Manager")
 
-[node name="BuildCamera" parent="." instance=ExtResource("5_build_camera")]
+[node name="BuildCamera" parent="." node_paths=PackedStringArray("sun") instance=ExtResource("5_build_camera")]
+sun = NodePath("../Sun")
 
 [node name="BuildMode" parent="." node_paths=PackedStringArray("camera") instance=ExtResource("6_build_mode")]
 camera = NodePath("../BuildCamera")

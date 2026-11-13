@@ -66,5 +66,5 @@ func test_build_view_opens_above_manager() -> void:
 func test_tap_highlights_cell() -> void:
 	await start_game()
 	await open_build_view()
-	tap(screen_of_cell(Vector2i(33, 31)))
-	check_eq(build_mode().selected_cell, Vector2i(33, 31), "tapped cell is selected")
+	tap(screen_of_cell(at(Vector2i(33, 31))))
+	check_eq(build_mode().selected_cell, at(Vector2i(33, 31)), "tapped cell is selected")

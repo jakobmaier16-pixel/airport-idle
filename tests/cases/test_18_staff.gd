@@ -35,7 +35,7 @@ func test_open_counters_follow_staff() -> void:
 
 
 func test_hiring_limit_and_salary() -> void:
-	var check_in := Airport.place_building(type_of(&"check_in"), Vector2i(10, 10), 0)
+	var check_in := Airport.place_building(type_of(&"check_in"), at(Vector2i(10, 10)), 0)
 	var cost := Airport.running_cost_per_minute()
 	check(Airport.hire(check_in) != null, "hired one")
 	check_eq(Airport.running_cost_per_minute(), cost + 8.0, "€8/min salary")
@@ -50,7 +50,7 @@ func test_hiring_limit_and_salary() -> void:
 
 
 func test_gates_need_no_staff() -> void:
-	var gate := Airport.place_building(type_of(&"gate"), Vector2i(10, 40), 0)
+	var gate := Airport.place_building(type_of(&"gate"), at(Vector2i(10, 40)), 0)
 	check(not Airport.needs_staff(gate), "gates run without staff for now")
 	check_eq(Airport.hire_problem(gate), "No staff needed here", "hint")
 
@@ -103,15 +103,15 @@ func test_old_save_gets_staff() -> void:
 
 
 func test_panel_hire_and_dismiss() -> void:
-	var check_in := Airport.place_building(type_of(&"check_in"), Vector2i(28, 20), 0)
+	var check_in := Airport.place_building(type_of(&"check_in"), at(Vector2i(28, 20)), 0)
 	await start_game()
 	await frames(1)
 	var label: Label3D = main.get_node("Buildings")._hints[check_in]
-	Airport.paint_walkway(cells(Vector2i(28, 19), Vector2i(5, 1)), true)
+	Airport.paint_walkway(cells(at(Vector2i(28, 19)), Vector2i(5, 1)), true)
 	await frames(1)
 	check(label.visible and label.text == "Needs staff", "unstaffed station says so")
 	# Managing happens on the spot: walk over first (design doc §15.1).
-	manager().global_position = Airport.grid.cell_to_world(Vector2i(30, 17))
+	manager().global_position = Airport.grid.cell_to_world(at(Vector2i(30, 17)))
 	await physics_frames(2)
 	hud().show_station(check_in)
 	await frames(1)

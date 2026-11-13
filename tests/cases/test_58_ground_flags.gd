@@ -4,13 +4,18 @@ extends TestCase
 const BIG := Vector2i(2200, 1600)
 
 
-# The flag byte of every cell of `grid`, row by row (loops over the map: only for small test maps).
+# The flag byte of every cell of `grid`, row by row. Only the allocated chunks are visited: every
+# other cell is 0.
 func _dense_flags(grid: AirportGrid) -> PackedByteArray:
 	var data := PackedByteArray()
 	data.resize(grid.size.x * grid.size.y)
-	for y in grid.size.y:
-		for x in grid.size.x:
-			data[y * grid.size.x + x] = grid.get_flags(Vector2i(x, y))
+	for coord in grid.get_allocated_chunks():
+		var base := coord * AirportGrid.CHUNK_SIZE
+		for y in AirportGrid.CHUNK_SIZE:
+			for x in AirportGrid.CHUNK_SIZE:
+				var cell := base + Vector2i(x, y)
+				if grid.is_inside(cell):
+					data[cell.y * grid.size.x + cell.x] = grid.get_flags(cell)
 	return data
 
 
@@ -33,16 +38,16 @@ func test_texture_is_the_flag_layer_of_the_showcase() -> void:
 
 func test_edits_update_the_texture() -> void:
 	await start_game()
-	var cells: Array[Vector2i] = [Vector2i(20, 25), Vector2i(21, 25), Vector2i(22, 25)]
+	var cells: Array[Vector2i] = [at(Vector2i(20, 25)), at(Vector2i(21, 25)), at(Vector2i(22, 25))]
 	Airport.paint_walkway(cells, true)
 	await frames(1)
 	var flags := _ground_texture()
 	check(flags.image.get_data() == _dense_flags(Airport.grid), "painted walkway is in the texture")
-	check_eq(flags.image.get_pixel(21, 25).r8, AirportGrid.WALKWAY_BIT, "the walkway bit")
+	check_eq(flags.image.get_pixel(at(Vector2i(21, 25)).x, at(Vector2i(21, 25)).y).r8, AirportGrid.WALKWAY_BIT, "the walkway bit")
 	Airport.paint_walkway(cells, false)
 	await frames(1)
 	check(flags.image.get_data() == _dense_flags(Airport.grid), "erased walkway is out of the texture")
-	check_eq(flags.image.get_pixel(21, 25).r8, 0, "empty again")
+	check_eq(flags.image.get_pixel(at(Vector2i(21, 25)).x, at(Vector2i(21, 25)).y).r8, 0, "empty again")
 
 
 func test_many_edits_in_one_frame_upload_once() -> void:
@@ -51,9 +56,9 @@ func test_many_edits_in_one_frame_upload_once() -> void:
 	await frames(2)
 	var before := flags.upload_count
 	for i in 5:
-		var cells: Array[Vector2i] = [Vector2i(20 + i, 25), Vector2i(20 + i, 26)]
+		var cells: Array[Vector2i] = [at(Vector2i(20 + i, 25)), at(Vector2i(20 + i, 26))]
 		Airport.paint_walkway(cells, true)
-	Airport.paint_walkway([Vector2i(20, 25)] as Array[Vector2i], false)
+	Airport.paint_walkway([at(Vector2i(20, 25))] as Array[Vector2i], false)
 	check_eq(flags.upload_count, before, "nothing is uploaded inside the frame")
 	await frames(1)
 	check_eq(flags.upload_count, before + 1, "one upload for all edits")
