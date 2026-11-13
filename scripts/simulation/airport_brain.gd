@@ -8,11 +8,7 @@ extends RefCounted
 signal building_placed(building: Building)
 ## An upgrade started or finished (design doc §7.8).
 signal building_upgraded(building: Building)
-## A VIP was announced on `flight` (design doc §14.2), and how their visit went.
-signal vip_announced(flight: Flight)
-signal vip_result(happy: bool, mood: float)
 ## An unattended bag closed `building` (design doc §12.3).
-signal incident_started(building: Building)
 ## The bank sold buildings to cover the debt (design doc §11.6). `sold` names them.
 signal restructured(sold: PackedStringArray)
 ## Someone was hired or dismissed at `building` (design doc §9.1).
@@ -28,7 +24,6 @@ signal layout_changed
 ## Re-sent from the parts that make them, so a listener connects to the brain once, even when a
 ## part (the passenger flow) is replaced on a reset.
 signal tier_reached(tier: Progression.Tier)
-signal weather_changed(kind: Weather.Kind)
 signal offer_arrived(offer: AirlineOffer)
 signal airline_unhappy(airline: Airline)
 signal airline_left(airline: Airline)
@@ -70,8 +65,6 @@ var economy: Economy = Economy.new()
 var airlines: Airlines = Airlines.new()
 ## Time of day (design doc §12.1). Reset, not replaced.
 var clock: Clock = Clock.new()
-## Seasons and weather events (design doc §12.2). Reset, not replaced.
-var weather: Weather = Weather.new()
 ## "Getting started" goals (design doc §6.1).
 var goals: Goals = Goals.new()
 ## Airport tiers and lifetime passenger counts (design doc §14.1). Reset, not replaced.
@@ -89,7 +82,7 @@ var manager_yaw: float = 0.0
 var saved_manager: Dictionary = {}
 ## The airport's dice (tech_architecture.md §3). Every random choice of the simulation comes from
 ## here, so the same seed and the same player actions give exactly the same game. Shared with
-## PassengerFlow, FlightSchedule, Airlines and Weather; saved with the game.
+## PassengerFlow, FlightSchedule and Airlines; saved with the game.
 var rng: RandomNumberGenerator = RandomNumberGenerator.new()
 ## The number the dice started from, for replaying a game (e.g. a failing test).
 var game_seed: int = 0
@@ -108,10 +101,8 @@ func _init() -> void:
 	first.randomize()
 	reseed(first.randi())
 	layout_changed.connect(_on_layout_changed)
-	passenger_flow.vip_finished.connect(_on_vip_finished)
 	progression.tier_reached.connect(_on_tier_reached)
 	progression.tier_reached.connect(tier_reached.emit)
-	weather.changed.connect(weather_changed.emit)
 	airlines.offer_arrived.connect(offer_arrived.emit)
 	airlines.airline_unhappy.connect(airline_unhappy.emit)
 	airlines.airline_left.connect(airline_left.emit)
@@ -134,7 +125,6 @@ func _share_rng() -> void:
 	goals.world = self
 	passenger_flow.schedule.rng = rng
 	airlines.rng = rng
-	weather.rng = rng
 
 
 ## Breaks the reference cycles so the brain can be freed (RefCounted objects that point at each
@@ -143,14 +133,10 @@ func _share_rng() -> void:
 func dispose() -> void:
 	if layout_changed.is_connected(_on_layout_changed):
 		layout_changed.disconnect(_on_layout_changed)
-	if passenger_flow.vip_finished.is_connected(_on_vip_finished):
-		passenger_flow.vip_finished.disconnect(_on_vip_finished)
 	if progression.tier_reached.is_connected(_on_tier_reached):
 		progression.tier_reached.disconnect(_on_tier_reached)
 	if progression.tier_reached.is_connected(tier_reached.emit):
 		progression.tier_reached.disconnect(tier_reached.emit)
-	if weather.changed.is_connected(weather_changed.emit):
-		weather.changed.disconnect(weather_changed.emit)
 	if airlines.offer_arrived.is_connected(offer_arrived.emit):
 		airlines.offer_arrived.disconnect(offer_arrived.emit)
 	if airlines.airline_unhappy.is_connected(airline_unhappy.emit):
@@ -167,7 +153,6 @@ func dispose() -> void:
 ## Advances the whole simulation by one step: passengers, flights and money.
 func step(delta: float) -> void:
 	clock.tick(delta)
-	weather.tick(delta, season())
 	passenger_flow.tick(delta)
 	economy.tick(delta, _running_cost_per_minute - _salaries_per_minute, _salaries_per_minute)
 	reputation.tick(delta)
@@ -177,8 +162,6 @@ func step(delta: float) -> void:
 	airlines.tick(delta, stars(), operating, progression.tier, has_cargo_terminal())
 	progression.check(stars())
 	_check_loan(delta)
-	_tick_incidents(delta)
-	_tick_vip(delta)
 	for employee in staff:
 		if employee.is_training():
 			employee.training_left -= delta
@@ -190,84 +173,6 @@ func step(delta: float) -> void:
 			building.upgrade_seconds_left -= delta
 			if building.upgrade_seconds_left <= 0.0:
 				_finish_upgrade(building)
-
-
-# --- Security incidents (design doc §12.3) ---
-
-## Seconds between incidents (real time), how long a station stays closed, and how much faster
-## the police clear it with the manager there.
-const INCIDENT_EVERY_MIN: float = 720.0
-const INCIDENT_EVERY_MAX: float = 1200.0
-const INCIDENT_SECONDS: float = 90.0
-const INCIDENT_MANAGER_SPEEDUP: float = 3.0
-
-## False in tests: no random incidents (tests call start_incident()). Not touched by reset().
-var incidents_automatic: bool = true
-var _next_incident_in: float = INCIDENT_EVERY_MIN
-
-
-## Closes `building` for INCIDENT_SECONDS: an unattended bag.
-func start_incident(building: Building) -> void:
-	building.closed_seconds = INCIDENT_SECONDS
-	incident_started.emit(building)
-
-
-func _tick_incidents(delta: float) -> void:
-	for building in buildings:
-		if building.is_closed():
-			var speed := INCIDENT_MANAGER_SPEEDUP if is_manager_near(building) else 1.0
-			building.closed_seconds = maxf(building.closed_seconds - delta * speed, 0.0)
-	_next_incident_in -= delta
-	if _next_incident_in > 0.0 or not incidents_automatic:
-		return
-	_next_incident_in = rng.randf_range(INCIDENT_EVERY_MIN, INCIDENT_EVERY_MAX)
-	var candidates := buildings.filter(func(b: Building) -> bool: return needs_staff(b) and not staff_at(b).is_empty())
-	if not candidates.is_empty():
-		start_incident(candidates[rng.randi() % candidates.size()])
-
-
-# --- VIP visits (design doc §14.2) ---
-
-const VIP_EVERY_MIN: float = 1200.0
-const VIP_EVERY_MAX: float = 1800.0
-## A VIP is announced on a flight at least this far ahead (seconds), so the player can prepare.
-const VIP_NOTICE: float = 150.0
-const VIP_REWARD: float = 5000.0
-## Stars added (happy) or taken off (unhappy) for a while.
-const VIP_STARS: float = 0.5
-
-var _next_vip_in: float = VIP_EVERY_MIN
-
-
-## Announces a VIP on the next suitable departure. Returns the flight, or null if there is none.
-func announce_vip() -> Flight:
-	var candidates := passenger_flow.schedule.flights.filter(func(f: Flight) -> bool:
-		return not f.cargo and f.phase == Flight.Phase.SCHEDULED and f.spawned < f.booked and not f.vip_pending \
-			and f.departure_time - passenger_flow.time >= VIP_NOTICE)
-	if candidates.is_empty():
-		return null
-	var flight: Flight = candidates[0]
-	flight.vip_pending = true
-	vip_announced.emit(flight)
-	return flight
-
-
-func _tick_vip(delta: float) -> void:
-	if progression.tier < Progression.Tier.NATIONAL or not incidents_automatic:
-		return
-	_next_vip_in -= delta
-	if _next_vip_in <= 0.0:
-		_next_vip_in = rng.randf_range(VIP_EVERY_MIN, VIP_EVERY_MAX)
-		announce_vip()
-
-
-func _on_vip_finished(happy: bool, mood: float) -> void:
-	if happy:
-		economy.bonus(VIP_REWARD)
-		reputation.penalty -= VIP_STARS
-	else:
-		reputation.penalty += VIP_STARS
-	vip_result.emit(happy, mood)
 
 
 # --- Airport tiers (design doc §14.1) ---
@@ -418,19 +323,14 @@ func curfew_at(real_seconds_ahead: float = 0.0) -> bool:
 	return progression.tier < Progression.Tier.HUB and Clock.is_curfew_hour(clock.hour_at(real_seconds_ahead))
 
 
-## The current season (design doc §12.2).
-func season() -> Weather.Season:
-	return Weather.season_of(clock.day())
+## The current season (design doc §12.2); it only drives demand.
+func season() -> Seasons.Season:
+	return Seasons.season_of(clock.day())
 
 
 ## True if a cargo terminal exists: cargo airlines make offers (design doc §10.3).
 func has_cargo_terminal() -> bool:
 	return buildings.any(func(b: Building) -> bool: return b.type.role == BuildingType.Role.CARGO_TERMINAL)
-
-
-## True if a de-icing pad exists: de-icing in snow is much faster (design doc §12.2).
-func has_deicing_pad() -> bool:
-	return buildings.any(func(b: Building) -> bool: return b.type.id == &"deicing_pad")
 
 
 ## The airport's star rating, 1.0 to 5.0 (design doc §11.7).
@@ -784,7 +684,6 @@ func reset(with_runway: bool = true, new_seed: int = -1) -> void:
 	zone_map.recompute(grid, buildings)
 	staff.clear()
 	passenger_flow = PassengerFlow.new()
-	passenger_flow.vip_finished.connect(_on_vip_finished)
 	passenger_flow.schedule.plane_arriving.connect(plane_arriving.emit)
 	reseed(new_seed if new_seed >= 0 else int(rng.randi()))
 	economy = Economy.new()
@@ -793,11 +692,9 @@ func reset(with_runway: bool = true, new_seed: int = -1) -> void:
 	progression.reset()
 	goals.hidden = false
 	clock.game_seconds = Clock.START_HOUR * 3600.0
-	weather.reset()
 	land_changed.emit()
 	manager_position = NOBODY_THERE
 	saved_manager = {}
-	_next_incident_in = INCIDENT_EVERY_MIN
 	if with_runway:
 		add_starting_runway()
 	_on_layout_changed()
@@ -823,7 +720,6 @@ func save_state() -> Dictionary:
 			"level": building.level,
 			"upgrade_left": building.upgrade_seconds_left,
 			"fast_track": building.fast_track,
-			"closed": building.closed_seconds,
 		})
 	var saved_staff: Array[Dictionary] = []
 	for employee in staff:
@@ -850,10 +746,7 @@ func save_state() -> Dictionary:
 		"goals_hidden": goals.hidden,
 		"clock": clock.game_seconds,
 		"flow": passenger_flow.save_state(),
-		"next_incident_in": _next_incident_in,
-		"next_vip_in": _next_vip_in,
 		"manager": {"x": manager_position.x, "z": manager_position.z, "yaw": manager_yaw} if manager_position != NOBODY_THERE else {},
-		"weather": weather.save_state(),
 		# As text: JSON keeps numbers as decimals, which can't hold a 64-bit dice state exactly.
 		"seed": str(game_seed),
 		"rng_state": str(rng.state),
@@ -879,7 +772,6 @@ func load_state(data: Dictionary) -> int:
 	progression.load_state(data.get("progression", {}))
 	goals.hidden = bool(data.get("goals_hidden", false))
 	clock.game_seconds = float(data.get("clock", Clock.START_HOUR * 3600.0))
-	weather.load_state(data.get("weather", {}))
 	saved_manager = data.get("manager", {})
 	land_changed.emit()
 	var skipped := 0
@@ -910,7 +802,6 @@ func load_state(data: Dictionary) -> int:
 		building.level = clampi(int(entry.get("level", 1)), 1, type.upgrades.size() + 1)
 		building.upgrade_seconds_left = float(entry.get("upgrade_left", 0.0)) if building.next_upgrade() != null else 0.0
 		building.fast_track = bool(entry.get("fast_track", false))
-		building.closed_seconds = float(entry.get("closed", 0.0))
 	_loading = false
 	# Buildings without a saved ID (hand-made data) get fresh ones above every saved ID.
 	_next_building_id = maxi(int(data.get("next_building_id", 1)), highest_id + 1)
@@ -957,8 +848,6 @@ func load_state(data: Dictionary) -> int:
 	walkways_changed.emit()
 	# Also recomputes the zones, after buildings and walkways are all in place.
 	layout_changed.emit()
-	_next_incident_in = float(data.get("next_incident_in", _next_incident_in))
-	_next_vip_in = float(data.get("next_vip_in", _next_vip_in))
 	# Flights and passengers on their way (saves before version 3 have none), after the layout
 	# so the stations exist.
 	if data.has("flow"):

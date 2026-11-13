@@ -100,7 +100,6 @@ scenes/<feature>/     one folder per feature: <name>.tscn + <name>.gd side by si
   passengers/         PassengerLayer: draws passengers near the camera (one MultiMesh)
   planes/             PlaneLayer + PlaneVisual: planes taxiing in, parked, pushing back
   day_night/          DayNight: sun and ambient light by the time of day
-  weather/            WeatherLayer: rain, snow and fog around the camera
   ground/             map ground, sized from the grid
   ui/                 HUD, view button, joystick, safe area container, AirlinesPanel, StarRating
 scripts/autoload/     global singletons:
@@ -111,7 +110,7 @@ scripts/autoload/     global singletons:
 scripts/simulation/   pure simulation data classes (no nodes, no visuals): AirportGrid, Building,
                       PassengerFlow, Passenger, Station, WalkwayNetwork, FlightSchedule, Flight,
                       Economy, Employee, Satisfaction, Reputation, Airlines (+ Airline, AirlineOffer),
-                      Progression (tiers), Goals, Clock, Weather.
+                      Progression (tiers), Goals, Clock, Seasons.
                       Advance everything with `Airport.step(delta)`.
 scripts/resources/    custom Resource classes (data definitions), e.g. BuildingType
 data/buildings/       one BuildingType .tres per building (edit footprint, name, look in the Inspector)
@@ -163,14 +162,12 @@ UI controls (buttons) consume their touches first, so taps on buttons never reac
   **Every new feature must be added to the showcase** (a test checks every building type is in it).
   The tests and screenshots use the same layout. The "Demo" button (debug builds) reloads it.
 - **Randomness is seeded** (tech_architecture.md §3): simulation code rolls only `Airport.rng`
-  (shared with PassengerFlow, FlightSchedule, Airlines and Weather), never the global
+  (shared with PassengerFlow, FlightSchedule and Airlines), never the global
   `randf()` / `randi()`. Purely visual effects (e.g. lightning flashes) may use the global ones.
   Every test runs with a fixed seed from its name; a failure prints a replay line
   (`tools/run_tests.sh --only=<test> --seed=<n>`). `--seed=<n>` runs every test with that seed:
   try a few to catch tests that only pass by luck.
-- Tests run with `-- --no-save` and never touch the real save game. The runner turns random
-  weather and incidents off (`Airport.weather.automatic`, `Airport.incidents_automatic`); their
-  tests start them with `Airport.weather.start()` / `Airport.start_incident()`.
+- Tests run with `-- --no-save` and never touch the real save game.
 - Make small, focused commits with descriptive messages.
 - Do not commit the `.godot/` folder or export builds. **Do** commit the `*.uid` files next to
   scripts and shaders; Godot uses them to keep references stable.
@@ -228,7 +225,7 @@ UI controls (buttons) consume their touches first, so taps on buttons never reac
   players have them: never regenerate or edit them. When the save format changes, add a converter
   to `SaveGame.migrations`, bump `SaveGame.FORMAT_VERSION`, and add an example save of the new
   version next to the old ones. Enums stored as numbers in saves (`AirportGrid.Zone`,
-  `BuildingType.Role`, `Progression.Tier`, `Weather.Kind`) only get new values at the end.
+  `BuildingType.Role`, `Progression.Tier`) only get new values at the end.
   A save that can't be loaded is put aside as a `.bak` file, never overwritten.
 - Changing a building's size or zone rule can make old saves invalid: such buildings are skipped
   on load (with a warning). Bump `SaveGame.FORMAT_VERSION` only if the file format itself changes.

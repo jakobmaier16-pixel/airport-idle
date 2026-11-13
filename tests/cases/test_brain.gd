@@ -84,15 +84,6 @@ func test_reset_gives_a_fresh_brain_and_signals_fire_once() -> void:
 	check_eq(relayed[0], 1, "signals of the brain's parts are re-sent once too")
 
 
-# Reset keeps today's observable behaviour: the test switches for random weather / incidents survive.
-func test_reset_keeps_the_automatic_switches() -> void:
-	Airport.incidents_automatic = false
-	Airport.weather.automatic = false
-	Airport.reset(false)
-	check(not Airport.incidents_automatic, "incidents stay off")
-	check(not Airport.weather.automatic, "random weather stays off")
-
-
 # Same seed, same actions, same game: each run starts on a fresh brain (reset) and must end the same.
 func test_same_seed_gives_identical_games() -> void:
 	var results: Array[Array] = []

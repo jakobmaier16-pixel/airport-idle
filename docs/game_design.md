@@ -265,7 +265,9 @@ Current prototype: three passenger types with their own speeds, timing and spend
 
 All wanted, added in phases: flight schedules, delays with knock-on effects, weather, night curfews, security incidents, seasons, winter de-icing.
 
-Current prototype: clock and demand by hour, seasons, weather, night curfew, security incidents (prototype_reference §12).
+**Removed 2026-11-13:** weather, incidents, VIP visits and the first-landing cutscene removed from the prototype on 2026-11-13 to focus on fundamentals; realism systems may return later, rebuilt on the new foundation. Seasons stay (they drive demand).
+
+Current prototype: clock and demand by hour, seasons (demand only), night curfew (prototype_reference §12).
 
 ---
 
@@ -284,7 +286,7 @@ Four tiers, as built in the prototype. The thresholds are the current prototype'
 Details: prototype_reference §14.1.
 
 ### 13.2 Milestone rewards
-Special, never a flat bonus: a new mechanic, new land, a new major airline with a cinematic first landing, special events (first wide-body jet, a state visit). Current prototype: first-landing cutscene and VIP visits (prototype_reference §14.1, §14.2).
+Special, never a flat bonus: a new mechanic, new land, a new major airline with a cinematic first landing, special events (first wide-body jet, a state visit). The prototype's first-landing cutscene and VIP visits were removed on 2026-11-13 (§12).
 
 One airport for the whole game. No playtime limit.
 

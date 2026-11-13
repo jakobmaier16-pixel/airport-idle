@@ -18,8 +18,6 @@ var number: String
 var airline: Airline = null
 ## A wide-body (long-haul) plane (design doc §10.2).
 var wide_body: bool = false
-## A VIP flies with this flight; the next passenger to arrive is them (design doc §14.2).
-var vip_pending: bool = false
 ## A freighter (design doc §10.3): no passengers, `tonnes` of freight to unload and load.
 var cargo: bool = false
 var tonnes: float = 0.0
@@ -33,15 +31,11 @@ var stand: Building
 ## Scheduled time (PassengerFlow.time) when the doors close.
 var departure_time: float
 ## Seconds the flight is late in total: waiting for passengers who were already airside
-## (design doc §11.7), weather and knock-on delays (§12.2).
+## (design doc §11.7) and knock-on delays.
 var delay: float = 0.0
 ## Seconds the plane landed late without delaying the departure: the time at the stand absorbs it
 ## (turnaround buffer, design doc §7.5a).
 var arrival_delay: float = 0.0
-## The part of `delay` caused by weather (doesn't count against the airport).
-var weather_delay: float = 0.0
-## Seconds of de-icing done (snow, design doc §12.2).
-var deiced: float = 0.0
 ## Runway slots booked for landing and take-off (design doc §7.5a).
 var landing_booked: bool = false
 var takeoff_booked: bool = false
@@ -68,9 +62,9 @@ func departs_at() -> float:
 	return departure_time + delay
 
 
-## The part of the delay the airport is responsible for.
+## The part of the delay the airport is responsible for (all of it, now that nothing else delays flights).
 func airport_delay() -> float:
-	return delay - weather_delay
+	return delay
 
 
 func is_active() -> bool:

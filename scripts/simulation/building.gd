@@ -16,12 +16,6 @@ var level: int = 1
 var upgrade_seconds_left: float = 0.0
 ## Security with a fast track lane (design doc §11.8).
 var fast_track: bool = false
-## Seconds until an unattended bag is cleared; the station serves nobody new meanwhile (§12.3).
-var closed_seconds: float = 0.0
-
-
-func is_closed() -> bool:
-	return closed_seconds > 0.0
 
 
 func _init(building_type: BuildingType, origin: Vector2i, rotation: int) -> void:

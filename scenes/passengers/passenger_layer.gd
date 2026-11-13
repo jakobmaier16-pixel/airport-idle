@@ -70,13 +70,8 @@ func _process(_delta: float) -> void:
 	_multimesh.visible_instance_count = count
 
 
-const VIP_COLOR: Color = Color(1.0, 0.82, 0.1)
-
-
-## Figure color: one of the passenger type's colors (design doc §8.7); VIPs are gold (§14.2).
+## Figure color: one of the passenger type's colors (design doc §8.7).
 static func color_of(passenger: Passenger) -> Color:
-	if passenger.is_vip:
-		return VIP_COLOR
 	if passenger.type == null or passenger.type.colors.is_empty():
 		return DEFAULT_COLOR
 	return passenger.type.colors[passenger.color_index % passenger.type.colors.size()]

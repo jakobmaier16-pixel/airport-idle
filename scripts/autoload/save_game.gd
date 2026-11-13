@@ -7,7 +7,7 @@ extends Node
 
 ## Bump when the save format changes in a way older code can't read, and add a converter to
 ## `migrations` for the old version (tech_architecture.md §13). Keep every old converter.
-const FORMAT_VERSION: int = 4
+const FORMAT_VERSION: int = 5
 ## Wait this long after a change before saving, so a burst of changes is saved once.
 const SAVE_DELAY: float = 1.0
 ## Money and the running airport are also saved this often while playing (seconds).
@@ -147,7 +147,7 @@ func migrate(data: Dictionary) -> Dictionary:
 
 ## The converters this build ships (tests put them back after swapping in their own).
 func default_migrations() -> Dictionary[int, Callable]:
-	return {1: _v1_to_v2, 2: _v2_to_v3, 3: _v3_to_v4}
+	return {1: _v1_to_v2, 2: _v2_to_v3, 3: _v3_to_v4, 4: _v4_to_v5}
 
 
 ## Version 1 -> 2: buildings get permanent IDs (their old list position + 1) and staff point to
@@ -169,6 +169,31 @@ func _v1_to_v2(data: Dictionary) -> Dictionary:
 ## zones ("zones") are dropped.
 func _v3_to_v4(data: Dictionary) -> Dictionary:
 	data.erase("zones")
+	return data
+
+
+## Version 4 -> 5: weather, security incidents, VIP visits and the first-landing cutscene were
+## removed (2026-11-13), so their fields are dropped. A saved de-icing pad is not touched here: its
+## building type is gone, so loading refunds it through the normal "type vanished" path (half the
+## saved price, with a notice). Very old saves didn't store the price: the pad's last price is filled in.
+const DEICING_PAD_PRICE: float = 7000.0
+
+
+func _v4_to_v5(data: Dictionary) -> Dictionary:
+	for key in ["weather", "next_incident_in", "next_vip_in"]:
+		data.erase(key)
+	for entry: Dictionary in data.get("buildings", []):
+		entry.erase("closed")
+		if entry.get("type") == "deicing_pad" and not entry.has("cost"):
+			entry["cost"] = DEICING_PAD_PRICE
+	var flow: Dictionary = data.get("flow", {})
+	for entry: Dictionary in flow.get("schedule", {}).get("flights", []):
+		for key in ["vip_pending", "weather_delay", "deiced"]:
+			entry.erase(key)
+	for entry: Dictionary in flow.get("passengers", []):
+		entry.erase("vip")
+	for entry: Dictionary in data.get("airlines", {}).get("signed", []):
+		entry.erase("first_landing")
 	return data
 
 

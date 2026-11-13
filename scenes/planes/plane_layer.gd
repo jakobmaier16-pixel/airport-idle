@@ -39,14 +39,6 @@ func _process(_delta: float) -> void:
 			_planes.erase(flight)
 
 
-func has_plane(flight: Flight) -> bool:
-	return _planes.has(flight)
-
-
-func plane_of(flight: Flight) -> PlaneVisual:
-	return _planes.get(flight)
-
-
 ## How many planes are currently drawn (used by tests).
 func plane_count() -> int:
 	return _planes.size()

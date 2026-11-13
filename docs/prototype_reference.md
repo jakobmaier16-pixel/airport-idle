@@ -495,9 +495,9 @@ Placeholder numbers, tunable.
 All of these are wanted. They will be added in phases, not all at once:
 - Flight schedules
 - Delays (with knock-on effects)
-- Weather
+- Weather (removed 2026-11-13)
 - Night curfews
-- Security incidents
+- Security incidents (removed 2026-11-13)
 - Seasons (holiday peaks, quiet months)
 
 ### 12.1 Time of day (first version)
@@ -505,30 +505,18 @@ Placeholder numbers, tunable.
 - **Clock:** one real second is 15 game seconds (a 3-minute gate turnaround stands for ~45 minutes), so a day lasts 96 real minutes. A new airport opens at 06:00 on day 1. The HUD shows "Day 3 · 06:45" next to the top buttons; the clock is saved.
 - **Demand by hour:** passengers per flight follow the day: a morning rush (06–09, up to 130 %), a normal day, an evening rush (17–20), and a quiet night (00–04, 40 %). Flights keep their schedule at night (night curfews come later, possibly as a tier rule).
 - **Light:** the sun climbs and sets (warm low light in the morning and evening), nights are dim and blue but still readable. The sun keeps its compass direction, like the camera.
-- Seasons and weather: §12.2. Security incidents: §12.3. Night curfews: §12.4.
+- Seasons: §12.2. Night curfews: §12.4. (Weather, security incidents, VIP visits and the first-landing cutscene were removed on 2026-11-13.)
 
-### 12.2 Seasons and weather (first version)
+### 12.2 Seasons (first version)
 Placeholder numbers, tunable.
 - **Seasons** last 2 game days each (~3 real hours): Spring → Summer → Autumn → Winter. A new airport starts in spring. Demand by route type: Holiday 100 / **135** / 100 / **75 %**, Low-cost 100 / 115 / 100 / 90 %, Business 100 / 90 / 105 / 105 %, Long-haul 100 %.
-- **Weather events** come every 8–15 real minutes, by season (spring: rain, fog, storms; summer: storms, rain; autumn: fog, rain; winter: snow, fog):
-  - **Rain** (3 min): only looks wet.
-  - **Thunderstorm** (1½ min): lightning stops all ground work: no boarding, no deplaning, planes stay where they are, nothing lands.
-  - **Fog** (2 min): no landings; planes waiting to arrive hold.
-  - **Snow** (4 min): every departure needs de-icing first: 20 s, or 5 s with a **de-icing pad** (Airside, 6 × 6, €7,000 · €10/min, place it anywhere airside).
 - **Knock-on delays:** a plane can only arrive at a stand once the previous plane has left it, so one late flight can delay the next one at that gate.
-- **Weather delays don't count against the airport** (as in real punctuality statistics): the on-time rate and airline happiness only count delays the airport caused (holding for late passengers). Knock-on delays from weather count as weather.
-- The HUD shows the season and the weather next to the clock; a notice explains a storm or snow when it starts. Rain and snow fall around the camera, fog is visible fog, storms darken the sky with lightning.
+- The HUD shows the season next to the clock.
 
 ### 12.4 Night curfew (first version)
 - Until the airport is a **Hub**, no plane lands or takes off between **00:00 and 05:00** (noise rules, 20 real minutes per game day). Gate slots in those hours stay empty, and airlines don't count them as owed flights. Passengers already in the airport finish their journeys.
 - The clock shows "Curfew", and the departures board says when flights start again.
 - **Hub** status brings **night flights**: the curfew ends (§14.1).
-
-### 12.3 Security incidents (first version)
-Placeholder numbers, tunable.
-- Every 12–20 real minutes an **unattended bag** is found at a random staffed check-in, security or transfer security. That station **closes for 90 seconds** while the police clear it: passengers being served finish, nobody new is served, the queue grows.
-- **Walk there:** while the manager stands at the station (§15.1), the clearing goes three times as fast.
-- A red hint with a countdown floats above the station, and a notice says where it is. A second checkpoint keeps passengers moving meanwhile (redundancy pays).
 
 ---
 
@@ -583,17 +571,9 @@ Decided 2026-10-13 (closes §19 Q3 and Q4 for now). Placeholder numbers, tunable
   | **Hub** | 25,000 passengers, 4 ★ and 600 transfers | **hub status**: airlines route twice as many connections through the airport, **night flights** (no curfew, §12.4), and a premium airline (Corvista Airlines) makes an offer |
 
 - Pace (balance check, 2026-10-13): a new one-gate airport with the starter airline serves ~900 passengers per hour and earns ~€100/min, so National comes after 30–60 minutes depending on how quickly the player adds a second airline and gate.
-- **First landing:** when a newly signed airline's first plane comes in, a short cutscene camera follows it down to the runway (8 s, a tap skips it, manager view only), with a notice. The starting airline doesn't get one.
 - Reaching a tier is a **milestone moment**: a big panel names the new tier and lists what it unlocked ("Let's build!").
 - Land the airport doesn't own yet is shaded darker; nothing can be built or painted there ("Unlocked at National airport"). Buildings already standing there (old saves) stay.
 - The tier is shown next to the star rating; the statistics panel shows the progress towards the next tier.
-
-
-### 14.2 VIP visits (first version)
-Placeholder numbers, tunable. From **National** on.
-- Every 20–30 minutes a **VIP** (a minister, a state visit) is announced on a departure at least 2½ minutes ahead: a notice names the flight. The VIP is the next of its passengers to arrive, travels business and is drawn in **gold**.
-- If the VIP's mood is still **80 % or more** when they board, the airport earns **€5,000** and **half a star** for a while (fading over 10 minutes). Below that (long queues, long walks, a missed flight), the press notices: **half a star less** for a while.
-- Fast track, a lounge and short queues are what keeps a VIP happy.
 
 ---
 

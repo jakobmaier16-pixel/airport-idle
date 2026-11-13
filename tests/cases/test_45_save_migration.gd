@@ -10,12 +10,20 @@ extends TestCase
 const TEST_SAVE: String = "user://test_migration.json"
 const SHOWCASE_V1: String = "res://tests/saves/v1_showcase.json"
 const EARLY_V1: String = "res://tests/saves/v1_early.json"
-## What the showcase example save holds (written 2026-11-06, format version 1).
+## What the showcase example save holds (written 2026-11-06, format version 1), without its
+## de-icing pad: that building type was removed on 2026-11-13 and is refunded on loading.
 const EXAMPLE_BUILDINGS: Dictionary = {
 	"runway": 1, "entrance": 1, "check_in": 2, "security": 1, "gate": 3, "aircraft_stand": 3,
-	"wide_body_stand": 1, "deicing_pad": 1, "cargo_terminal": 1, "baggage_claim": 1,
+	"wide_body_stand": 1, "cargo_terminal": 1, "baggage_claim": 1,
 	"transfer_security": 1, "shop": 1, "cafe": 1, "lounge": 1, "car_park": 1,
 }
+
+
+# The removed de-icing pad of the old example saves was paid back (half of its 7,000 saved price),
+# and the player is told.
+func _check_pad_refunded() -> void:
+	check(SaveGame.load_problem.contains("deicing_pad"), "the player is told about the pad: '%s'" % SaveGame.load_problem)
+	check_eq(Airport.load_refund, 3500.0, "half the pad's saved price is refunded")
 
 
 # Puts `text` where SaveGame loads from, with saving switched on for this test only.
@@ -57,8 +65,8 @@ func test_showcase_v1_loads_completely() -> void:
 	var saved := _example(SHOWCASE_V1)
 	_install_example(SHOWCASE_V1)
 	SaveGame.load_game()
-	check_eq(SaveGame.load_problem, "", "no problem loading")
-	check_eq(_building_counts(), EXAMPLE_BUILDINGS, "every building is back")
+	_check_pad_refunded()
+	check_eq(_building_counts(), EXAMPLE_BUILDINGS, "every other building is back")
 	check_eq(Airport.staff.size(), 15, "every employee is back")
 	check(Airport.staff.all(func(e: Employee) -> bool: return e.workplace != null and Airport.needs_staff(e.workplace)),
 		"every employee works at a station that needs staff")
@@ -75,7 +83,7 @@ func test_showcase_v1_loads_completely() -> void:
 	check(Airport.passenger_flow.route_problem.is_empty(), "passengers can flow")
 	# Written long ago: the player gets the welcome-back income once (design doc §3.4).
 	check(SaveGame.away_seconds > 36 * 3600.0, "the save is old")
-	check_eq(Airport.economy.balance, float(saved["money"]) + SaveGame.welcome_back_bonus, "money plus the welcome-back income")
+	check_eq(Airport.economy.balance, float(saved["money"]) + SaveGame.welcome_back_bonus + Airport.load_refund, "money plus the welcome-back income and the refund")
 	_clean_up()
 
 
@@ -114,14 +122,14 @@ func test_converted_save_loads() -> void:
 		return data
 	_install_example(SHOWCASE_V1)
 	SaveGame.load_game()
-	check_eq(SaveGame.load_problem, "", "an old save loads in a newer version")
-	check_eq(_building_counts(), EXAMPLE_BUILDINGS, "with every building")
-	check_eq(Airport.economy.balance, float(saved["money"]) + 1.0 + SaveGame.welcome_back_bonus, "after its converter ran")
+	check(SaveGame.load_problem.contains("deicing_pad"), "an old save loads in a newer version (only its pad is refunded)")
+	check_eq(_building_counts(), EXAMPLE_BUILDINGS, "with every other building")
+	check_eq(Airport.economy.balance, float(saved["money"]) + 1.0 + SaveGame.welcome_back_bonus + Airport.load_refund, "after its converter ran")
 	_clean_up()
 
 
 func test_missing_converter_keeps_the_save() -> void:
-	SaveGame.format_version = 5  # newer build, but nobody wrote the converter
+	SaveGame.format_version = 6  # newer build, but nobody wrote the converter
 	_install_example(SHOWCASE_V1)
 	var original := FileAccess.get_file_as_string(TEST_SAVE)
 	SaveGame.load_game()
@@ -166,7 +174,7 @@ func _check_kept_aside(original: String, reason: String) -> void:
 
 
 ## Saves store these lists as plain numbers (zones per cell, the building kinds in staff
-## experience, the tier, the weather). Reordering them, or inserting a value in the middle,
+## experience, the tier). Reordering them, or inserting a value in the middle,
 ## silently changes what old saves mean. New values go at the end; anything else needs a
 ## converter (SaveGame.migrations) and a new FORMAT_VERSION.
 func test_saved_number_lists_unchanged() -> void:
@@ -175,7 +183,6 @@ func test_saved_number_lists_unchanged() -> void:
 	check_eq(BuildingType.Role.keys(), ["NONE", "ENTRANCE", "CHECK_IN", "SECURITY", "GATE", "AIRCRAFT_STAND", "SHOP",
 		"BAGGAGE_CLAIM", "TRANSFER_SECURITY", "CAR_PARK", "LOUNGE", "RUNWAY", "CARGO_TERMINAL"], "BuildingType.Role" + fix)
 	check_eq(Progression.Tier.keys(), ["REGIONAL", "NATIONAL", "INTERNATIONAL", "HUB"], "Progression.Tier" + fix)
-	check_eq(Weather.Kind.keys(), ["CLEAR", "RAIN", "STORM", "FOG", "SNOW"], "Weather.Kind" + fix)
 
 
 const SHOWCASE_V2: String = "res://tests/saves/v2_showcase.json"
@@ -184,8 +191,8 @@ const SHOWCASE_V2: String = "res://tests/saves/v2_showcase.json"
 func test_showcase_v2_loads_completely() -> void:
 	_install_example(SHOWCASE_V2)
 	SaveGame.load_game()
-	check_eq(SaveGame.load_problem, "", "no problem loading")
-	check_eq(Airport.buildings.size(), 20, "every building is back")
+	_check_pad_refunded()
+	check_eq(Airport.buildings.size(), 19, "every building but the pad is back")
 	check_eq(Airport.staff.size(), 15, "every employee is back")
 	check(Airport.staff.all(func(e: Employee) -> bool: return Airport.buildings.has(e.workplace) and Airport.needs_staff(e.workplace)),
 		"every employee works at a station")
@@ -242,3 +249,34 @@ func test_vanished_building_type_is_refunded() -> void:
 	SaveGame.load_game()
 	check(SaveGame.load_problem.contains("gone_for_good"), "the player is told which building")
 	_clean_up()
+
+
+const SHOWCASE_V4: String = "res://tests/saves/v4_showcase.json"
+const SHOWCASE_V5: String = "res://tests/saves/v5_showcase.json"
+## Fields of the removed extras (weather, incidents, VIPs, first-landing cutscene).
+const REMOVED_KEYS: Array[String] = ["weather", "next_incident_in", "next_vip_in"]
+
+
+func test_showcase_v5_loads_completely() -> void:
+	check_eq(int(_example(SHOWCASE_V5)["version"]), 5, "an example save of version 5")
+	_install_example(SHOWCASE_V5)
+	SaveGame.load_game()
+	check_eq(SaveGame.load_problem, "", "no problem loading")
+	check_eq(_building_counts(), EXAMPLE_BUILDINGS, "every building is back")
+	check_eq(Airport.staff.size(), 15, "every employee is back")
+	check(Airport.passenger_flow.route_problem.is_empty(), "passengers can flow")
+	_clean_up()
+
+
+func test_v4_converter_drops_the_removed_extras() -> void:
+	var saved := _example(SHOWCASE_V4)
+	for key in REMOVED_KEYS:
+		check(saved.has(key), "the old example still has '%s'" % key)
+	var converted := SaveGame.migrate(saved)
+	check_eq(converted["version"], 5, "now version 5")
+	for key in REMOVED_KEYS:
+		check(not converted.has(key), "'%s' is dropped" % key)
+	check(not (converted["buildings"] as Array).any(func(e: Dictionary) -> bool: return e.has("closed")), "no closed stations")
+	check(not (converted["airlines"]["signed"] as Array).any(func(e: Dictionary) -> bool: return e.has("first_landing")), "no first-landing flags")
+	check(not (converted["flow"]["passengers"] as Array).any(func(e: Dictionary) -> bool: return e.has("vip")), "no VIP flags")
+	check(not (converted["flow"]["schedule"]["flights"] as Array).any(func(e: Dictionary) -> bool: return e.has("weather_delay") or e.has("deiced") or e.has("vip_pending")), "no weather or VIP fields on flights")

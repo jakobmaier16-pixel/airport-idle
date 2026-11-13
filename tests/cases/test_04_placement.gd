@@ -16,7 +16,7 @@ func test_all_mvp_buildings_in_menu() -> void:
 	check_eq(texts.call(), ["‹", "Shop", "Café", "Lounge"], "shops")
 	await press(_menu_button(row, "‹"))
 	await press(_menu_button(row, "Airside ›"))
-	check_eq(texts.call(), ["‹", "Stand", "Wide-body stand (International)", "De-icing pad", "Runway", "Cargo terminal (National)"], "airside")
+	check_eq(texts.call(), ["‹", "Stand", "Wide-body stand (International)", "Runway", "Cargo terminal (National)"], "airside")
 	await close_build_view()
 	await open_build_view()
 	check_eq(texts.call(), ["Terminal ›", "Airside ›", "Shops ›", "Landside ›"], "menu starts at the categories again")

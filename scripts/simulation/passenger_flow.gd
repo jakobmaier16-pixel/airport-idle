@@ -77,8 +77,6 @@ var transferred_count: int = 0
 var transfers_possible: bool = false
 ## Tests only: if 0 or more, replaces every route's transfer share.
 var transfer_share_override: float = -1.0
-## A VIP's journey ended (design doc §14.2): `happy` if their mood was good enough.
-signal vip_finished(happy: bool, mood: float)
 ## How happy passengers leave the airport (design doc §8.10).
 var satisfaction: Satisfaction = Satisfaction.new()
 ## What is missing for a complete route, or "" if passengers can flow.
@@ -235,7 +233,7 @@ func save_state() -> Dictionary:
 		saved_passengers.append({
 			"state": int(passenger.state), "flight": flight_index.get(passenger.flight, -1),
 			"type": String(passenger.type.id) if passenger.type != null else "",
-			"arriving": passenger.is_arriving, "transfer": passenger.is_transfer, "vip": passenger.is_vip,
+			"arriving": passenger.is_arriving, "transfer": passenger.is_transfer,
 			"by_car": passenger.by_car, "has_bag": passenger.has_bag, "bag_ready_at": passenger.bag_ready_at,
 			"goal": int(passenger.goal), "target": passenger.target.id if passenger.target != null else 0,
 			"position": [passenger.position.x, passenger.position.y, passenger.position.z],
@@ -293,7 +291,6 @@ func load_state(data: Dictionary, by_id: Dictionary[int, Building]) -> void:
 		passenger.type = FlightSchedule.type_by_id(type_id)
 		passenger.is_arriving = bool(entry.get("arriving", false))
 		passenger.is_transfer = bool(entry.get("transfer", false))
-		passenger.is_vip = bool(entry.get("vip", false))
 		passenger.by_car = bool(entry.get("by_car", false))
 		passenger.has_bag = bool(entry.get("has_bag", false))
 		passenger.bag_ready_at = float(entry.get("bag_ready_at", 0.0))
@@ -402,11 +399,6 @@ func spawn_passenger(flight: Flight, type: PassengerType) -> bool:
 	var passenger := Passenger.new()
 	passenger.flight = flight
 	passenger.type = type
-	if flight.vip_pending:
-		# The VIP travels business (design doc §14.2).
-		flight.vip_pending = false
-		passenger.is_vip = true
-		passenger.type = FlightSchedule.BUSINESS
 	passenger.offset = Vector3(rng.randf_range(-MAX_OFFSET, MAX_OFFSET), 0.0, rng.randf_range(-MAX_OFFSET, MAX_OFFSET))
 	passenger.color_index = rng.randi() % COLOR_COUNT
 	passenger.position = _cell_point(cells[rng.randi() % cells.size()], passenger)
@@ -747,8 +739,7 @@ func _tick_station(station: Station, delta: float) -> void:
 					var role := station.role()
 					working[i].served[role] = working[i].served.get(role, 0) + 1
 				_finish_service(station, served)
-		# An unattended bag (design doc §12.3): nobody new is served until it's cleared.
-		if station.serving[i] == null and not station.queue.is_empty() and i < working.size() and not station.building.is_closed():
+		if station.serving[i] == null and not station.queue.is_empty() and i < working.size():
 			var next: Passenger = station.queue.pop_front()
 			next.state = Passenger.State.IN_SERVICE
 			station.serving[i] = next
@@ -960,13 +951,7 @@ func _lose_mood(passenger: Passenger, reason: String, points: float) -> void:
 	satisfaction.complain(reason, points)
 
 
-## A VIP leaves happy with at least this mood.
-const VIP_HAPPY_MOOD: float = 80.0
-
-
 func _finish_journey(passenger: Passenger, weight: int = 1) -> void:
-	if passenger.is_vip:
-		vip_finished.emit(passenger.mood >= VIP_HAPPY_MOOD, passenger.mood)
 	satisfaction.record(passenger.type.display_name if passenger.type != null else "Other", passenger.mood, weight)
 
 

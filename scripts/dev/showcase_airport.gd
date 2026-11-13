@@ -37,8 +37,6 @@ static func build(warm_up_seconds: float = 180.0) -> void:
 	# Long-haul (§10.2): gate 3 in the middle with a wide-body stand behind it.
 	Airport.place_building(catalog.find(&"gate"), Vector2i(27, 34), 0)
 	Airport.place_building(catalog.find(&"wide_body_stand"), Vector2i(22, 39), 0)
-	# De-icing pad for snowy days (§12.2), east of the transfer corridor.
-	Airport.place_building(catalog.find(&"deicing_pad"), Vector2i(56, 31), 0)
 	# Cargo (§10.3): a cargo terminal with its own stand in the east, on the parallel taxiway.
 	Airport.place_building(catalog.find(&"cargo_terminal"), Vector2i(52, 38), 0)
 	Airport.place_building(catalog.find(&"aircraft_stand"), Vector2i(50, 43), 0)
@@ -77,10 +75,8 @@ static func build(warm_up_seconds: float = 180.0) -> void:
 	airlines.sign_deal(Airlines.CATALOG.find(&"norvane"), 14, 20.0)
 	airlines.sign_deal(Airlines.CATALOG.find(&"orynth"), 10, 32.0)
 	airlines.sign_deal(Airlines.CATALOG.find(&"paqet"), 10, 20.0)
-	# These have flown here for a while: no first-landing cutscene for them, and contracts that
-	# run out at different times (Zippa asks to renew in about 5 minutes, §10.4).
+	# Contracts that run out at different times (Zippa asks to renew in about 5 minutes, §10.4).
 	for airline in airlines.signed:
-		airline.first_landing_seen = true
 		airline.contract_left = Airlines.CONTRACT_SECONDS * (0.4 + 0.1 * airlines.signed.find(airline))
 	airlines.signed[1].contract_left = Airlines.RENEWAL_NOTICE + 300.0
 	airlines.offers.append(AirlineOffer.new(Airlines.CATALOG.find(&"sunkiss"), 10, 13.0))
@@ -103,15 +99,6 @@ static func build(warm_up_seconds: float = 180.0) -> void:
 	check_in.level = 2
 	Airport.start_upgrade(check_in)
 	Airport.economy.balance = Economy.STARTING_MONEY
-
-	# The newest events, so they're visible right after an update (§12.2, §12.3): light rain and
-	# an unattended bag at the second check-in. Not when tests build the showcase (no warm-up).
-	if warm_up_seconds > 0.0:
-		Airport.weather.start(Weather.Kind.RAIN)
-		var check_ins := Airport.buildings.filter(func(b: Building) -> bool: return b.type.role == BuildingType.Role.CHECK_IN)
-		Airport.start_incident(check_ins[1])
-		# And a VIP on an upcoming flight (§14.2): watch for the gold figure.
-		Airport.announce_vip()
 
 
 static func _first(role: BuildingType.Role) -> Building:

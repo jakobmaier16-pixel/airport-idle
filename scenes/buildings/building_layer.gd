@@ -84,10 +84,6 @@ func _process(_delta: float) -> void:
 		if not problem.is_empty():
 			hint.text = problem
 			hint.modulate = HINT_COLOR
-		elif building.is_closed():
-			var seconds := ceili(building.closed_seconds)
-			hint.text = "Unattended bag! Closed %d:%02d" % [seconds / 60, seconds % 60]
-			hint.modulate = HINT_COLOR
 		elif Airport.needs_staff(building) and Airport.staff_at(building).is_empty():
 			hint.text = "Needs staff"
 			hint.modulate = HINT_COLOR
@@ -103,7 +99,7 @@ func _process(_delta: float) -> void:
 			hint.position.y = building.type.height * 0.5
 		if hint.text != "Manager here · +10 %":
 			hint.position.y = building.type.height + HINT_HEIGHT
-		hint.visible = not problem.is_empty() or building.is_upgrading() or building.is_closed() \
+		hint.visible = not problem.is_empty() or building.is_upgrading() \
 			or (Airport.needs_staff(building) and (Airport.staff_at(building).is_empty() or Airport.is_manager_near(building)))
 
 

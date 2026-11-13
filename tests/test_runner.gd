@@ -76,9 +76,6 @@ func _reset_world() -> void:
 	# A bare map: tests build what they need. (A real new game also gets the starting runway;
 	# the showcase and the walkthrough have it.)
 	Airport.reset(false)
-	# No random weather in tests: it would make results depend on luck (design doc §12.2).
-	Airport.weather.automatic = false
-	Airport.incidents_automatic = false
 	TouchGestures._reset()
 	TouchGestures.pinch_cancels_drag = false
 	TouchGestures.independent_drags = false

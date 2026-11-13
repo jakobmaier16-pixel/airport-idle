@@ -188,11 +188,10 @@ func _save_flight(flight: Flight, scheduled: bool) -> Dictionary:
 	return {
 		"scheduled": scheduled, "number": flight.number,
 		"airline": String(flight.airline.type.id) if flight.airline != null else "",
-		"wide_body": flight.wide_body, "vip_pending": flight.vip_pending, "cargo": flight.cargo,
+		"wide_body": flight.wide_body, "cargo": flight.cargo,
 		"tonnes": flight.tonnes, "tonnes_handled": flight.tonnes_handled, "fee": flight.fee_per_passenger,
 		"route": flight.route, "gate": flight.gate.id, "stand": flight.stand.id if flight.stand != null else 0,
 		"departure_time": flight.departure_time, "delay": flight.delay, "arrival_delay": flight.arrival_delay,
-		"weather_delay": flight.weather_delay, "deiced": flight.deiced,
 		"landing_booked": flight.landing_booked, "takeoff_booked": flight.takeoff_booked,
 		"seats": flight.seats, "booked": flight.booked,
 		"arrival_times": Array(flight.arrival_times), "arrival_types": arrival_types,
@@ -210,7 +209,6 @@ func _load_flight(entry: Dictionary, gate: Building, by_id: Dictionary[int, Buil
 		if airline.type.id == airline_id:
 			flight.airline = airline
 	flight.wide_body = bool(entry.get("wide_body", false))
-	flight.vip_pending = bool(entry.get("vip_pending", false))
 	flight.cargo = bool(entry.get("cargo", false))
 	flight.tonnes = float(entry.get("tonnes", 0.0))
 	flight.tonnes_handled = float(entry.get("tonnes_handled", 0.0))
@@ -221,8 +219,6 @@ func _load_flight(entry: Dictionary, gate: Building, by_id: Dictionary[int, Buil
 	flight.departure_time = float(entry.get("departure_time", 0.0))
 	flight.delay = float(entry.get("delay", 0.0))
 	flight.arrival_delay = float(entry.get("arrival_delay", 0.0))
-	flight.weather_delay = float(entry.get("weather_delay", 0.0))
-	flight.deiced = float(entry.get("deiced", 0.0))
 	flight.landing_booked = bool(entry.get("landing_booked", false))
 	flight.takeoff_booked = bool(entry.get("takeoff_booked", false))
 	flight.seats = int(entry.get("seats", 0))
@@ -282,7 +278,7 @@ func _schedule(gate: Building, departure_time: float, airline: Airline = null) -
 	flight.seats = roundi(SEATS * size_factor)
 	# Busy mornings and evenings, quiet nights (design doc §12.1), holiday peaks in summer (§12.2).
 	size_factor *= Clock.demand_factor(world.clock.hour_at(departure_time - world.passenger_flow.time))
-	size_factor *= Weather.demand_factor(flight.route, world.season())
+	size_factor *= Seasons.demand_factor(flight.route, world.season())
 	flight.booked = roundi(_passenger_count() * size_factor)
 	flight.departure_time = departure_time
 	if airline != null:
@@ -318,19 +314,16 @@ func _plan_arrivals(flight: Flight) -> void:
 
 
 func _advance(flight: Flight, now: float, delta: float, flow: PassengerFlow) -> void:
-	# Weather and knock-on holds (design doc §12.2): time stands still for this flight.
+	# Knock-on holds: time stands still for this flight.
 	var hold := _hold_reason(flight, now)
 	if hold == Hold.AIRPORT and flight.arrival_delay < TURNAROUND_BUFFER:
 		# Landing a little late: the time at the stand absorbs it, the departure stays on time.
 		flight.arrival_delay += delta
 	elif hold != Hold.NONE:
 		flight.delay += delta
-		if hold == Hold.WEATHER:
-			flight.weather_delay += delta
 	var time_left := flight.departs_at() - now
 	# Arrival phases run late by the absorbed arrival delay.
 	var arrival_left := time_left + flight.arrival_delay
-	var ramp_open := not world.weather.ramp_closed()
 
 	# Passengers arrive at the entrance at their planned times.
 	while flight.spawned < flight.booked and flight.arrival_times[flight.spawned] <= now:
@@ -350,9 +343,7 @@ func _advance(flight: Flight, now: float, delta: float, flow: PassengerFlow) -> 
 	elif arrival_left <= PLANE_ARRIVES:
 		phase = Flight.Phase.ARRIVING
 
-	if not ramp_open:
-		pass  # lightning: nobody on the apron
-	elif phase == Flight.Phase.AT_STAND or (phase == Flight.Phase.BOARDING and flight.deplaned < flight.inbound_types.size()):
+	if phase == Flight.Phase.AT_STAND or (phase == Flight.Phase.BOARDING and flight.deplaned < flight.inbound_types.size()):
 		# Arriving passengers leave the plane first; whoever is left when boarding opens leaves at once.
 		flight.deplane_credit += (WIDE_BODY_DEPLANE_RATE if flight.wide_body else DEPLANE_RATE) * delta
 		if phase == Flight.Phase.BOARDING:
@@ -362,14 +353,14 @@ func _advance(flight: Flight, now: float, delta: float, flow: PassengerFlow) -> 
 				break
 			flight.deplaned += 1
 			flight.deplane_credit -= 1.0
-	if flight.cargo and ramp_open and (phase == Flight.Phase.AT_STAND or phase == Flight.Phase.BOARDING):
+	if flight.cargo and (phase == Flight.Phase.AT_STAND or phase == Flight.Phase.BOARDING):
 		flight.tonnes_handled = minf(flight.tonnes_handled + _handling_rate(flight.gate) * delta, flight.tonnes)
 	if phase >= Flight.Phase.DEPARTING and flight.phase == Flight.Phase.BOARDING and flight.cargo \
 			and flight.tonnes_handled < flight.tonnes and flight.airport_delay() < CARGO_MAX_HOLD:
 		# The freight isn't loaded yet: the freighter waits (the airport's delay).
 		flight.delay += delta
 		phase = Flight.Phase.BOARDING
-	if phase == Flight.Phase.BOARDING and ramp_open:
+	if phase == Flight.Phase.BOARDING:
 		flight.boarding_credit += BOARDING_RATE * delta
 		var boarded := flow.board(flight, floori(flight.boarding_credit))
 		flight.boarding_credit -= boarded
@@ -380,21 +371,12 @@ func _advance(flight: Flight, now: float, delta: float, flow: PassengerFlow) -> 
 		# Hold the doors for passengers who are airside or still boarding: a delay (design doc §11.7).
 		flight.delay += delta
 		phase = Flight.Phase.BOARDING
-	if phase >= Flight.Phase.DEPARTING and flight.phase == Flight.Phase.BOARDING:
-		# Snow: de-icing before pushback (design doc §12.2), a weather delay.
-		var deicing := world.weather.deicing_seconds(world.has_deicing_pad())
-		if flight.deiced < deicing:
-			flight.deiced += delta
-			flight.delay += delta
-			flight.weather_delay += delta
-			phase = Flight.Phase.BOARDING
 	if phase >= Flight.Phase.DEPARTING and flight.phase < Flight.Phase.DEPARTING and not flight.takeoff_booked:
 		# The take-off slot (design doc §7.5a): the plane pushes back on time and, if the runway is
 		# busy, waits at the holding point. Punctuality counts the push-back, as in real statistics.
 		_book_runway(flight, now, true)
 		flight.takeoff_booked = true
 	if phase >= Flight.Phase.DEPARTING and flight.phase < Flight.Phase.DEPARTING:
-		# Only delays the airport caused count (design doc §12.2).
 		world.reputation.record_departure(flight.airport_delay())
 		# Doors close: whoever isn't on board has missed the flight.
 		flight.missed = flow.remove_flight_passengers(flight, true)
@@ -417,7 +399,7 @@ func _advance(flight: Flight, now: float, delta: float, flow: PassengerFlow) -> 
 	flight.phase = phase
 
 
-enum Hold { NONE, WEATHER, AIRPORT }
+enum Hold { NONE, AIRPORT }
 
 ## Tonnes per second one cargo handler moves (design doc §10.3); experience makes them faster.
 const HANDLER_RATE: float = 0.25
@@ -453,24 +435,18 @@ func _runway_for(flight: Flight) -> Building:
 	return world.plane_network.runway_at(path[0]) if not path.is_empty() else null
 
 
-# Why `flight` must wait this step (design doc §12.2): weather (no landing, no ground work), or
-# its stand is still taken by the previous plane at the same gate (knock-on delay; weather if
-# that plane was held by weather).
+# Why `flight` must wait this step: its stand is still taken by the previous plane at the same
+# gate (knock-on delay) or the runway is busy.
 func _hold_reason(flight: Flight, now: float) -> Hold:
 	var arrival_left := flight.departs_at() - now + flight.arrival_delay
-	var weather := world.weather
 	if flight.phase == Flight.Phase.SCHEDULED and arrival_left <= PLANE_ARRIVES:
-		if weather.landing_closed():
-			return Hold.WEATHER
 		for other in flights:
 			if other != flight and other.gate == flight.gate and other.is_active() \
 					and other.departure_time < flight.departure_time and other.phase != Flight.Phase.SCHEDULED:
-				return Hold.WEATHER if other.weather_delay > 0.0 else Hold.AIRPORT
+				return Hold.AIRPORT
 		# A landing slot on the runway (design doc §7.5a).
 		if not flight.landing_booked:
 			if not _book_runway(flight, now):
 				return Hold.AIRPORT
 			flight.landing_booked = true
-	elif flight.phase >= Flight.Phase.ARRIVING and weather.ramp_closed():
-		return Hold.WEATHER
 	return Hold.NONE

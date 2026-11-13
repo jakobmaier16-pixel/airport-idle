@@ -55,9 +55,6 @@ static func prepare_airport() -> void:
 	SaveGame.enabled = false
 	Airport.reseed(SEED)
 	ShowcaseAirport.build()
-	# Same load every run: no random weather or incidents.
-	Airport.weather.automatic = false
-	Airport.incidents_automatic = false
 	Airport.passenger_flow.max_passengers = PASSENGER_LIMIT
 
 
@@ -78,10 +75,8 @@ static func top_up(max_new: int) -> int:
 	return added
 
 
-## Turns random weather and incidents back on, loads the player's save again and reloads the scene.
+## Loads the player's save again and reloads the scene.
 static func restore_player_game(tree: SceneTree) -> void:
-	Airport.weather.automatic = true
-	Airport.incidents_automatic = true
 	Airport.reset()
 	SaveGame.enabled = not OS.get_cmdline_user_args().has(SaveGame.NO_SAVE_FLAG)
 	SaveGame.load_game()
