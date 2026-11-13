@@ -13,6 +13,13 @@ texture noise, so the build view (top-down) stays readable and the iPhone stays 
 - Fictional world: no real logos, brands or airport names on any asset.
 - Readability beats detail: from the build view a player must tell road, sidewalk, apron and
   building apart at a glance. Value contrast (light / dark) does this, not texture.
+- **Real-world details belong in** (decided by Jakob 2026-11-13): every asset includes the small
+  things a real airport has (fences, signage, pay stations, lighting masts, bollards, lowered curbs,
+  tactile paving). When in doubt, check how real airports do it and stay realistic even if it is
+  more complicated. Night lights are emissive (no real lights).
+- **Buildings stay calm; colour and life come from vegetation, vehicles, signage, people and
+  subtle wear** (decided by Jakob 2026-11-13). Wear is quiet realism, never dirt: faint oil stains,
+  tyre marks, repair patches, drain grates, as flush decals without shadow.
 
 ## 2. Scale
 
@@ -47,9 +54,13 @@ nothing pure black or pure white, or PBR lighting looks fake.
 | Wayfinding, markings (road, apron) | Signal yellow | `#E8B830` |
 | Road markings, zebra | Marking white | `#E6E6E2` |
 | Status: problem / alert only | Signal red | `#C8382E` |
+| Traffic signs ("P" parking sign, as real) | Sign blue | `#1F5AA6` |
+| Bus stop sign (fictional regional style) | Bus green | `#2F7D4F` on signal yellow |
+| Vegetation (trees, hedges) | Foliage / bark | `#4F6B3A` / `#5A4A3C` |
 | Ground markings: stand safety / boundary lines | Marking red | `#C8382E` |
 
-Rule: **one accent per area.** Yellow is for wayfinding and markings only; red only for warnings.
+Rule: **one accent per area** on buildings. Yellow is for wayfinding and markings only; red only for
+warnings. Vehicles, people, plants and real-world traffic signs bring the rest of the colour.
 **Ground markings follow real ICAO conventions** (white runway, yellow taxi / lead-in, red stand
 safety lines); the "red only for alerts" rule applies to buildings and signs.
 Airline colours (fictional) live on planes, counters and signs, not on the building.

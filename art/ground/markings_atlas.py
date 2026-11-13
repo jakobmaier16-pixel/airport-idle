@@ -17,6 +17,7 @@ import numpy as np
 sys.dont_write_bytecode = True  # no __pycache__ in art/
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import markings_layout as L  # noqa: E402
+from atlas_text import text_mask  # noqa: E402
 from tex_io import ROOT, save_png  # noqa: E402
 
 N = L.ATLAS
@@ -150,6 +151,81 @@ for ch in L.GLYPHS:
     box = np.maximum(np.maximum(-gx, gx - gw), np.maximum(-gy, gy - gh))
     dist = np.maximum(dist, box)
     put(rect, L.WHITE, coverage(dist * ppm))
+
+
+# --- Landside: road letters, fence mesh, parking signs, tactile paving -------------------------
+# Road-marking letters: white, elongated 2.6 : 1 like real road lettering (read from a car).
+for ch in L.ROAD_LETTERS:
+    rect = L.road_letter_rect(ch)
+    put(rect, L.WHITE, text_mask(ch, rect[2], rect[3], mode="tall", pad=2.0, bold=1.2, squeeze=2.6))
+
+# Welded mesh fence panel (2 × 2 m): vertical wires every 0.1 m, double rails every 0.2 m.
+rect = L.RECTS["fence_mesh"]
+xx, yy = local_grid(rect)
+sx, sy = rect[2] / 20.0, rect[3] / 10.0
+dv = np.abs(np.mod(xx, sx) - sx / 2) - 0.7
+dh = np.minimum(np.abs(np.mod(yy, sy) - sy / 2 + 1.3), np.abs(np.mod(yy, sy) - sy / 2 - 1.3)) - 0.55
+put(rect, L.ANTHRACITE, coverage(np.minimum(dv, dh)))
+
+
+def blit(rect: tuple, sub: tuple, mask: np.ndarray, colour: str) -> None:
+    """Paint `colour` with coverage `mask` into the sub-rect (x, y, w, h relative to `rect`)."""
+    x, y = rect[0] + sub[0], rect[1] + sub[1]
+    h, w = mask.shape
+    m = mask[..., None]
+    rgb[y:y + h, x:x + w] = rgb[y:y + h, x:x + w] * (1 - m) + col(colour) * m
+
+
+# Car park information board (2 × 1 m): fictional tariffs, English only.
+rect = L.RECTS["parking_board"]
+x, y, w, h = rect
+put(rect, L.WHITE)
+rgb[y:y + 22, x:x + w] = col(L.ANTHRACITE)
+rgb[y + h - 14:y + h, x:x + w] = col(L.ANTHRACITE)
+rgb[y + 3:y + 19, x + 4:x + 20] = col(L.SIGN_BLUE)
+blit(rect, (4, 3), text_mask("P", 16, 16, bold=0.6), L.WHITE)
+blit(rect, (24, 3), text_mask("CAR PARK", 156, 16, cap_px=11, align="left", bold=0.4), L.WHITE)
+rows = [("OPEN 24 HOURS", ""), ("UP TO 60 MIN", "2.50"), ("EACH FURTHER HOUR", "2.00"),
+        ("MAX. PER DAY", "18.00"), ("WEEK (7 DAYS)", "79.00")]
+for i, (left, right) in enumerate(rows):
+    yy0 = 25 + i * 10
+    blit(rect, (6, yy0), text_mask(left, 120, 10, cap_px=6.5, align="left", bold=0.2), L.ANTHRACITE)
+    if right:
+        blit(rect, (126, yy0), text_mask(right, 52, 10, cap_px=6.5, align="right", bold=0.2), L.ANTHRACITE)
+blit(rect, (4, h - 13), text_mask("PAY AT THE MACHINE BEFORE EXIT", 176, 12, cap_px=6, bold=0.2), L.YELLOW)
+
+# Parking sign "P" (0.9 × 0.9 m): white P on traffic-sign blue, white frame (as the real sign).
+rect = L.RECTS["p_sign"]
+x, y, w, h = rect
+xx, yy = local_grid(rect)
+edge = np.minimum.reduce([xx, yy, w - xx, h - yy])
+frame = coverage(np.abs(edge - 5.5) - 2.0)
+put(rect, L.SIGN_BLUE)
+rgb[y:y + h, x:x + w] = col(L.SIGN_BLUE) * (1 - frame[..., None]) + col(L.WHITE) * frame[..., None]
+blit(rect, (14, 12), text_mask("P", 64, 68, bold=1.5), L.WHITE)
+
+# Tactile paving (0.6 × 0.6 m, 2 × 2 slabs of 0.3 m): light grey, studs or ribs, darker joints.
+TACTILE = "#C2C2BC"
+for name in ("tactile_dots", "tactile_ribs"):
+    rect = L.RECTS[name]
+    x, y, w, h = rect
+    xx, yy = local_grid(rect)
+    ppm = w / 0.6
+    shade = np.zeros(xx.shape)
+    if name == "tactile_dots":       # 5 × 5 studs per 0.3 m slab, 25 mm, 60 mm apart
+        p = 0.06 * ppm
+        d = np.hypot(np.mod(xx, p) - p / 2, np.mod(yy, p) - p / 2) - 0.0125 * ppm * 1.4
+        lit = np.hypot(np.mod(xx, p) - p / 2 + 0.6, np.mod(yy, p) - p / 2 + 0.6) - 0.0125 * ppm
+    else:                            # ribs along Y, 35 mm wide, 75 mm apart
+        p = 0.075 * ppm
+        d = np.abs(np.mod(xx, p) - p / 2) - 0.0175 * ppm * 1.3
+        lit = np.abs(np.mod(xx, p) - p / 2 + 0.6) - 0.0175 * ppm
+    stud = coverage(d)
+    shade = -0.10 * stud + 0.10 * coverage(lit)
+    joint = coverage(np.minimum(np.abs(np.mod(xx, w / 2) - 0.0), np.abs(np.mod(yy, h / 2) - 0.0)) - 0.5)
+    tone = (1.0 + shade - 0.25 * joint)[..., None]
+    put(rect, TACTILE)
+    rgb[y:y + h, x:x + w] = np.clip(col(TACTILE) * tone, 0, 1)
 
 
 # --- Bleed colours into the transparent gutters (no dark fringes when filtered) ----------------

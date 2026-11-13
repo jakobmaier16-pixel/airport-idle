@@ -1,0 +1,16 @@
+[gd_resource type="ORMMaterial3D" format=3]
+
+[ext_resource type="Texture2D" uid="uid://dus2du457grjf" path="res://assets/textures/paving/paving_albedo.png" id="1_albedo"]
+[ext_resource type="Texture2D" uid="uid://dafj4xxy1b3d" path="res://assets/textures/paving/paving_normal.png" id="2_normal"]
+[ext_resource type="Texture2D" uid="uid://0768e3lmj1gr" path="res://assets/textures/paving/paving_orm.png" id="3_orm"]
+
+[resource]
+resource_name = "paving"
+albedo_texture = ExtResource("1_albedo")
+orm_texture = ExtResource("3_orm")
+roughness = 1.0
+metallic = 0.0
+ao_enabled = true
+normal_enabled = true
+normal_texture = ExtResource("2_normal")
+uv1_scale = Vector3(0.5, 0.5, 1)
