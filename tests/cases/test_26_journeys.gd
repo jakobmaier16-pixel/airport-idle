@@ -60,3 +60,75 @@ func test_journey_survives_save_and_load() -> void:
 	Airport.load_state(state)
 	var after: Array = Airport.passenger_flow.passengers.map(func(p: Passenger) -> Array: return [p.recipe.id, p.step])
 	check_eq(after, before, "recipe and step come back after loading")
+
+
+func test_recipes_are_well_formed() -> void:
+	var known: Array[Role] = []
+	for type in Airport.CATALOG.types:
+		known.append(type.role)
+	for recipe in [PassengerFlow.DEPARTURE, PassengerFlow.ARRIVAL, PassengerFlow.TRANSFER]:
+		check(recipe.steps.size() >= 1, "%s has at least one step" % recipe.id)
+		for step in recipe.steps:
+			check(step.role != Role.NONE and known.has(step.role), "%s: step role %d is a role of some building type" % [recipe.id, step.role])
+
+
+# Runs until a passenger matching `wanted` exists; returns [index in the list, snapshot] or [-1, {}].
+func _find_passenger(wanted: Callable) -> Array:
+	var flow := Airport.passenger_flow
+	for i in 6000:
+		Airport.step(Airport.SIM_STEP)
+		for index in flow.passengers.size():
+			if wanted.call(flow.passengers[index]):
+				return [index, _snapshot(flow.passengers[index])]
+	return [-1, {}]
+
+
+func _snapshot(p: Passenger) -> Dictionary:
+	return {"state": p.state, "goal": p.goal, "step": p.step, "recipe": p.recipe.id, "position": p.position,
+		"after_shop": p.after_shop, "target": p.target, "by_car": p.by_car, "has_bag": p.has_bag}
+
+
+func _reload() -> void:
+	var state := Airport.save_state()
+	Airport.reset()
+	Airport.load_state(state)
+
+
+func test_saved_in_a_shop_detour_comes_back() -> void:
+	var types: Array[PassengerType] = [FlightSchedule.FAMILY, FlightSchedule.LOW_COST, FlightSchedule.BUSINESS]
+	var chances := types.map(func(t: PassengerType) -> float: return t.shop_chance)
+	for type in types:
+		type.shop_chance = 1.0  # everyone with spare time takes the detour: no luck involved
+	ShowcaseAirport.build(0.0)
+	var found := _find_passenger(func(p: Passenger) -> bool: return p.state == Passenger.State.IN_SHOP)
+	for i in types.size():
+		types[i].shop_chance = chances[i]
+	check(found[0] >= 0, "a passenger sat in a shop")
+	if found[0] < 0:
+		return
+	var before: Dictionary = found[1]
+	check(before["goal"] in [Role.SHOP, Role.LOUNGE], "the goal is the shop, the step stays the one after it")
+	_reload()
+	var p := Airport.passenger_flow.passengers[found[0]]
+	var after := _snapshot(p)
+	check_eq(after["state"], Passenger.State.IN_SHOP, "still in the shop")
+	for key in ["goal", "step", "recipe", "position", "after_shop"]:
+		check_eq(after[key], before[key], "%s restored" % key)
+	check(p.target != null and Airport.passenger_flow.station_for(p.target).waiting.has(p), "back inside the shop")
+
+
+func test_saved_at_the_baggage_claim_comes_back() -> void:
+	ShowcaseAirport.build(0.0)
+	var found := _find_passenger(func(p: Passenger) -> bool: return p.state == Passenger.State.AT_BELT)
+	check(found[0] >= 0, "an arriving passenger waited at the belt")
+	if found[0] < 0:
+		return
+	var before: Dictionary = found[1]
+	check_eq(before["goal"], Role.BAGGAGE_CLAIM, "heading for the claim")
+	_reload()
+	var p := Airport.passenger_flow.passengers[found[0]]
+	var after := _snapshot(p)
+	check_eq(after["state"], Passenger.State.AT_BELT, "still at the belt")
+	for key in ["goal", "step", "recipe", "position", "has_bag"]:
+		check_eq(after[key], before[key], "%s restored" % key)
+	check(Airport.passenger_flow.station_for(p.target).waiting.has(p), "back in the claim")

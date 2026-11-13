@@ -43,8 +43,9 @@ var position: Vector3 = Vector3.ZERO
 ## Position at the previous simulation step, so visuals can move smoothly in between.
 var previous_position: Vector3 = Vector3.ZERO
 
-## Remaining waypoints (world positions) and the index of the next one.
-var path: PackedVector3Array = PackedVector3Array()
+## Remaining waypoints as grid cells (index = y * grid width + x; 4 bytes each instead of a
+## 3D point) and the index of the next one. The flow turns them into positions while walking.
+var path: PackedInt32Array = PackedInt32Array()
 var path_index: int = 0
 ## Small personal sideways offset, so a crowd doesn't walk in one perfect line.
 var offset: Vector3 = Vector3.ZERO

@@ -229,7 +229,7 @@ From the prototype audit (keep / refactor / rewrite):
 2. The brain as one object (no global) **(done 2026-11-13)**
 3. Saving: names instead of numbers, migrations, flights and passengers included
 4. Automatic zones and areas
-5. Passenger journey as recipes (**5a done**: recipes in `data/journeys/`, passengers carry recipe and step; 5b speed, 5c save format 6 follow)
+5. Passenger journey as recipes (**5a done**: recipes in `data/journeys/`, passengers carry recipe and step; 5b speed done (heartbeat about halved), 5c save format 6 follows)
 6. Daily timetable and growing demand
 7. Electricity
 8. Security upgrade ladder with CT scanners in 3D
