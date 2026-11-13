@@ -295,7 +295,7 @@ One airport for the whole game. No playtime limit.
 - **Devices:** iPhone and iPad are **both main devices** and must both play well. **Landscape only.**
 - **Platform:** iOS / iPadOS via the App Store. English only. Offline single-player.
 - **Tech:** Godot, VS Code (Claude Code), Xcode, Blender. See §16.
-- **Art:** simple, realistic low-poly first; more detail later.
+- **Art:** realistic look within the iPhone budget (decided 2026-11-13): few shared PBR materials / trim sheets, baked light, LOD, MultiMesh for repeated furniture, ASTC textures; a look-probe on the device comes first.
 - **Tutorial:** a fictional regional airport inspired by Memmingen that clearly shows what kind of game this is. Details **(open)** until the core game exists.
 - **Brands:** everything fictional (airlines, shops, food chains, ride-hailing).
 
