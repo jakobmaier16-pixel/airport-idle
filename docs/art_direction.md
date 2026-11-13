@@ -13,6 +13,10 @@ texture noise, so the build view (top-down) stays readable and the iPhone stays 
 - Fictional world: no real logos, brands or airport names on any asset.
 - Readability beats detail: from the build view a player must tell road, sidewalk, apron and
   building apart at a glance. Value contrast (light / dark) does this, not texture.
+- **Real-world details belong in** (decided by Jakob 2026-11-13): every asset includes the small
+  things a real airport has (fences, signage, pay stations, lighting masts, bollards, lowered curbs,
+  tactile paving). When in doubt, check how real airports do it and stay realistic even if it is
+  more complicated. Night lights are emissive (no real lights).
 
 ## 2. Scale
 
