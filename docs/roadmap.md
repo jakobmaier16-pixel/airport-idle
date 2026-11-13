@@ -6,11 +6,13 @@
 ## Code lane
 
 ### Now
-- Step 4 · Automatic zones and areas (4a done, 4b remove painting done, 4c areas)
+- Step 5 · Passenger journey as recipes
 
 ### Next
-- Step 5 · Passenger journey as recipes
 - Step 6 · Daily timetable and growing demand
+
+### Done
+- Step 4 · Automatic zones and areas (done 2026-11-13)
 
 ### Later (vertical slice)
 - Step 7 · Electricity

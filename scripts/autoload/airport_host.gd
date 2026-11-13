@@ -205,6 +205,14 @@ func step(delta: float) -> void:
 	brain.step(delta)
 
 
+func area_name(cell: Vector2i) -> String:
+	return brain.area_name(cell)
+
+
+func areas() -> Array:
+	return brain.areas()
+
+
 func owns_cell(cell: Vector2i) -> bool:
 	return brain.owns_cell(cell)
 

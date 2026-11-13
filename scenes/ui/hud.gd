@@ -534,12 +534,25 @@ func _add_stats_cell(text: String, color: Color) -> void:
 	_stats_table.add_child(cell)
 
 
+# A building stands next to the area its walkway belongs to: the first side that has one.
+func _area_of_building(building: Building) -> String:
+	for front: bool in [true, false]:
+		for cell in Building.outside_row(building.type.footprint, building.origin_cell, building.rotation_steps, front):
+			var name := Airport.area_name(cell)
+			if not name.is_empty():
+				return name
+	return ""
+
+
 func _update_station_panel() -> void:
 	var building := shown_station
 	_station_title.text = "%s · Level %d" % [building.type.display_name, building.level]
 	var lines: PackedStringArray = []
 	var role := building.type.role
 	var station := Airport.passenger_flow.station_for(building)
+	var area := _area_of_building(building)
+	if not area.is_empty():
+		lines.append("Area: %s" % area)
 	if role in [BuildingType.Role.CHECK_IN, BuildingType.Role.SECURITY, BuildingType.Role.TRANSFER_SECURITY]:
 		var unit := "counters" if role == BuildingType.Role.CHECK_IN else "lanes"
 		lines.append("%d %s · %.1f s per passenger" % [building.service_slots(), unit, building.service_time()])
