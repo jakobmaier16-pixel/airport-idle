@@ -6,6 +6,8 @@ art/ground/ground_preview.blend and renders (1280 × 720, Cycles) into art/previ
   ground_top.png      top-down, whole layout
   ground_eye.png      eye level (1.7 m) on the apron, looking at stand 32
   ground_markings.png close top-down crop of the stand markings
+  ground_crossing.png close top-down crop of the zebra crossing and the passenger path
+  ground_designator.png  runway designator turned to the approach direction (pilot's reading)
 
 World axes (metres): +X east, +Y north, +Z up. Runway 09 along X, threshold at x = -150.
 Not a game asset: the plane boxes are scale dummies only. The game builds its ground in stage 3
@@ -29,7 +31,10 @@ TEX = os.path.join(ROOT, "assets", "textures")
 UV_PER_M = 0.5            # world-scale UVs: 1 UV unit = 2 m (docs/art_direction.md §7)
 UV1_SCALE = {"grass": 0.125, "asphalt": 0.25, "concrete": 0.2}  # same as the .tres materials
 
-Z_GRASS, Z_PAVE, Z_ROAD, Z_MARK, Z_MARK_TOP = 0.0, 0.01, 0.015, 0.03, 0.035
+# Pavements are flush with each other (z = 0); grass sits 1 cm lower. Markings are paint: no
+# thickness, 0.5 mm above the pavement plus 0.5 mm per layer (max layer 2 -> 1.5 mm). Layers only
+# separate overlapping pieces (coplanar overlaps render black spots in Cycles).
+Z_GRASS, Z_PAVE, Z_MARK, Z_LAYER = -0.01, 0.0, 0.0005, 0.0005
 
 
 def srgb_to_linear(c: float) -> float:
@@ -142,8 +147,6 @@ class Batch:
     def quad(self, corners: list, uvs: list, z: float, col: tuple = (1, 1, 1, 1)) -> None:
         """corners/uvs in order bottom-left, bottom-right, top-right, top-left of the texture."""
         i = len(self.verts)
-        # Tiny per-quad lift: coplanar overlapping decals render black spots in Cycles.
-        z += len(self.faces) * 1e-4
         self.verts += [(c[0], c[1], z) for c in corners]
         self.faces.append((i, i + 1, i + 2, i + 3))
         self.uvs += uvs
@@ -164,7 +167,7 @@ class Batch:
         return obj
 
 
-batches = {k: Batch() for k in ("grass", "asphalt", "concrete", "road", "markings", "markings_top")}
+batches = {k: Batch() for k in ("grass", "asphalt", "concrete", "markings")}
 
 
 def area(batch: str, x0: float, y0: float, x1: float, y1: float, z: float) -> None:
@@ -184,7 +187,7 @@ def v2(a) -> np.ndarray:
 
 
 def strip(p0, p1, width: float, name: str, metres_per_atlas: float | None = None,
-          offset_m: float = 0.0, col: tuple = (1, 1, 1, 1), batch: str = "markings") -> None:
+          offset_m: float = 0.0, col: tuple = (1, 1, 1, 1), layer: int = 0) -> None:
     """A line along p0 -> p1 using a full-width atlas strip. Dashed strips repeat along U."""
     p0, p1 = v2(p0), v2(p1)
     d = p1 - p0
@@ -198,40 +201,41 @@ def strip(p0, p1, width: float, name: str, metres_per_atlas: float | None = None
         ua = offset_m / metres_per_atlas
         ub = (offset_m + length) / metres_per_atlas
     c = [p0 - n, p1 - n, p1 + n, p0 + n]
-    batches[batch].quad(c, [(ua, v0), (ub, v0), (ub, v1), (ua, v1)], Z_MARK if batch == "markings" else Z_MARK_TOP, col)
+    batches["markings"].quad(c, [(ua, v0), (ub, v0), (ub, v1), (ua, v1)], Z_MARK + layer * Z_LAYER, col)
 
 
 def piece(center, dir_u, size_u: float, size_v: float, rect, col: tuple = (1, 1, 1, 1),
-          batch: str = "markings") -> None:
+          layer: int = 0) -> None:
     """Whole atlas rect onto a quad; dir_u = world direction of the atlas +x axis."""
     c, du = v2(center), v2(dir_u) / np.linalg.norm(dir_u)
     dv = np.array([-du[1], du[0]])  # atlas "up" is 90° left of +x
     hu, hv = du * size_u / 2, dv * size_v / 2
     u0, v0, u1, v1 = rect_uv(rect)
     corners = [c - hu - hv, c + hu - hv, c + hu + hv, c - hu + hv]
-    batches[batch].quad(corners, [(u0, v0), (u1, v0), (u1, v1), (u0, v1)],
-                        Z_MARK if batch == "markings" else Z_MARK_TOP, col)
+    batches["markings"].quad(corners, [(u0, v0), (u1, v0), (u1, v1), (u0, v1)],
+                             Z_MARK + layer * Z_LAYER, col)
 
 
-def curve(center, a, b, name: str) -> None:
+def curve(center, a, b, name: str, layer: int = 1) -> None:
     """Quarter taxi-line curve: arc centre at `center`, from center + a·R to center + b·R."""
     size = L.CURVES[name][2]
     c, a, b = v2(center), v2(a), v2(b)
     u0, v0, u1, v1 = rect_uv(name)
     corners = [c, c + a * size, c + (a + b) * size, c + b * size]
-    batches["markings"].quad(corners, [(u0, v0), (u1, v0), (u1, v1), (u0, v1)], Z_MARK)
+    batches["markings"].quad(corners, [(u0, v0), (u1, v0), (u1, v1), (u0, v1)], Z_MARK + layer * Z_LAYER)
 
 
 def text(chars: str, center, up, height: float, spacing: float, col=(1, 1, 1, 1),
-         batch: str = "markings") -> None:
-    """Characters from the atlas, read with `up` pointing away from the reader."""
+         layer: int = 0) -> None:
+    """Characters from the atlas, read with `up` pointing away from the reader (glyph bottoms
+    toward the reader). Runway designators: `up` = landing direction, bottoms toward the threshold."""
     up = v2(up) / np.linalg.norm(up)
     right = np.array([up[1], -up[0]])
     k = height / L.DIGIT[1]
     cw, ch = L.GLYPH_CELL[0] / L.GLYPH_PX_PER_M * k, L.GLYPH_CELL[1] / L.GLYPH_PX_PER_M * k
     first = -(len(chars) - 1) * spacing / 2
     for i, c in enumerate(chars):
-        piece(v2(center) + right * (first + i * spacing), right, cw, ch, L.glyph_rect(c), col, batch)
+        piece(v2(center) + right * (first + i * spacing), right, cw, ch, L.glyph_rect(c), col, layer)
 
 
 YELLOW_TINT = tuple(min(1.0, y / w) for y, w in zip(hex_lin(L.YELLOW), hex_lin(L.WHITE))) + (1.0,)
@@ -246,9 +250,10 @@ STAND_Y0, STAND_Y1 = 104.0, 150.0     # 46 m deep
 STOP_Y = 146.0                        # nose wheel stop; a 38 m plane ends at y = 108
 APRON = (25.0, TAXI_Y + TW_HALF, 155.0, 170.0)
 ROAD_Y0, ROAD_Y1 = 155.0, 163.0       # apron service road (2 lanes)
-WALK_Y = 152.5                        # zebra walk route to the remote stands (3 m wide)
 TERMINAL_Y = 165.0                    # dashed terminal edge
-CROSS_X = 113.5                       # zebra crossing of the service road
+CROSS_X = 114.0                       # zebra crossing, straight in front of a terminal door
+PATH_Y0, PATH_Y1 = 151.0, 154.0       # passenger path lines (3 m apart), 1 m outside the red line
+PATH_END_X = 43.0                     # forward-left door area of remote stand 31 (door ~x 48, y 141)
 FAR = 420.0
 
 # Ground and pavements.
@@ -256,8 +261,9 @@ area("grass", -400, -250, 450, 300, Z_GRASS)
 area("asphalt", THRESHOLD_X, -RW_HALF, FAR, RW_HALF, Z_PAVE)                      # runway
 area("asphalt", -TW_HALF, RW_HALF, TW_HALF, TAXI_Y - TW_HALF, Z_PAVE)             # connector
 area("asphalt", -260, TAXI_Y - TW_HALF, FAR, TAXI_Y + TW_HALF, Z_PAVE)            # parallel taxiway
-area("concrete", *APRON, Z_PAVE)
-area("road", APRON[0], ROAD_Y0, APRON[2], ROAD_Y1, Z_ROAD)                        # service road
+area("concrete", APRON[0], APRON[1], APRON[2], ROAD_Y0, Z_PAVE)                  # apron
+area("asphalt", APRON[0], ROAD_Y0, APRON[2], ROAD_Y1, Z_PAVE)                      # service road
+area("concrete", APRON[0], ROAD_Y1, APRON[2], APRON[3], Z_PAVE)                   # terminal frontage
 
 # Runway 09: edge lines, threshold bars, designator, centreline.
 edge = RW_HALF - L.EDGE_LINE_W / 2
@@ -276,7 +282,7 @@ cl_start = digit_x + L.DIGIT[1] / 2 + 12.0
 strip((cl_start, 0), (FAR, 0), L.CENTRELINE_W, "centre_dash", L.CENTRE_DASH_PERIOD_M)
 
 # Taxiway centrelines: connector lead-off, T-junction curves, parallel taxiway.
-strip((0, 0), (0, TAXI_Y - 20), L.TAXI_LINE_W, "yellow_line")
+strip((0, 0), (0, TAXI_Y - 20), L.TAXI_LINE_W, "yellow_line", layer=1)  # crosses the runway centreline
 curve((-20, TAXI_Y - 20), (1, 0), (0, 1), "taxi_curve_r20")
 curve((20, TAXI_Y - 20), (-1, 0), (0, 1), "taxi_curve_r20")
 strip((-260, TAXI_Y), (FAR, TAXI_Y), L.TAXI_LINE_W, "yellow_line")
@@ -285,28 +291,40 @@ strip((-260, TAXI_Y), (FAR, TAXI_Y), L.TAXI_LINE_W, "yellow_line")
 for sx, label in STANDS.items():
     curve((sx - 20, TAXI_Y + 20), (1, 0), (0, -1), "taxi_curve_r20")
     strip((sx, TAXI_Y + 20), (sx, STOP_Y - L.STOP_BAR[1] / 2), L.TAXI_LINE_W, "yellow_line")
-    piece((sx, STOP_Y), (1, 0), *L.STOP_BAR, "stop_bar")
+    piece((sx, STOP_Y), (1, 0), *L.STOP_BAR, "stop_bar", layer=1)
     box = (sx + 5.0, 113.0)
     piece(box, (1, 0), *L.LABEL_BOX, "label_box")
-    text(label, box, (0, 1), 1.4, 0.75, YELLOW_TINT, batch="markings_top")
+    text(label, box, (0, 1), 1.4, 0.75, YELLOW_TINT, layer=1)
 for x in sorted({sx + s * 20 for sx in STANDS for s in (-1, 1)}):
     strip((x, STAND_Y0), (x, STAND_Y1), L.SAFETY_LINE_W, "red_line")
-strip((min(STANDS) - 20, STAND_Y1), (max(STANDS) + 20, STAND_Y1), L.SAFETY_LINE_W, "red_line")
+strip((min(STANDS) - 20, STAND_Y1), (max(STANDS) + 20, STAND_Y1), L.SAFETY_LINE_W, "red_line", layer=1)
 
-# Service road edges + dashed lane divider, dashed terminal edge.
-for y in (ROAD_Y0 + 0.3, ROAD_Y1 - 0.3):
-    strip((APRON[0], y), (APRON[2], y), L.ROAD_LINE_W, "white_line", batch="markings_top")
-strip((APRON[0], (ROAD_Y0 + ROAD_Y1) / 2), (APRON[2], (ROAD_Y0 + ROAD_Y1) / 2),
-      L.ROAD_LINE_W, "short_dash", L.SHORT_DASH_STRIP_M, batch="markings_top")
+# Service road: edge lines and dashed lane divider, interrupted at the crossing.
+cross_w = L.ZEBRA_W / 2
+cx0, cx1 = CROSS_X - cross_w, CROSS_X + cross_w
+stop_w0, stop_e0 = cx0 - L.STOP_LINE_GAP, cx1 + L.STOP_LINE_GAP   # stop lines 2 m before the zebra
+road_mid = (ROAD_Y0 + ROAD_Y1) / 2
+edge_s, edge_n = ROAD_Y0 + 0.3, ROAD_Y1 - 0.3
+for y in (edge_s, edge_n):
+    strip((APRON[0], y), (cx0, y), L.ROAD_LINE_W, "white_line")
+    strip((cx1, y), (APRON[2], y), L.ROAD_LINE_W, "white_line")
+strip((APRON[0], road_mid), (stop_w0, road_mid), L.ROAD_LINE_W, "short_dash", L.SHORT_DASH_STRIP_M)
+strip((stop_e0, road_mid), (APRON[2], road_mid), L.ROAD_LINE_W, "short_dash", L.SHORT_DASH_STRIP_M)
 strip((110, TERMINAL_Y), (150, TERMINAL_Y), L.ROAD_LINE_W, "short_dash", L.SHORT_DASH_STRIP_M)
 
-# Pedestrian route: zebra across the road from the terminal, then along the stand heads.
-strip((CROSS_X, TERMINAL_Y - 0.5), (CROSS_X, WALK_Y - L.ZEBRA_W / 2), L.ZEBRA_W, "zebra",
-      L.ZEBRA_STRIP_M, batch="markings_top")
-strip((CROSS_X - L.ZEBRA_W / 2, WALK_Y), (30.0, WALK_Y), L.ZEBRA_W, "zebra", L.ZEBRA_STRIP_M)
+# Passenger route (real-airport layout): terminal door -> straight zebra at a right angle across
+# the road -> vehicle stop lines on both approaches (right-hand traffic: eastbound in the south
+# lane, westbound in the north lane) -> passenger path of two white lines, straight to the
+# forward-left door area of remote stand 31, outside the red stand safety line.
+strip((CROSS_X, ROAD_Y1), (CROSS_X, ROAD_Y0), L.ZEBRA_W, "zebra", L.ZEBRA_STRIP_M)
+strip((stop_w0, edge_s + L.ROAD_LINE_W / 2), (stop_w0, road_mid), L.STOP_LINE_W, "white_line")
+strip((stop_e0, road_mid), (stop_e0, edge_n - L.ROAD_LINE_W / 2), L.STOP_LINE_W, "white_line")
+strip((cx1, PATH_Y0), (PATH_END_X, PATH_Y0), L.ROAD_LINE_W, "white_line")   # south line
+strip((cx0, PATH_Y1), (PATH_END_X, PATH_Y1), L.ROAD_LINE_W, "white_line")   # north line, open at the zebra
+strip((cx1, PATH_Y0), (cx1, ROAD_Y0), L.ROAD_LINE_W, "white_line", layer=1)  # closes the east end
 
-objects = {k: b.build(f"ground_preview_{k}", MATS[{"road": "asphalt", "markings_top": "markings"}.get(k, k)])
-           for k, b in batches.items()}
+objects = {k: b.build(f"ground_preview_{k}", MATS[k]) for k, b in batches.items()}
+objects["markings"].visible_shadow = False  # paint: casts no shadow (cast_shadow off in Godot too)
 
 
 # --- Plane dummies (narrow-body, 38 m long × 36 m span) -----------------------------------------
@@ -381,15 +399,18 @@ cams = {
     "ground_top": camera("cam_top", (16.5, 75.0, 500.0), ortho=380.0),
     "ground_eye": camera("cam_eye", (99.0, 153.0, 1.7), target=(89.0, 137.0, 0.0), lens=20.0),
     "ground_markings": camera("cam_markings", (98.0, 134.0, 300.0), ortho=90.0),
+    "ground_crossing": camera("cam_crossing", (82.0, 156.0, 300.0), ortho=92.0),
+    # Turned so the landing direction (east) points up: what a pilot on approach to 09 sees.
+    "ground_designator": camera("cam_designator", (-112.0, 0.0, 300.0), ortho=90.0),
 }
-debug_cams = {"debug_09": camera("cam_debug_09", (-97.5, 0.0, 300.0), ortho=40.0)}
+cams["ground_designator"].rotation_euler = (0.0, 0.0, math.radians(-90))
 
 os.makedirs(PREVIEWS, exist_ok=True)
 bpy.context.preferences.filepaths.save_version = 0  # no .blend1 backup next to the source
 bpy.ops.wm.save_as_mainfile(filepath=BLEND, relative_remap=True)
 only = sys.argv[sys.argv.index("--only") + 1].split(",") if "--only" in sys.argv else list(cams)
 for name in only:
-    scene.camera = (cams | debug_cams)[name]
+    scene.camera = cams[name]
     for d in dummies:
         d.hide_render = name == "ground_markings"   # keep the stand markings visible
     scene.render.filepath = os.path.join(PREVIEWS, f"{name}.png")
