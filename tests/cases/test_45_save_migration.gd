@@ -129,7 +129,7 @@ func test_converted_save_loads() -> void:
 
 
 func test_missing_converter_keeps_the_save() -> void:
-	SaveGame.format_version = 6  # newer build, but nobody wrote the converter
+	SaveGame.format_version = SaveGame.FORMAT_VERSION + 1  # newer build, but nobody wrote the converter
 	_install_example(SHOWCASE_V1)
 	var original := FileAccess.get_file_as_string(TEST_SAVE)
 	SaveGame.load_game()
@@ -272,7 +272,9 @@ func test_v4_converter_drops_the_removed_extras() -> void:
 	var saved := _example(SHOWCASE_V4)
 	for key in REMOVED_KEYS:
 		check(saved.has(key), "the old example still has '%s'" % key)
+	SaveGame.format_version = 5  # stop after the v4 converter
 	var converted := SaveGame.migrate(saved)
+	SaveGame.format_version = SaveGame.FORMAT_VERSION
 	check_eq(converted["version"], 5, "now version 5")
 	for key in REMOVED_KEYS:
 		check(not converted.has(key), "'%s' is dropped" % key)

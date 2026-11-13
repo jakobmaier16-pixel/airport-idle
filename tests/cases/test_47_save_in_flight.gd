@@ -126,7 +126,7 @@ func test_example_v3_loads_with_flights() -> void:
 	var text := FileAccess.get_file_as_string(SHOWCASE_V3)
 	var saved: Dictionary = JSON.parse_string(text)
 	check_eq(int(saved["version"]), 3, "an example save of version 3")
-	var loaded := _load_fresh(saved)
+	var loaded := _load_fresh(SaveGame.migrate(saved.duplicate(true)))
 	check(loaded.passenger_flow.passengers.size() > 0, "its passengers are back")
 	check(loaded.passenger_flow.schedule.flights.size() > 0, "its flights are back")
 	check_eq(loaded.passenger_flow.time, float(saved["flow"]["time"]), "its passenger clock is back")

@@ -7,7 +7,7 @@ extends Node
 
 ## Bump when the save format changes in a way older code can't read, and add a converter to
 ## `migrations` for the old version (tech_architecture.md §13). Keep every old converter.
-const FORMAT_VERSION: int = 5
+const FORMAT_VERSION: int = 6
 ## Wait this long after a change before saving, so a burst of changes is saved once.
 const SAVE_DELAY: float = 1.0
 ## Money and the running airport are also saved this often while playing (seconds).
@@ -147,7 +147,7 @@ func migrate(data: Dictionary) -> Dictionary:
 
 ## The converters this build ships (tests put them back after swapping in their own).
 func default_migrations() -> Dictionary[int, Callable]:
-	return {1: _v1_to_v2, 2: _v2_to_v3, 3: _v3_to_v4, 4: _v4_to_v5}
+	return {1: _v1_to_v2, 2: _v2_to_v3, 3: _v3_to_v4, 4: _v4_to_v5, 5: _v5_to_v6}
 
 
 ## Version 1 -> 2: buildings get permanent IDs (their old list position + 1) and staff point to
@@ -194,6 +194,19 @@ func _v4_to_v5(data: Dictionary) -> Dictionary:
 		entry.erase("vip")
 	for entry: Dictionary in data.get("airlines", {}).get("signed", []):
 		entry.erase("first_landing")
+	return data
+
+
+## Version 5 -> 6: the passengers are saved as one compressed block (see PassengerSave) with their
+## paths as grid cells. The old list is packed; paths are turned from positions into cells of the
+## saved map size, and only the part still ahead is kept.
+func _v5_to_v6(data: Dictionary) -> Dictionary:
+	var flow: Dictionary = data.get("flow", {})
+	if flow.get("passengers") is Array:
+		var map_size: Array = data.get("map_size", [AirportWorld.MAP_SIZE_CELLS.x, AirportWorld.MAP_SIZE_CELLS.y])
+		var size := Vector2i(int(map_size[0]), int(map_size[1]))
+		var records := PassengerSave.from_v5(flow["passengers"], size, AirportWorld.CELL_SIZE)
+		flow["passengers"] = PassengerSave.encode(records, size.x)
 	return data
 
 
