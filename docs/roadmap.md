@@ -39,20 +39,10 @@ Merged only by Jakob. Order: docs/art_direction.md first.
 3. Arrival area: stage 2 done (#25); stage 3 (in the game) waits for the code-lane task below
 4. Look-probe on Jakob's iPhone (ground + landside in the game), then decide together how to go on
 
-### Needs from the code lane (Jakob passes it on)
-- **Ground in the game** (visual task 2, stage 3): the ground shader (`scenes/ground/`) uses the new
-  materials from `assets/materials/` (grass, asphalt, concrete, markings) instead of flat zone colours:
-  grass as base, asphalt on taxiway cells, concrete on stands. Taxiway centrelines and stand markings
-  from the markings atlas (`art/ground/markings_atlas.md`): painted, flush, no shadow casting.
-  Zone colours become a toggleable overlay in the build view only. Still one draw call for the ground.
-  Then `tools/screenshots.sh` for Jakob's look-check.
-- **Landside pieces in the game** (visual task 3, stage 3; needs the landside piece types from the
-  "landside grows piece by piece" decision, game_design.md §4): place the `.glb` pieces from
-  `assets/models/landside/` (catalogue and footprints: `art/landside/pieces.md`) as buildable pieces
-  on the 2 m grid. Markings objects without shadow casting; `_lodfar` via visibility ranges (build
-  view shows the whole airport); fence mesh with alpha scissor + alpha-to-coverage, fading out at
-  ~60 m (settings in pieces.md); trees and repeated props as MultiMesh. Add the start layout to the
-  showcase airport. Then an iOS export for the **look-probe** on Jakob's iPhone.
+### Handoffs to the code lane
+Open GitHub issues with the label `handoff` (the code lead picks them up, Jakob doesn't relay):
+- #33 Ground textures and markings in the game
+- #34 Landside pieces in the game + iOS look-probe
 
 ### Later
 4. Terminal shell
