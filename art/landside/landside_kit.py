@@ -331,6 +331,103 @@ def arrow(mb: MB, c, direction: float, length: float = 5.0, z: float = 0.0) -> N
     paint_poly(mb, [tr(p) for p in local_head], z)
 
 
+def decal(mb: MB, center, angle: float, size_u: float, size_v: float, rect, col: tuple = WHITE,
+          z: float = 0.0, layer: int = 1) -> None:
+    """Whole atlas rect flat on the ground; `angle` = world direction of the atlas +U axis
+    (the atlas "up" / +V points 90° to the left of it)."""
+    du = (math.cos(angle), math.sin(angle))
+    dv = (-du[1], du[0])
+    hu, hv = size_u / 2, size_v / 2
+    u0, v0, u1, v1 = rect_uv(rect)
+    zz = z + Z_MARK + layer * Z_LAYER
+    c = center
+    pts = [(c[0] - du[0] * hu - dv[0] * hv, c[1] - du[1] * hu - dv[1] * hv, zz),
+           (c[0] + du[0] * hu - dv[0] * hv, c[1] + du[1] * hu - dv[1] * hv, zz),
+           (c[0] + du[0] * hu + dv[0] * hv, c[1] + du[1] * hu + dv[1] * hv, zz),
+           (c[0] - du[0] * hu + dv[0] * hv, c[1] - du[1] * hu + dv[1] * hv, zz)]
+    mb.face(pts, [(u0, v0), (u1, v0), (u1, v1), (u0, v1)], "markings", col)
+
+
+def road_text(mb: MB, lines: list, start, direction: float, col: tuple = WHITE, pitch: float = 0.6,
+              line_gap: float = 0.5, z: float = 0.0) -> None:
+    """Road lettering read by a driver heading `direction` (radians). Letters are elongated along
+    the travel direction (L.ROAD_LETTER = width × length); the first line is nearest the driver,
+    centred on `start`."""
+    lw, ll = L.ROAD_LETTER
+    d = (math.cos(direction), math.sin(direction))
+    right = (d[1], -d[0])
+    for k, text in enumerate(lines):
+        along = k * (ll + line_gap)
+        first = -(len(text) - 1) * pitch / 2
+        for i, ch in enumerate(text):
+            if ch == " ":
+                continue
+            off = first + i * pitch
+            c = (start[0] + d[0] * along + right[0] * off, start[1] + d[1] * along + right[1] * off)
+            # Atlas +U (letter's right) = driver's right; atlas +V (letter's top) = travel direction.
+            decal(mb, c, math.atan2(right[1], right[0]), lw, ll, L.road_letter_rect(ch), col, z)
+
+
+def sign_face(mb: MB, p0, p1, z0: float, z1: float, rect, col: tuple = WHITE) -> None:
+    """Vertical atlas quad, readable from the side to the RIGHT of p0 -> p1."""
+    u0, v0, u1, v1 = rect_uv(rect)
+    mb.face([(p0[0], p0[1], z0), (p1[0], p1[1], z0), (p1[0], p1[1], z1), (p0[0], p0[1], z1)],
+            [(u0, v0), (u1, v0), (u1, v1), (u0, v1)], "markings", col)
+
+
+def face_out(mb: MB, pts: list, mat: str, out: tuple) -> None:
+    """Planar polygon (3D points) wound so its normal points along `out`; world-scale UVs."""
+    a, b, c = pts[0], pts[1], pts[2]
+    n = ((b[1] - a[1]) * (c[2] - a[2]) - (b[2] - a[2]) * (c[1] - a[1]),
+         (b[2] - a[2]) * (c[0] - a[0]) - (b[0] - a[0]) * (c[2] - a[2]),
+         (b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0]))
+    if n[0] * out[0] + n[1] * out[1] + n[2] * out[2] < 0:
+        pts = pts[::-1]
+    if abs(out[2]) > 0.5:
+        uvs = [(p[0] * UV_PER_M, p[1] * UV_PER_M) for p in pts]
+    else:
+        uvs = [((p[0] + p[1]) * UV_PER_M, p[2] * UV_PER_M) for p in pts]
+    mb.face(pts, uvs, mat)
+
+
+def cylinder(mb: MB, cx: float, cy: float, z0: float, z1: float, r0: float, mat: str, n: int = 8,
+             r1: float | None = None, cap: bool = True) -> None:
+    """Upright n-sided cylinder (or cone frustum with r1), open bottom."""
+    r1 = r0 if r1 is None else r1
+    ring = [(math.cos(2 * math.pi * (i + 0.5) / n), math.sin(2 * math.pi * (i + 0.5) / n)) for i in range(n)]
+    for i in range(n):
+        a, b = ring[i], ring[(i + 1) % n]
+        mb.face([(cx + a[0] * r0, cy + a[1] * r0, z0), (cx + b[0] * r0, cy + b[1] * r0, z0),
+                 (cx + b[0] * r1, cy + b[1] * r1, z1), (cx + a[0] * r1, cy + a[1] * r1, z1)],
+                [(i / n, z0 * UV_PER_M), ((i + 1) / n, z0 * UV_PER_M), ((i + 1) / n, z1 * UV_PER_M),
+                 (i / n, z1 * UV_PER_M)], mat)
+    if cap:
+        top(mb, [(cx + a[0] * r1, cy + a[1] * r1) for a in ring], z1, mat)
+
+
+def offset_polyline(pts: list, d: float) -> list:
+    """Offset a polyline by d to its LEFT. Interior corners are mitred; the end points stay on
+    the vertical lines x = pts[0].x and x = pts[-1].x (piece borders)."""
+    lines = []
+    for a, b in zip(pts, pts[1:]):
+        dx, dy = b[0] - a[0], b[1] - a[1]
+        ln = math.hypot(dx, dy)
+        n = (-dy / ln * d, dx / ln * d)
+        lines.append(((a[0] + n[0], a[1] + n[1]), (dx, dy)))
+
+    def at_x(line_, x):
+        (px, py), (dx, dy) = line_
+        return (x, py + (x - px) / dx * dy)
+
+    out = [at_x(lines[0], pts[0][0])]
+    for (p, u), (q, v) in zip(lines, lines[1:]):
+        den = u[0] * v[1] - u[1] * v[0]
+        t = ((q[0] - p[0]) * v[1] - (q[1] - p[1]) * v[0]) / den
+        out.append((p[0] + u[0] * t, p[1] + u[1] * t))
+    out.append(at_x(lines[-1], pts[-1][0]))
+    return out
+
+
 # --- Pieces -------------------------------------------------------------------------------------
 class Piece:
     def __init__(self, name: str, size: tuple, desc: str) -> None:
@@ -489,16 +586,20 @@ def _bays(p: Piece, length: float, bay: float, col: tuple) -> None:
 
 
 def curb_dropoff_segment() -> Piece:
-    p = Piece("curb_dropoff_segment", (24.0, 12.0), "curb road with 4 Kiss & Fly bays (6 m, white)")
+    p = Piece("curb_dropoff_segment", (24.0, 12.0), "curb road with 4 Kiss & Fly bays (6 m, white), lettering")
     _curb_base(p, 24.0)
     _bays(p, 24.0, 6.0, WHITE)
+    for x0 in (-12.0, 0.0):                                  # lettering in bays 1 and 3
+        road_text(p.marks, ["KISS &", "FLY"], (x0 + 1.6, 3.5), 0.0, pitch=0.55)
     return p
 
 
 def curb_taxi_rank_4() -> Piece:
-    p = Piece("curb_taxi_rank_4", (24.0, 12.0), "curb road with a 4-bay taxi rank (6 m, yellow)")
+    p = Piece("curb_taxi_rank_4", (24.0, 12.0), "curb road with a 4-bay taxi rank (6 m, yellow), TAXI in each bay")
     _curb_base(p, 24.0, boundary=YELLOW)
     _bays(p, 24.0, 6.0, YELLOW)
+    for i in range(4):
+        road_text(p.marks, ["TAXI"], (-12.0 + 6.0 * i + 3.0, 3.5), 0.0, YELLOW)
     return p
 
 
@@ -517,20 +618,26 @@ def zebra_crossing() -> Piece:
     return p
 
 
+# Bus bay: shallow recess (real bays are at most ~3 m deep; a 12 m bus needs a 2.55 m wide stand,
+# the 0.5 m gutter and the edge of the curbside lane give the rest).
+BAY_RECESS = 1.5
+BAY_ENTRY, BAY_EXIT = 6.0, 4.0                       # taper lengths (1 : 4 and 1 : 2.7)
+SHELTER_POS = (1.0, 2.5 + BAY_RECESS + 1.2 + 0.65)   # bus_shelter origin in curb_bus_bay coords
+BUS_POS = (1.0, 2.5 + BAY_RECESS - 0.25 - 1.275)     # where a 12 m bus stops (front door at x ~ 6)
+
+
 def curb_bus_bay() -> Piece:
-    """Curb road + 6 m terminal sidewalk (piece 18 m deep, y -9..9) with a bus bay recessed 3 m
-    into the sidewalk: 16 m full depth + 4 m tapers (one 12 m bus)."""
-    p = Piece("curb_bus_bay", (24.0, 18.0), "curb road + sidewalk with a recessed bus bay (one 12 m bus)")
+    """Curb road + 6 m terminal sidewalk (piece 18 m deep, y -9..9) with a bus bay recessed 1.5 m:
+    6 m entry taper, 14 m stand, 4 m exit taper. The shelter goes at SHELTER_POS: 1.2 m boarding
+    strip in front of it, 2.5 m clear walkway behind it. Tactile boarding field at the front door."""
+    p = Piece("curb_bus_bay", (24.0, 18.0), "curb road + sidewalk with a shallow recessed bus bay (one 12 m bus)")
     cy = 2.5          # normal curb line (= 5.5 in the 12 m curb pieces)
-    ry = 5.5          # recessed curb line
-    curb = [(-12.0, cy), (-8.0, ry), (8.0, ry), (12.0, cy)]
+    ry = cy + BAY_RECESS
+    xa, xb = -12.0 + BAY_ENTRY, 12.0 - BAY_EXIT
+    curb = [(-12.0, cy), (xa, ry), (xb, ry), (12.0, cy)]
     rect(p.lod0, -12, -9, 12, cy, 0.0, "asphalt")
     top(p.lod0, curb, 0.0, "asphalt")
-    # Curb stone: offset the curb polyline 0.2 m into the sidewalk (mitred joints, ends on x = ±12).
-    t = math.atan2(ry - cy, 4.0)
-    m = CURB_W * math.tan(t / 2)
-    off = [(-12.0, cy + CURB_W / math.cos(t)), (-8.0 - m, ry + CURB_W), (8.0 + m, ry + CURB_W),
-           (12.0, cy + CURB_W / math.cos(t))]
+    off = offset_polyline(curb, CURB_W)
     for i in range(3):
         top(p.lod0, [curb[i], curb[i + 1], off[i + 1], off[i]], CURB_H, "concrete")
         wall(p.lod0, curb[i], curb[i + 1], 0.0, CURB_H, "concrete")
@@ -540,6 +647,15 @@ def curb_bus_bay() -> Piece:
     dashed(p.marks, (-12, -5), (12, -5), DIVIDER_W, ONEWAY_PERIOD)
     dashed(p.marks, (-12, -1.5), (12, -1.5), LANE_BOUNDARY_W, ONEWAY_PERIOD)
     dashed(p.marks, (-12, cy - 0.15), (12, cy - 0.15), LANE_BOUNDARY_W, ONEWAY_PERIOD)
+    road_text(p.marks, ["BUS"], (xa + 1.3, (cy - 0.3 + ry) / 2), 0.0, pitch=0.6)
+    # Tactile boarding field (studs, 1.2 × 0.6 m) at the front door + ribbed guide strip to the
+    # building line, as at real accessible stops.
+    door_x = 6.0
+    z = CURB_H
+    for dx in (-0.3, 0.3):
+        decal(p.marks, (door_x + dx, ry + CURB_W + 0.35), 0.0, 0.6, 0.6, "tactile_dots", z=z)
+    for k in range(6):
+        decal(p.marks, (door_x, ry + CURB_W + 0.95 + 0.6 * k), 0.0, 0.6, 0.6, "tactile_ribs", z=z)
     rect(p.far, -12, -9, 12, cy, 0.0, "asphalt")
     top(p.far, curb, 0.0, "asphalt")
     rect(p.far, -12, ry, 12, 9.0, CURB_H, "paving")
@@ -571,9 +687,16 @@ def sidewalk_tile(kind: str) -> Piece:
     return p
 
 
+def _tactile_crossing(mb: MB, y: float, z: float) -> None:
+    """Ribbed direction field (2.4 × 0.6 m) whose ribs point across the road (along Y)."""
+    for k in range(4):
+        decal(mb, (-0.9 + 0.6 * k, y), 0.0, 0.6, 0.6, "tactile_ribs", z=z)
+
+
 def sidewalk_edge_lowered_4m() -> Piece:
-    """4 × 2 m sidewalk edge with the curb lowered to 3 cm for a crossing; 1 m ramp behind it."""
-    p = Piece("sidewalk_edge_lowered_4m", (4.0, 2.0), "sidewalk edge, curb lowered to 3 cm (crossing)")
+    """4 × 2 m sidewalk edge with the curb lowered to 3 cm for a crossing; 1 m ramp behind it,
+    then a tactile direction field pointing across the road."""
+    p = Piece("sidewalk_edge_lowered_4m", (4.0, 2.0), "sidewalk edge, curb lowered to 3 cm, tactile field (crossing)")
     e = -1.0 + CURB_W
     r = e + 1.0
     rect(p.lod0, -2, -1, 2, e, CURB_LOW, "concrete")
@@ -583,9 +706,18 @@ def sidewalk_edge_lowered_4m() -> Piece:
     for x, sgn in ((-2.0, 1), (2.0, -1)):
         # Side faces towards the full-height neighbours (front faces into the lowered area).
         pts = [(x, -1.0, CURB_LOW), (x, e, CURB_LOW), (x, r, CURB_H), (x, -1.0, CURB_H)]
-        if sgn < 0:
-            pts = pts[::-1]
-        p.lod0.face(pts, [(p_[1] * UV_PER_M, p_[2] * UV_PER_M) for p_ in pts], "concrete")
+        face_out(p.lod0, pts, "concrete", (sgn, 0, 0))
+    _tactile_crossing(p.marks, r + 0.35, CURB_H)
+    rect(p.far, -2, -1, 2, 1, CURB_H, "paving")
+    return p
+
+
+def sidewalk_tactile_landing() -> Piece:
+    """4 × 2 m plain sidewalk with a tactile direction field on its -Y edge: the landing behind a
+    lowered curb strip (terminal side of the zebra)."""
+    p = Piece("sidewalk_tactile_landing", (4.0, 2.0), "sidewalk with tactile direction field (zebra landing)")
+    rect(p.lod0, -2, -1, 2, 1, CURB_H, "paving")
+    _tactile_crossing(p.marks, -0.65, CURB_H)
     rect(p.far, -2, -1, 2, 1, CURB_H, "paving")
     return p
 
@@ -611,6 +743,48 @@ def carpark_end_aisle() -> Piece:
     return p
 
 
+def carpark_walkway(end: bool) -> Piece:
+    """Pedestrian walkway through one module row (4 × 16 m, between two modules): raised island
+    with a 2 m concrete path between 1 m grass strips in the bay zones (the island curb is the
+    wheel stop), lowered curbs and a zebra across the 6 m aisle. `end`: closing face on -Y."""
+    name = "carpark_walkway_end" if end else "carpark_walkway"
+    p = Piece(name, (4.0, 16.0), "car park walkway: path island + zebra across the aisle"
+              + (", closed -Y end" if end else ""))
+    g = p.lod0
+    rect(g, -2, -3, 2, 3, 0.0, "asphalt")
+    low_end = 3.0 + CURB_W
+    ramp_end = low_end + 1.0
+    for s in (1, -1):
+        def P(x, y):
+            return (x, y * s)
+        for x0, x1 in ((-2.0, -1.0), (1.0, 2.0)):                       # grass strips
+            top(g, [P(x0, 3), P(x1, 3), P(x1, 8), P(x0, 8)], CURB_H, "grass")
+            face_out(g, [(*P(x0, 3), 0.0), (*P(x1, 3), 0.0), (*P(x1, 3), CURB_H), (*P(x0, 3), CURB_H)],
+                     "concrete", (0, -s, 0))
+        for x, nx in ((-2.0, -1), (2.0, 1)):                           # island sides (wheel stops)
+            face_out(g, [(*P(x, 3), 0.0), (*P(x, 8), 0.0), (*P(x, 8), CURB_H), (*P(x, 3), CURB_H)],
+                     "concrete", (nx, 0, 0))
+        # Path: lowered curb at the aisle, 1 m ramp, then flat.
+        top(g, [P(-1, 3), P(1, 3), P(1, low_end), P(-1, low_end)], CURB_LOW, "concrete")
+        top(g, [P(-1, low_end), P(1, low_end), P(1, ramp_end), P(-1, ramp_end)],
+            [CURB_LOW, CURB_LOW, CURB_H, CURB_H], "concrete")
+        top(g, [P(-1, ramp_end), P(1, ramp_end), P(1, 8), P(-1, 8)], CURB_H, "concrete")
+        face_out(g, [(*P(-1, 3), 0.0), (*P(1, 3), 0.0), (*P(1, 3), CURB_LOW), (*P(-1, 3), CURB_LOW)],
+                 "concrete", (0, -s, 0))
+        for x, nx in ((-1.0, 1), (1.0, -1)):                           # grass edge above the ramp
+            face_out(g, [(*P(x, 3), CURB_LOW), (*P(x, low_end), CURB_LOW), (*P(x, ramp_end), CURB_H),
+                         (*P(x, 3), CURB_H)], "concrete", (nx, 0, 0))
+    if end:
+        face_out(g, [(-2, -8, 0.0), (2, -8, 0.0), (2, -8, CURB_H), (-2, -8, CURB_H)], "concrete", (0, -1, 0))
+    line(p.marks, [(0, -2.75), (0, 2.75)], 2.0, "zebra", L.ZEBRA_PERIOD, 0.0)
+    rect(p.far, -2, -3, 2, 3, 0.0, "asphalt")
+    rect(p.far, -2, 3, 2, 8, CURB_H, "grass")
+    rect(p.far, -2, -8, 2, -3, CURB_H, "grass")
+    rect(p.far, -1, 3, 1, 8, CURB_H + 0.001, "concrete")
+    rect(p.far, -1, -8, 1, -3, CURB_H + 0.001, "concrete")
+    return p
+
+
 def _boom(mb: MB, x: float, y0: float, y1: float) -> None:
     """Red / white striped boom (0.5 m stripes) along Y at height 0.85-0.95 m."""
     n = int(round(abs(y1 - y0) / 0.5))
@@ -624,13 +798,18 @@ def _boom(mb: MB, x: float, y0: float, y1: float) -> None:
 
 def carpark_barrier_gate() -> Piece:
     """Car park entry + exit, driving direction +X = in. Entry lane y -6..-1, 2 m island with the
-    ticket posts and barrier housings, exit lane y 1..6. Booms 4.9 m."""
-    p = Piece("carpark_barrier_gate", (8.0, 12.0), "car park entry/exit: 2 lanes, island, ticket posts, 2 booms")
+    ticket posts and barrier housings, exit lane y 1..6. Booms 4.9 m. The -X side meets the road
+    with 2 m corner radii (footprint y -8..8); pair it with road_oneway_2lane_access."""
+    p = Piece("carpark_barrier_gate", (8.0, 16.0), "car park entry/exit: 2 lanes, island, ticket posts, 2 booms")
     g = p.lod0
     rect(g, -4, -6, 4, -1, 0.0, "asphalt")
     rect(g, -4, 1, 4, 6, 0.0, "asphalt")
     rect(g, -4, -1, -3, 1, 0.0, "asphalt")
     rect(g, 3, -1, 4, 1, 0.0, "asphalt")
+    for s in (1, -1):                                         # corner radii at the road
+        arc = arc_points((-2.0, 8.0 * s), 2.0, math.pi, math.pi * (1.5 if s > 0 else 0.5), 4)
+        for i in range(4):
+            top(g, [(-4.0, 6.0 * s), arc[i], arc[i + 1]], 0.0, "asphalt")
     box(g, -3, -1, 0.0, 3, 1, CURB_H, "concrete")            # island
     # Entry (south lane, heading +X): ticket post before the boom, on the driver's (left) side.
     box(g, -1.9, -0.85, CURB_H, -1.5, -0.5, 1.35, "metal_dark")
@@ -643,40 +822,144 @@ def carpark_barrier_gate() -> Piece:
     box(g, 1.52, 0.85, 0.95, 1.88, 0.87, 1.25, "markings", sides="n", uv_point=SOLID_UV, col=YELLOW)
     box(g, -0.7, 0.45, CURB_H, -0.3, 0.85, 1.05, "metal_dark")
     _boom(g, -0.5, 0.85, 5.75)
-    # Stop lines 1 m before each boom, arrows for the lane direction.
+    # Stop lines 1 m before each boom, entry arrow, EXIT lettering, give-way line onto the road.
     line(p.marks, [(-0.6, -5.8), (-0.6, -1.0)], 0.3)
     line(p.marks, [(0.6, 1.0), (0.6, 5.8)], 0.3)
     arrow(p.marks, (-2.6, -3.5), 0.0, length=2.4)
-    arrow(p.marks, (2.6, 3.5), math.pi, length=2.4)
+    road_text(p.marks, ["EXIT"], (3.0, 3.5), math.pi)
+    line(p.marks, [(-3.6, 1.0), (-3.6, 6.4)], GIVEWAY_W, "short_dash", 1.0, -0.25)
     rect(p.far, -4, -6, 4, 6, 0.0, "asphalt")
-    rect(p.far, -3, -1, 3, 1, CURB_H, "concrete")
+    rect(p.far, -3, -1, 3, 1, CURB_H + 0.001, "concrete")
+    return p
+
+
+def road_oneway_2lane_access() -> Piece:
+    """One-way road with an access on its right (-Y) side over the whole 16 m: the edge line
+    becomes a broken junction line, so cars can turn in and out (pairs with the barrier gate)."""
+    p = Piece("road_oneway_2lane_access", (16.0, 8.0), "one-way road, access opening on the right side (car park gate)")
+    rect(p.lod0, -8, -4, 8, 4, 0.0, "asphalt")
+    line(p.marks, [(-8, 3.5), (8, 3.5)], EDGE_W)
+    line(p.marks, [(-8, -3.5), (8, -3.5)], LANE_BOUNDARY_W, "short_dash", 2.0, -0.5)
+    dashed(p.marks, (-8, 0), (8, 0), DIVIDER_W, ONEWAY_PERIOD)
+    rect(p.far, -8, -4, 8, 4, 0.0, "asphalt")
     return p
 
 
 def bus_shelter() -> Piece:
-    """Glass + anthracite shelter, open towards -Y (the bus bay). Footprint 6 × 2 m (stands on the
-    sidewalk; its z = 0 is the sidewalk surface). Bench, departure display, stop sign."""
+    """Glass + anthracite shelter, 5 × 1.3 m, open towards -Y (the bus bay). Footprint 6 × 2 m;
+    its z = 0 is the sidewalk surface. Placed by curb_bus_bay at SHELTER_POS. Bench, departure
+    display, stop sign."""
     p = Piece("bus_shelter", (6.0, 2.0), "bus shelter: glass + dark metal, bench, display, stop sign")
     s = p.lod0
-    box(s, -2.5, -0.85, 2.4, 2.5, 0.8, 2.55, "metal_dark", bottom=True)        # roof
+    box(s, -2.5, -0.65, 2.4, 2.5, 0.65, 2.55, "metal_dark", bottom=True)        # roof
     for x in (-2.38, 2.3):
-        for y in (-0.5, 0.62):
+        for y in (-0.5, 0.42):
             box(s, x, y, 0.0, x + 0.08, y + 0.08, 2.4, "metal_dark")            # posts
-    box(s, -2.3, 0.64, 0.0, 2.3, 0.68, 0.1, "metal_dark")                     # bottom rail
-    s.face([(-2.3, 0.66, 0.1), (2.3, 0.66, 0.1), (2.3, 0.66, 2.4), (-2.3, 0.66, 2.4)],
+    box(s, -2.3, 0.44, 0.0, 2.3, 0.48, 0.1, "metal_dark")                     # bottom rail
+    s.face([(-2.3, 0.46, 0.1), (2.3, 0.46, 0.1), (2.3, 0.46, 2.4), (-2.3, 0.46, 2.4)],
            [(0, 0), (1, 0), (1, 1), (0, 1)], "glass")                          # back pane
     for x in (-2.34, 2.34):
-        s.face([(x, -0.42, 0.1), (x, 0.62, 0.1), (x, 0.62, 2.4), (x, -0.42, 2.4)],
+        s.face([(x, -0.42, 0.1), (x, 0.42, 0.1), (x, 0.42, 2.4), (x, -0.42, 2.4)],
                [(0, 0), (1, 0), (1, 1), (0, 1)], "glass")                      # side panes
-    box(s, -1.2, 0.2, 0.42, 1.2, 0.58, 0.47, "metal_light", bottom=True)       # bench seat
+    box(s, -1.2, 0.05, 0.42, 1.2, 0.4, 0.47, "metal_light", bottom=True)       # bench seat
     for x in (-1.0, 0.95):
-        box(s, x, 0.45, 0.0, x + 0.05, 0.58, 0.42, "metal_light")              # bench legs
-    box(s, -0.45, -0.7, 2.0, 0.45, -0.6, 2.4, "metal_dark", bottom=True)        # display housing
-    s.face([(-0.4, -0.701, 2.04), (0.4, -0.701, 2.04), (0.4, -0.701, 2.34), (-0.4, -0.701, 2.34)],
+        box(s, x, 0.25, 0.0, x + 0.05, 0.4, 0.42, "metal_light")               # bench legs
+    box(s, -0.45, -0.6, 2.0, 0.45, -0.5, 2.4, "metal_dark", bottom=True)        # display housing
+    s.face([(-0.4, -0.601, 2.04), (0.4, -0.601, 2.04), (0.4, -0.601, 2.34), (-0.4, -0.601, 2.34)],
            [(0, 0), (1, 0), (1, 1), (0, 1)], "metal_light")                    # display face
-    box(s, 2.75, -0.85, 0.0, 2.81, -0.79, 2.7, "metal_light")                   # stop sign pole
-    box(s, 2.56, -0.84, 2.2, 3.0, -0.80, 2.64, "metal_dark", sides="nesw")     # sign plate
-    box(p.far, -2.5, -0.85, 0.0, 2.5, 0.8, 2.55, "metal_dark")
+    box(s, 2.75, -0.65, 0.0, 2.81, -0.59, 2.7, "metal_light")                   # stop sign pole
+    box(s, 2.56, -0.64, 2.2, 3.0, -0.60, 2.64, "metal_dark", sides="nesw")     # sign plate
+    box(p.far, -2.5, -0.65, 0.0, 2.5, 0.65, 2.55, "metal_dark")
+    return p
+
+
+# --- Small props (hidden in the build view: no _lodfar, use visibility_range_end) --------------
+def bollard() -> Piece:
+    """Round steel anti-ram bollard, 0.9 m high, 0.2 m diameter, light reflective band.
+    Line along the terminal curb: one every 1.5 m (1.3 m clear), 0.75 m behind the curb face."""
+    p = Piece("bollard", (0.2, 0.2), "steel bollard Ø 0.2 × 0.9 m (anti-ram line)")
+    cylinder(p.lod0, 0, 0, 0.0, 0.72, 0.1, "metal_dark", cap=False)
+    cylinder(p.lod0, 0, 0, 0.72, 0.78, 0.1, "metal_light", cap=False)
+    cylinder(p.lod0, 0, 0, 0.78, 0.9, 0.1, "metal_dark")
+    return p
+
+
+def light_mast() -> Piece:
+    """Car park / street light: 10 m galvanised mast, two flat LED heads on a crossarm."""
+    p = Piece("light_mast", (0.4, 0.4), "light mast 10 m, two LED heads")
+    cylinder(p.lod0, 0, 0, 0.0, 9.6, 0.11, "metal_light", n=6, r1=0.06, cap=False)
+    box(p.lod0, -0.9, -0.04, 9.55, 0.9, 0.04, 9.65, "metal_light", bottom=True)
+    for x in (-1.25, 0.55):
+        box(p.lod0, x, -0.22, 9.5, x + 0.7, 0.22, 9.62, "metal_dark", bottom=True)
+    return p
+
+
+def fence_panel_2m() -> Piece:
+    """2 m welded mesh fence panel, 2 m high, post at -X (add fence_post at the end of a run).
+    Mesh is the alpha atlas piece on two back-to-back quads (visible from both sides)."""
+    p = Piece("fence_panel_2m", (2.0, 0.1), "mesh fence panel 2 × 2 m + post")
+    box(p.lod0, -1.03, -0.03, 0.0, -0.97, 0.03, 2.05, "metal_dark")
+    sign_face(p.lod0, (-0.97, 0.0), (1.03, 0.0), 0.05, 2.0, "fence_mesh")
+    sign_face(p.lod0, (1.03, 0.005), (-0.97, 0.005), 0.05, 2.0, "fence_mesh")
+    rect(p.far, -1, -0.05, 1, 0.05, 0.01, "metal_dark")          # thin line for the build view
+    return p
+
+
+def fence_post() -> Piece:
+    p = Piece("fence_post", (0.1, 0.1), "fence post (end / corner of a run)")
+    box(p.lod0, -0.03, -0.03, 0.0, 0.03, 0.03, 2.05, "metal_dark")
+    return p
+
+
+def fence_gate_pedestrian() -> Piece:
+    """4 m fence piece with a 2 m pedestrian opening between two gate posts (open passage)."""
+    p = Piece("fence_gate_pedestrian", (4.0, 0.1), "fence: 1 m panels, 2 m pedestrian opening")
+    g = p.lod0
+    box(g, -2.03, -0.03, 0.0, -1.97, 0.03, 2.05, "metal_dark")
+    for x in (-1.06, 0.96):                                        # gate posts
+        box(g, x, -0.05, 0.0, x + 0.1, 0.05, 2.2, "metal_dark")
+    u0, v0, u1, v1 = rect_uv("fence_mesh")
+    um = (u0 + u1) / 2
+    for a, b, ua, ub in ((-1.97, -1.06, u0, um), (1.06, 1.97, um, u1)):
+        g.face([(a, 0, 0.05), (b, 0, 0.05), (b, 0, 2.0), (a, 0, 2.0)], [(ua, v0), (ub, v0), (ub, v1), (ua, v1)], "markings")
+        g.face([(b, 0.005, 0.05), (a, 0.005, 0.05), (a, 0.005, 2.0), (b, 0.005, 2.0)],
+               [(ub, v0), (ua, v0), (ua, v1), (ub, v1)], "markings")
+    rect(p.far, -2, -0.05, -1, 0.05, 0.01, "metal_dark")
+    rect(p.far, 1, -0.05, 2, 0.05, 0.01, "metal_dark")
+    return p
+
+
+def carpark_info_board() -> Piece:
+    """Tariff / information board (2 × 1 m face) on two posts, readable from -Y."""
+    p = Piece("carpark_info_board", (2.0, 0.2), "car park tariff board 2 × 1 m on posts")
+    g = p.lod0
+    for x in (-0.8, 0.74):
+        box(g, x, 0.0, 0.0, x + 0.06, 0.06, 2.1, "metal_dark")
+    box(g, -1.05, -0.02, 1.0, 1.05, 0.0, 2.05, "metal_dark", sides="nesw", bottom=True)
+    sign_face(g, (-1.0, -0.021), (1.0, -0.021), 1.03, 2.02, "parking_board")
+    return p
+
+
+def sign_parking() -> Piece:
+    """Parking direction sign: 0.9 m "P" panel on a 3 m pole, readable from -Y."""
+    p = Piece("sign_parking", (1.0, 0.2), "parking sign P 0.9 × 0.9 m on pole")
+    g = p.lod0
+    cylinder(g, 0, 0.05, 0.0, 2.95, 0.04, "metal_light", n=6)
+    box(g, -0.47, -0.02, 2.0, 0.47, 0.0, 2.94, "metal_light", sides="nesw", bottom=True)
+    sign_face(g, (-0.45, -0.021), (0.45, -0.021), 2.02, 2.92, "p_sign")
+    return p
+
+
+def pay_station() -> Piece:
+    """Pay machine (pay before returning to the car), front = -Y: P header, screen, card panel."""
+    p = Piece("pay_station", (0.8, 0.6), "car park pay station 0.7 × 0.45 × 1.8 m")
+    g = p.lod0
+    box(g, -0.35, -0.22, 0.0, 0.35, 0.22, 1.8, "metal_dark")
+    sign_face(g, (-0.2, -0.221), (0.2, -0.221), 1.38, 1.78, "p_sign")
+    g.face([(-0.25, -0.222, 1.0), (0.25, -0.222, 1.0), (0.25, -0.222, 1.3), (-0.25, -0.222, 1.3)],
+           [SOLID_UV] * 4, "markings", tint("#9FB6BF"))                    # screen
+    g.face([(-0.25, -0.222, 0.7), (0.25, -0.222, 0.7), (0.25, -0.222, 0.92), (-0.25, -0.222, 0.92)],
+           [SOLID_UV] * 4, "markings", YELLOW)                             # card / ticket panel
     return p
 
 
@@ -684,20 +967,25 @@ def all_pieces() -> list:
     return [
         road_country_straight(), road_country_tjunction(False), road_country_tjunction(True),
         road_oneway_2lane_straight(False), road_oneway_2lane_straight(True), road_oneway_corner(),
+        road_oneway_2lane_access(),
         curb_plain_segment(False), curb_plain_segment(True), curb_dropoff_segment(), zebra_crossing(),
         curb_bus_bay(), curb_taxi_rank_4(),
         sidewalk_tile("tile"), sidewalk_tile("edge"), sidewalk_tile("corner"), sidewalk_edge_lowered_4m(),
-        carpark_module(), carpark_end_aisle(), carpark_barrier_gate(), bus_shelter(),
+        sidewalk_tactile_landing(),
+        carpark_module(), carpark_end_aisle(), carpark_walkway(False), carpark_walkway(True),
+        carpark_barrier_gate(), bus_shelter(),
+        bollard(), light_mast(), fence_panel_2m(), fence_post(), fence_gate_pedestrian(),
+        carpark_info_board(), sign_parking(), pay_station(),
     ]
 
 
 def build_objects(piece: Piece, mats: dict, collection=None) -> list:
-    """LOD0 (+ markings) and lodfar as objects at the origin. Markings cast no shadow."""
+    """LOD0 (+ markings) and lodfar (if any) as objects at the origin. Markings cast no shadow."""
     objs = [piece.lod0.build(piece.name, mats, collection)]
     if piece.marks.faces:
         m = piece.marks.build(piece.name + "_markings", mats, collection)
         m.visible_shadow = False
         objs.append(m)
-    far = piece.far.build(piece.name + "_lodfar", mats, collection)
-    objs.append(far)
+    if piece.far.faces:
+        objs.append(piece.far.build(piece.name + "_lodfar", mats, collection))
     return objs

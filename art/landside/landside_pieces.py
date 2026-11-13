@@ -83,12 +83,17 @@ def label(scene, text: str, x: float, y: float, size: float, mat) -> None:
 # Overview layout: rows of pieces (top-down), name under each.
 ROWS = [
     ["road_country_straight", "road_country_tjunction", "road_country_tjunction_giveway",
-     "road_oneway_2lane_straight", "road_oneway_2lane_arrows", "road_oneway_corner"],
+     "road_oneway_2lane_straight", "road_oneway_2lane_arrows", "road_oneway_2lane_access",
+     "road_oneway_corner"],
     ["curb_plain_segment", "curb_plain_segment_arrows", "curb_dropoff_segment", "zebra_crossing",
      "curb_taxi_rank_4", "curb_bus_bay"],
-    ["carpark_module", "carpark_end_aisle", "carpark_barrier_gate", "bus_shelter", "sidewalk_tile",
-     "sidewalk_edge", "sidewalk_corner", "sidewalk_edge_lowered_4m"],
+    ["carpark_module", "carpark_end_aisle", "carpark_walkway", "carpark_walkway_end",
+     "carpark_barrier_gate", "sidewalk_tile", "sidewalk_edge", "sidewalk_corner",
+     "sidewalk_edge_lowered_4m", "sidewalk_tactile_landing"],
 ]
+# Props: rendered in a second, perspective overview (landside_props.png).
+PROPS = ["bus_shelter", "bollard", "light_mast", "fence_panel_2m", "fence_post", "fence_gate_pedestrian",
+         "carpark_info_board", "sign_parking", "pay_station"]
 GAP = 5.0
 
 
@@ -103,11 +108,15 @@ def main() -> None:
         objs = K.build_objects(p, mats)
         export_glb(objs, name)
         objects[name] = objs
-        cells = (p.size[0] / 2) * (p.size[1] / 2)
         t0 = p.lod0.tris() + p.marks.tris()
         mat_names = sorted(set(p.lod0.mat_names) | set(p.marks.mat_names))
-        print(f"BUDGET  {name} | {int(p.size[0] / 2)}x{int(p.size[1] / 2)} | {t0} ({t0 / cells:.1f}/cell)"
-              f" | {p.far.tris()} | {len(mat_names)}: {', '.join(mat_names)}")
+        if name in PROPS:
+            foot = f"prop {p.size[0]:g} × {p.size[1]:g} m"
+        else:
+            cells = (p.size[0] / 2) * (p.size[1] / 2)
+            foot = f"{int(p.size[0] / 2)}x{int(p.size[1] / 2)} | {t0 / cells:.1f}/cell"
+        far = p.far.tris() if p.far.faces else "hidden"
+        print(f"BUDGET  {name} | {foot} | {t0} | {far} | {len(mat_names)}: {', '.join(mat_names)}")
 
     if "--no-render" in sys.argv:
         return
@@ -131,20 +140,41 @@ def main() -> None:
             label(scene, short, cx, y - depth - 2.6, 1.15, label_mat)
             x += max(sx, len(short) * 0.75) + GAP
         y -= depth + GAP + 3.0
-    K.rect(ground, -200, -200, 200, 200, -0.01, "grass")
+    # Props in a row far away from the ground pieces, for their own camera.
+    px = 300.0
+    for n in PROPS:
+        sx = pieces[n].size[0]
+        for o in objects[n]:
+            o.location = (px + sx / 2, 300.0, 0.0)
+            if o.name.endswith("_lodfar"):
+                o.hide_render = True
+        label(scene, n.replace("carpark_", "").replace("fence_", "fence "), px + sx / 2, 297.6, 0.4, label_mat)
+        px += max(sx, 2.2) + 1.2
+    K.rect(ground, -200, -200, 400, 400, -0.01, "grass")
+    K.rect(ground, 290, 296, 350, 304, 0.0, "paving")
     ground.build("overview_grass", mats)
     setup_render(scene, 24)
     cam_data = bpy.data.cameras.new("cam_pieces")
     cam_data.type = "ORTHO"
-    cam_data.ortho_scale = 142.0
+    cam_data.ortho_scale = 150.0
     cam = bpy.data.objects.new("cam_pieces", cam_data)
-    cam.location = (6.0, -32.0, 200.0)
+    cam.location = (10.0, -32.0, 200.0)
     scene.collection.objects.link(cam)
     scene.camera = cam
     bpy.context.preferences.filepaths.save_version = 0
     bpy.ops.wm.save_as_mainfile(filepath=BLEND, relative_remap=True)
     os.makedirs(PREVIEWS, exist_ok=True)
     scene.render.filepath = os.path.join(PREVIEWS, "landside_pieces.png")
+    bpy.ops.render.render(write_still=True)
+    print("rendered", scene.render.filepath)
+    cam2_data = bpy.data.cameras.new("cam_props")
+    cam2_data.lens = 20.0
+    cam2 = bpy.data.objects.new("cam_props", cam2_data)
+    cam2.location = (320.0, 281.0, 3.0)
+    cam2.rotation_euler = (math.radians(88), 0.0, 0.0)
+    scene.collection.objects.link(cam2)
+    scene.camera = cam2
+    scene.render.filepath = os.path.join(PREVIEWS, "landside_props.png")
     bpy.ops.render.render(write_still=True)
     print("rendered", scene.render.filepath)
 
