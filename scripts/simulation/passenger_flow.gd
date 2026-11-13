@@ -16,10 +16,7 @@ const RETRY_INTERVAL: float = 1.0
 ## before boarding opens, and then with this probability.
 const SHOPPING_MIN_SPARE: float = 45.0
 ## Before security, passengers are less likely to sit in a landside café (share of their shop chance).
-## (The values live in data/journeys/departure.tres; these two are kept for tests and checked against it.)
-const LANDSIDE_CAFE_FACTOR: float = 0.4
-## Time kept free for getting through security after a landside café.
-const SECURITY_ALLOWANCE: float = 60.0
+## (How likely a visit is before each step, and the time kept free after it, live in data/journeys/.)
 ## Arriving passengers without a checked bag still take this long to walk through baggage claim.
 const PASS_THROUGH_TIME: float = 3.0
 ## Customers leave a shop this long before boarding opens at the latest ("final call").
@@ -256,7 +253,7 @@ func save_state() -> Dictionary:
 			"position": passenger.position, "offset": passenger.offset,
 			"path": passenger.path.slice(passenger.path_index),
 			"color": passenger.color_index, "queued_since": passenger.queued_since,
-			"visit_left": passenger.visit_left, "after_shop": int(passenger.after_shop),
+			"visit_left": passenger.visit_left, "after_shop": int(_resume_role(passenger)),
 			"leave_shop_by": passenger.leave_shop_by, "mood": passenger.mood,
 			"walked": passenger.walked, "retry_in": passenger.retry_in,
 		})
@@ -329,9 +326,8 @@ func load_state(data: Dictionary, by_id: Dictionary[int, Building]) -> void:
 		passenger.color_index = int(entry["color"])
 		passenger.queued_since = entry["queued_since"]
 		passenger.visit_left = entry["visit_left"]
-		passenger.after_shop = int(entry["after_shop"]) as Role
 		passenger.leave_shop_by = entry["leave_shop_by"]
-		_restore_journey(passenger)
+		_restore_journey(passenger, int(entry["after_shop"]) as Role)
 		passenger.mood = entry["mood"]
 		passenger.walked = entry["walked"]
 		passenger.retry_in = entry["retry_in"]
@@ -475,8 +471,8 @@ func is_anyone_coming(flight: Flight) -> bool:
 	for passenger in passengers:
 		if passenger.flight != flight or passenger.is_arriving:
 			continue
-		if passenger.goal == Role.GATE or passenger.goal == Role.TRANSFER_SECURITY \
-				or (passenger.goal in [Role.SHOP, Role.LOUNGE] and passenger.after_shop == Role.GATE):
+		# On a step the flight waits for (also while on a detour back to it).
+		if passenger.recipe != null and passenger.recipe.step_at(passenger.step).holds_flight:
 			return true
 	return false
 
@@ -557,7 +553,7 @@ func remove_building(building: Building) -> void:
 			displaced.append(passenger)
 	for passenger in displaced:
 		if passenger.state == Passenger.State.IN_SHOP:
-			passenger.goal = passenger.after_shop
+			_end_detour(passenger)
 		passenger.state = Passenger.State.WALKING
 		# Step out of the building onto the nearest walkway before looking for a new way.
 		if not station.entry_cells.is_empty():
@@ -605,7 +601,7 @@ func _remove(leaving: Array) -> void:
 
 func _plan(passenger: Passenger) -> void:
 	passenger.target = null
-	if passenger.goal == Role.ENTRANCE:
+	if _is_leaving(passenger):
 		_plan_exit(passenger)
 		return
 	var cell := world.grid.world_to_cell(passenger.position)
@@ -622,23 +618,23 @@ func _plan(passenger: Passenger) -> void:
 	for station: Station in _stations_by_role.get(int(passenger.goal), []):
 		if passenger.goal == Role.GATE and station.building != passenger.flight.gate:
 			continue
-		if passenger.goal in [Role.SHOP, Role.LOUNGE] and not _has_room(station):
+		if _in_detour(passenger) and not _has_room(station):
 			continue
 		var entry: Variant = _closest_cell_in_area(station.entry_cells, cell, area)
 		if entry != null:
 			candidates.append(station)
 			candidate_cells.append(entry)
 	if candidates.is_empty():
-		if passenger.goal in [Role.SHOP, Role.LOUNGE]:
+		if _in_detour(passenger):
 			# No shop (or lounge) with room nearby: carry on instead.
-			passenger.goal = passenger.after_shop
+			_end_detour(passenger)
 			_plan(passenger)
 			return
 		_set_stuck(passenger)
 		return
 
 	var choice := 0
-	if passenger.goal in [Role.SHOP, Role.LOUNGE]:
+	if _in_detour(passenger):
 		# Tastes differ: some want coffee, others duty free. Any place with room may be chosen.
 		choice = rng.randi() % candidates.size()
 	else:
@@ -684,7 +680,7 @@ func _walk(passenger: Passenger, delta: float) -> void:
 
 
 func _arrive(passenger: Passenger) -> void:
-	if passenger.goal == Role.ENTRANCE:
+	if _is_leaving(passenger):
 		# Out of the airport: the arrival is complete (design doc §8.8).
 		passenger.state = Passenger.State.GONE
 		_someone_gone = true
@@ -705,10 +701,10 @@ func _arrive(passenger: Passenger) -> void:
 		passenger.state = Passenger.State.AT_BELT
 		passenger.queued_since = time
 		station.waiting.append(passenger)
-	elif station.role() == Role.SHOP or station.role() == Role.LOUNGE:
+	elif _in_detour(passenger):
 		if time >= passenger.leave_shop_by:
 			# The walk took too long: no time left for the visit, straight on.
-			passenger.goal = passenger.after_shop
+			_end_detour(passenger)
 			_plan(passenger)
 			return
 		passenger.state = Passenger.State.IN_SHOP
@@ -802,7 +798,7 @@ func _finish_service(station: Station, passenger: Passenger) -> void:
 	var done := passenger.recipe.step_at(passenger.step)
 	var next := _next_step(passenger)
 	if next.detour_before:
-		_maybe_shop(passenger, next.role, next.detour_allowance, _shop_chance(passenger) * next.detour_chance_factor)
+		_maybe_detour(passenger, next)
 	if done.emerges_behind:
 		# Through the security lane: appear behind the building.
 		var exit: Vector2i = _closest_cell_in_area(station.exit_cells, world.grid.world_to_cell(passenger.position), -1)
@@ -818,12 +814,35 @@ func _next_step(passenger: Passenger) -> JourneyStep:
 	return passenger.recipe.step_at(passenger.step)
 
 
-# Journeys are not saved yet (save format 6 will): rebuild recipe and step from the saved flags
-# and goal. A passenger in a shop detour is on the step they will return to.
-func _restore_journey(passenger: Passenger) -> void:
+# Rebuilds recipe and step from the saved flags and goal. The saved "after_shop" is the role of the
+# step a passenger on a detour returns to (the file format keeps it, so old saves still load).
+func _restore_journey(passenger: Passenger, resume_role: Role) -> void:
 	passenger.recipe = TRANSFER if passenger.is_transfer else (ARRIVAL if passenger.is_arriving else DEPARTURE)
-	var role := passenger.after_shop if passenger.goal in [Role.SHOP, Role.LOUNGE] else passenger.goal
+	var role := resume_role if passenger.goal in [Role.SHOP, Role.LOUNGE] else passenger.goal
 	passenger.step = maxi(passenger.recipe.index_of(role), 0)
+
+
+# --- Detours (tech architecture §5): a visit before a step, then on with that step ---
+
+# The role of the step the passenger is on (or returns to after a detour).
+func _resume_role(passenger: Passenger) -> Role:
+	return passenger.recipe.role_at(passenger.step) if passenger.recipe != null else passenger.goal
+
+
+# On a detour: the goal is a visit, not the role of the current step.
+func _in_detour(passenger: Passenger) -> bool:
+	return passenger.recipe != null and passenger.goal != passenger.recipe.role_at(passenger.step)
+
+
+# Back to the step the detour came before.
+func _end_detour(passenger: Passenger) -> void:
+	passenger.goal = passenger.recipe.role_at(passenger.step)
+
+
+# On the way out of the airport (the last step of an arrival).
+func _is_leaving(passenger: Passenger) -> bool:
+	return passenger.recipe != null and passenger.recipe.step_at(passenger.step).leaves_airport \
+		and not _in_detour(passenger)
 
 
 ## How long `employee` needs compared to the standard time: experience (§9.1), a supervisor
@@ -840,21 +859,19 @@ static func staff_time_factor(employee: Employee, team: Array[Employee], manager
 # --- Shops and cafés (design doc §8.6) ---
 
 # With enough spare time (and some luck), the passenger visits a shop or café before `next`.
-# `allowance` is time still needed after the visit (e.g. for security).
-func _maybe_shop(passenger: Passenger, next: BuildingType.Role, allowance: float, chance: float) -> void:
-	var leave_by := passenger.flight.departure_time - FlightSchedule.BOARDING_OPENS - FINAL_CALL - allowance
+# The step's allowance is the time still needed after the visit (e.g. for security).
+func _maybe_detour(passenger: Passenger, next: JourneyStep) -> void:
+	var leave_by := passenger.flight.departure_time - FlightSchedule.BOARDING_OPENS - FINAL_CALL - next.detour_allowance
 	if leave_by - time < SHOPPING_MIN_SPARE:
 		return
 	# Business travellers prefer the lounge airside (design doc §11.8).
-	if next == Role.GATE and _is_business(passenger) and _has_lounge() and rng.randf() < LOUNGE_CHANCE:
+	if next.detour_lounge and _is_business(passenger) and _has_lounge() and rng.randf() < LOUNGE_CHANCE:
 		passenger.goal = Role.LOUNGE
-		passenger.after_shop = next
 		passenger.leave_shop_by = leave_by
 		return
-	if rng.randf() >= chance:
+	if rng.randf() >= _shop_chance(passenger) * next.detour_chance_factor:
 		return
 	passenger.goal = Role.SHOP
-	passenger.after_shop = next
 	passenger.leave_shop_by = leave_by
 
 
@@ -891,7 +908,7 @@ func _tick_shop(station: Station, delta: float) -> void:
 			var door: Vector2i = station.entry_cells[rng.randi() % station.entry_cells.size()]
 			customer.position = _cell_point(door, customer)
 			customer.previous_position = customer.position
-		customer.goal = customer.after_shop
+		_end_detour(customer)
 		_plan(customer)
 
 

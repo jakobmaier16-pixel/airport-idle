@@ -145,3 +145,25 @@ func test_damaged_passenger_block_is_dropped_not_fatal() -> void:
 	check_eq(loaded.passenger_flow.passengers.size(), 0, "no passengers from a damaged block")
 	loaded.step(AirportWorld.SIM_STEP)
 	loaded.dispose()
+
+
+func test_inconsistent_lengths_are_dropped() -> void:
+	ShowcaseAirport.build()
+	sim_seconds(60.0)
+	var packed: Dictionary = _through_json(Airport.save_state())["flow"]["passengers"]
+	check(PassengerSave.decode(packed).size() > 0, "the intact block decodes")
+	# A count far beyond what the bytes can hold.
+	var too_many := packed.duplicate()
+	too_many["count"] = 100000000
+	check(PassengerSave.decode(too_many).is_empty(), "an impossible passenger count is dropped")
+	# A path length that runs past the end of the buffer.
+	var records := PassengerSave.decode(packed)
+	var raw_block := PassengerSave.encode(records, 64)
+	var raw := (Marshalls.base64_to_raw(raw_block["data"])).decompress(int(raw_block["raw_size"]), FileAccess.COMPRESSION_DEFLATE)
+	var length_at := PassengerSave.RECORD_BYTES * records.size() - 4 * records.size()
+	raw.encode_u32(length_at, 0x7fffffff)
+	var broken := raw_block.duplicate()
+	broken["data"] = Marshalls.raw_to_base64(raw.compress(FileAccess.COMPRESSION_DEFLATE))
+	check(PassengerSave.decode(broken).is_empty(), "a path length beyond the buffer is dropped")
+	# Cells right of the grid's last column.
+	check(PassengerSave.remap_path(PackedInt32Array([70]), 100, Vector2i(64, 64)).is_empty(), "x beyond the width is rejected")

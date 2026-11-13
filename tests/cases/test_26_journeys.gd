@@ -20,8 +20,11 @@ func test_recipe_data_matches_the_prototype_order() -> void:
 	var departure := PassengerFlow.DEPARTURE
 	check(not departure.step_at(0).detour_before, "no shop before check-in")
 	check(departure.step_at(1).detour_before and departure.step_at(2).detour_before, "shops before security and before the gate")
-	check_eq(departure.step_at(1).detour_allowance, PassengerFlow.SECURITY_ALLOWANCE, "time kept for security")
-	check_eq(departure.step_at(1).detour_chance_factor, PassengerFlow.LANDSIDE_CAFE_FACTOR, "landside cafés are rarer")
+	check_eq(departure.step_at(1).detour_allowance, 60.0, "time kept for security")
+	check_eq(departure.step_at(1).detour_chance_factor, 0.4, "landside cafés are rarer")
+	check(departure.step_at(2).detour_lounge and not departure.step_at(1).detour_lounge, "the lounge is airside only")
+	check(departure.step_at(2).holds_flight and PassengerFlow.TRANSFER.step_at(0).holds_flight and not departure.step_at(1).holds_flight, "the flight waits for gate and transfer security")
+	check(PassengerFlow.ARRIVAL.step_at(1).leaves_airport, "arrivals end outside")
 	check(departure.step_at(1).emerges_behind and PassengerFlow.TRANSFER.step_at(0).emerges_behind, "security lanes lead through")
 	check_eq(departure.index_of(Role.SECURITY), 1, "index_of finds a role")
 	check_eq(departure.index_of(Role.LOUNGE), -1, "index_of: unknown role")
@@ -41,8 +44,7 @@ func test_passengers_follow_their_recipe() -> void:
 			seen[String(p.recipe.id)] += 1
 			var expected := PassengerFlow.TRANSFER if p.is_transfer else (PassengerFlow.ARRIVAL if p.is_arriving else PassengerFlow.DEPARTURE)
 			check(p.recipe == expected, "the recipe matches the kind of passenger")
-			var role := p.after_shop if p.goal in [Role.SHOP, Role.LOUNGE] else p.goal
-			check_eq(p.recipe.role_at(p.step), role, "the goal is the role of the current step (or a detour back to it)")
+			check(p.goal == p.recipe.role_at(p.step) or p.goal in [Role.SHOP, Role.LOUNGE], "the goal is the role of the current step (or a detour before it)")
 			if p.by_car and p.is_arriving:
 				seen["car"] += 1
 	check(seen["departure"] > 0 and seen["arrival"] > 0 and seen["transfer"] > 0, "all three journeys happened: %s" % [seen])
@@ -85,7 +87,7 @@ func _find_passenger(wanted: Callable) -> Array:
 
 func _snapshot(p: Passenger) -> Dictionary:
 	return {"state": p.state, "goal": p.goal, "step": p.step, "recipe": p.recipe.id, "position": p.position,
-		"after_shop": p.after_shop, "target": p.target, "by_car": p.by_car, "has_bag": p.has_bag}
+		"target": p.target, "by_car": p.by_car, "has_bag": p.has_bag}
 
 
 func _reload() -> void:
@@ -112,7 +114,7 @@ func test_saved_in_a_shop_detour_comes_back() -> void:
 	var p := Airport.passenger_flow.passengers[found[0]]
 	var after := _snapshot(p)
 	check_eq(after["state"], Passenger.State.IN_SHOP, "still in the shop")
-	for key in ["goal", "step", "recipe", "position", "after_shop"]:
+	for key in ["goal", "step", "recipe", "position"]:
 		check_eq(after[key], before[key], "%s restored" % key)
 	check(p.target != null and Airport.passenger_flow.station_for(p.target).waiting.has(p), "back inside the shop")
 

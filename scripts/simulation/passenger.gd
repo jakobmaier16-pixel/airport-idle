@@ -55,9 +55,8 @@ var color_index: int = 0
 var queued_since: float = 0.0
 ## Seconds left inside a shop or café.
 var visit_left: float = 0.0
-## Shops and cafés: where to go afterwards (security before it, the gate after it), and the
-## simulation time by which the passenger must leave to still make boarding.
-var after_shop: BuildingType.Role = BuildingType.Role.GATE
+## Shops and cafés: the simulation time by which the passenger must leave to still make boarding.
+## (Where they go afterwards is the journey step they are on, see PassengerFlow detours.)
 var leave_shop_by: float = 0.0
 ## How happy the passenger is with the airport so far, 0..100 (design doc §8.10).
 var mood: float = 100.0

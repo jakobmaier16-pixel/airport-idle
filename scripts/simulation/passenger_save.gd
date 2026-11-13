@@ -10,6 +10,8 @@ extends RefCounted
 ## the grid width is stored too, and only the part of the path still ahead is kept.
 
 const NO_TYPE: int = 255
+## Bytes one passenger takes in all the fixed-size columns together (without its path cells).
+const RECORD_BYTES: int = 98
 
 ## Record keys: state, flight, type (id text), arriving, transfer, by_car, has_bag, goal, target
 ## (building id), color, after_shop, position (Vector3), offset (Vector3), path (PackedInt32Array,
@@ -75,6 +77,11 @@ static func decode(packed: Dictionary) -> Array[Dictionary]:
 	if raw.size() != raw_size:
 		push_warning("The saved passengers are damaged and were dropped.")
 		return records
+	# Every length below is checked against the bytes really there, so a damaged block can't
+	# make us allocate or read far beyond the buffer.
+	if count > raw.size() / RECORD_BYTES:
+		push_warning("The saved passengers are inconsistent and were dropped.")
+		return records
 	var types: Array = packed.get("types", [])
 	var buffer := StreamPeerBuffer.new()
 	buffer.data_array = raw
@@ -106,8 +113,17 @@ static func decode(packed: Dictionary) -> Array[Dictionary]:
 		for record in records:
 			record[key] = buffer.get_double()
 	var lengths := PackedInt32Array()
+	var total_cells := 0
 	for record in records:
-		lengths.append(buffer.get_u32())
+		var length := buffer.get_u32()
+		total_cells += length
+		if length > (raw.size() - buffer.get_position()) / 4 or total_cells * 4 > raw.size():
+			push_warning("The saved passengers are inconsistent and were dropped.")
+			return []
+		lengths.append(length)
+	if buffer.get_position() + total_cells * 4 != raw.size():
+		push_warning("The saved passengers are inconsistent and were dropped.")
+		return []
 	for i in count:
 		var path := PackedInt32Array()
 		path.resize(lengths[i])
