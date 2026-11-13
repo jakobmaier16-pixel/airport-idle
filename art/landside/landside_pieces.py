@@ -93,7 +93,8 @@ ROWS = [
 ]
 # Props: rendered in a second, perspective overview (landside_props.png).
 PROPS = ["bus_shelter", "bollard", "light_mast", "fence_panel_2m", "fence_post", "fence_gate_pedestrian",
-         "carpark_info_board", "sign_parking", "pay_station"]
+         "carpark_info_board", "sign_parking", "pay_station", "sign_wayfinding", "tree_deciduous",
+         "hedge_2m", "decal_oil_stain", "decal_patch", "decal_drain_grate", "decal_tyre_marks"]
 GAP = 5.0
 
 
@@ -170,8 +171,8 @@ def main() -> None:
     cam2_data = bpy.data.cameras.new("cam_props")
     cam2_data.lens = 20.0
     cam2 = bpy.data.objects.new("cam_props", cam2_data)
-    cam2.location = (320.0, 281.0, 3.0)
-    cam2.rotation_euler = (math.radians(88), 0.0, 0.0)
+    cam2.location = (px / 2 + 150.0, 280.0, 3.5)
+    cam2.rotation_euler = (math.radians(86), 0.0, 0.0)
     scene.collection.objects.link(cam2)
     scene.camera = cam2
     scene.render.filepath = os.path.join(PREVIEWS, "landside_props.png")

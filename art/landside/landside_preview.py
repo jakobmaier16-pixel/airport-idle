@@ -74,7 +74,8 @@ place("road_oneway_corner", 8, 56)
 place("road_oneway_corner", 136, 56, -90)
 
 # --- Curb road along the terminal (eastbound), y 56..68 ------------------------------------------
-place("curb_dropoff_segment", 28, 62)
+KF = (28, 65)
+place("curb_dropoff_segment", *KF)
 place("zebra_crossing", 52 - 8, 62)                         # zebra x 42..46, in line with door 1
 place("curb_plain_segment_arrows", 52, 62)
 place("curb_plain_segment", 60, 62)
@@ -126,6 +127,8 @@ while x < 128:
     elif entry_x1 < x < exit_x0:
         x += 1.5
         continue
+    elif 16 <= x < 40:
+        cy = 67.5 + K.KF_RECESS                 # behind the deepest point of the K&F pockets
     else:
         cy = 67.5
     place("bollard", x, cy + 0.75, 0, K.CURB_H)
@@ -138,6 +141,65 @@ place("light_mast", 113.0, 36.0)
 place("light_mast", WALK_X + 1.5, 22.5, 0, K.CURB_H)        # on the walkway islands
 place("light_mast", WALK_X + 1.5, 49.5, 0, K.CURB_H)
 
+# --- Vegetation, wear, wayfinding --------------------------------------------------------------
+vrng = random.Random(21)
+
+
+def tree(x: float, y: float, z: float = 0.0, s: float = 1.0) -> None:
+    count["tree_deciduous"] = count.get("tree_deciduous", 0) + 1
+    for mesh, _ in meshes["tree_deciduous"]:
+        o = bpy.data.objects.new(f"tree.{count['tree_deciduous']:03d}", mesh)
+        o.location = (x, y, z)
+        o.rotation_euler = (0, 0, vrng.uniform(0, 6.28))
+        o.scale = (s, s, s * vrng.uniform(0.9, 1.1))
+        layout.objects.link(o)
+
+
+for y in (22.0, 26.0, 46.0, 50.0):                          # walkway grass strips (small trees)
+    tree(WALK_X - 1.5, y, K.CURB_H, 0.6)
+for y in (32.5, 39.5):
+    tree(WALK_X + 1.5, y, K.CURB_H, 0.6)
+for x in range(20, 112, 9):                                  # outside the south fence
+    if all(abs(x - m) > 3 for m in (30, 64, 98)):
+        tree(x + vrng.uniform(-1, 1), 16.5 + vrng.uniform(-0.5, 0.5), 0, vrng.uniform(0.8, 1.1))
+for y in range(22, 50, 8):                                   # east of the car park
+    tree(116.5 + vrng.uniform(-0.6, 0.6), y, 0, vrng.uniform(0.8, 1.1))
+for y in range(14, 48, 9):                                   # loop road verges (outside)
+    tree(-4.5 + vrng.uniform(-0.5, 0.5), y, 0, vrng.uniform(0.8, 1.15))
+    tree(148.5 + vrng.uniform(-0.5, 0.5), y, 0, vrng.uniform(0.8, 1.15))
+for x in range(-30, 175, 11):                                # country road, north verge
+    if not (-10 < x < 18 or 126 < x < 154):
+        tree(x, 12.5 + vrng.uniform(-0.4, 0.4), 0, vrng.uniform(0.8, 1.2))
+for x in (2.0, 7.0, 12.0, 133.0, 138.0):                     # beside the terminal sidewalk ends
+    tree(x, 77.5, 0, 0.9)
+for x in range(17, 112, 2):                                  # hedge inside... outside the south fence
+    place("hedge_2m", x, 19.2)
+for y in range(41, 52, 2):                                   # hedge along the west fence (north part)
+    place("hedge_2m", 15.2, y, 90)
+
+for row_y in (28, 44):                                       # oil stains in some bay centres
+    for mx in (27, 37, 51, 61, 71, 81, 91, 101):
+        for j in range(4):
+            for side in (-1, 1):
+                if vrng.random() < 0.35:
+                    place("decal_oil_stain", mx - 5 + 1.25 + 2.5 * j + vrng.uniform(-0.2, 0.2),
+                          row_y + side * 5.3 + vrng.uniform(-0.3, 0.3), vrng.uniform(0, 360))
+place("decal_tyre_marks", 13.5, 28.5, 0)                     # entry lane at the boom
+place("decal_tyre_marks", 10.5, 35.5, 180)                   # exit lane
+place("decal_tyre_marks", 30.0, 65.6, 25)                    # Kiss & Fly
+place("decal_patch", 33.0, 61.5, 0)
+place("decal_patch", 87.0, 2.0, 15)
+place("decal_patch", 72.0, 44.0, 0)
+for x in range(20, 128, 12):                                 # gully grates in the curb gutter
+    if not (40 <= x < 48 or 64 <= x < 88 or 16 <= x < 40):
+        place("decal_drain_grate", x, 67.2, 90)
+for i in range(3):                                           # deepest corner of each K&F pocket
+    place("decal_drain_grate", KF[0] - 12 + K.KF_PITCH * i + K.KF_DIAG - 0.9, KF[1] + 2.5 + K.KF_RECESS - 0.65, 115)
+for x in range(22, 128, 14):
+    place("decal_drain_grate", x, 56.3, 90)
+place("sign_wayfinding", WALK_X + 3.2, 71.4, 0, K.CURB_H)    # beside door 1 / the zebra
+place("sign_wayfinding", WALK_X - 3.2, 54.4, 180, K.CURB_H)  # car-park side, faces people from the terminal
+
 # --- Sidewalk tiles (auto curbs: a curb stone wherever the neighbour is not raised) --------------
 tiles = set()
 for x in range(16, 128, 2):                     # car-park sidewalk, y 52..56
@@ -145,7 +207,7 @@ for x in range(16, 128, 2):                     # car-park sidewalk, y 52..56
         tiles.add((x, y))
 for x in range(0, 144, 2):                      # terminal sidewalk, y 68..74
     for y in (68, 70, 72):
-        if not 64 <= x < 88:                    # the bus bay piece brings its own sidewalk
+        if not (64 <= x < 88 or 16 <= x < 40):  # bus bay / Kiss & Fly pieces bring their own sidewalk
             tiles.add((x, y))
 for x in list(range(0, 16, 2)) + list(range(128, 144, 2)):
     for y in (64, 66):                          # above the corners
@@ -153,7 +215,7 @@ for x in list(range(0, 16, 2)) + list(range(128, 144, 2)):
 lowered = {(WALK_X - 2, 54), (WALK_X, 54)}      # car-park side of the zebra: one 4 m lowered piece
 landing = {(WALK_X - 2, 68), (WALK_X, 68)}      # terminal side: tactile landing
 raised = set(tiles)
-raised |= {(x, y) for x in range(64, 88, 2) for y in (68, 70, 72)}   # bus bay sidewalk
+raised |= {(x, y) for x in list(range(64, 88, 2)) + list(range(16, 40, 2)) for y in (68, 70, 72)}
 raised |= {(x, 74) for x in range(20, 124, 2)}                       # terminal
 raised |= {(WALK_X - 2, 50), (WALK_X, 50)}                            # walkway island
 
@@ -215,7 +277,7 @@ def prop(kind: str, x: float, y: float, rot: float = 0.0, z: float = 0.0) -> Non
 
 
 rng = random.Random(7)
-colours = ["car_silver", "car_anthracite", "car_ivory"]
+colours = PP.CAR_MIX
 for row_y in (28, 44):
     for mx in (27, 37, 51, 61, 71, 81, 91, 101):
         for j in range(4):
@@ -225,21 +287,23 @@ for row_y in (28, 44):
                     by = row_y + side * 5.5
                     prop(rng.choice(colours), bx + rng.uniform(-0.1, 0.1), by + rng.uniform(-0.2, 0.2),
                          90 if side < 0 else -90)
-for x, c in ((25.0, "car_silver"), (37.0, "car_anthracite")):       # Kiss & Fly (bays 2 and 4)
-    prop(c, x, 66.2)
+for i, c in ((0, "car_red"), (2, "car_white")):             # Kiss & Fly pockets 1 and 3
+    cx, cy_, h = K.kf_car_pose(i, 2.5)
+    prop(c, KF[0] + cx, KF[1] + cy_, h)
 for x in (99.2, 105.2, 111.2):                                       # taxis
-    prop("car_ivory", x, 66.2)
+    prop("car_taxi", x, 66.2)
 prop("bus", BUS_BAY[0] + K.BUS_POS[0], BUS_BAY[1] + K.BUS_POS[1])
-prop("car_anthracite", 64.0, 58.25)                                  # through traffic
+prop("car_darkblue", 64.0, 58.25)                                  # through traffic
 prop("car_silver", 10.5, 35.5, 180)                                  # leaving through the exit
 prop("car_silver", 2.25, 46.0, 90)                                   # west leg
-prop("car_anthracite", 70.0, 2.25)                                   # country road, eastbound
+prop("car_black", 70.0, 2.25)                                   # country road, eastbound
 prop("car_silver", 30.0, 5.75, 180)                                  # westbound
 coats = list(PP.PERSON_COLOURS)
 people = [  # (x, y, z, heading): along the route car park -> walkway -> zebra -> door 1, and at the stops
     (44.0, 30.5, 0.15, 90), (43.6, 40.0, 0.15, 90), (44.3, 53.8, 0.15, 90), (43.7, 60.5, 0.0, 90),
     (44.8, 71.0, 0.15, 95), (30.5, 70.2, 0.15, 180), (26.0, 68.4, 0.15, 270), (76.0, 70.0, 0.15, 270),
-    (78.3, 70.1, 0.15, 250), (102.0, 69.2, 0.15, 0), (36.0, 72.6, 0.15, 10),
+    (78.3, 70.1, 0.15, 250), (102.0, 69.2, 0.15, 0), (36.0, 72.6, 0.15, 10), (21.0, 71.8, 0.15, 180),
+    (58.0, 70.5, 0.15, 0), (90.0, 71.0, 0.15, 180), (110.5, 70.0, 0.15, 270), (47.0, 54.5, 0.15, 270),
 ]
 for i, (x, y, z, h) in enumerate(people):
     prop(coats[i % len(coats)], x, y, h - 90, z)
@@ -271,9 +335,10 @@ def camera(name: str, loc: tuple, target: tuple | None = None, ortho: float | No
 
 cams = {
     "landside_top": camera("cam_top", (72.0, 50.0, 300.0), ortho=190.0),
-    "landside_eye": camera("cam_eye", (18.0, 69.8, 0.15 + 1.7), target=(90.0, 66.0, 1.1), lens=30.0),
+    "landside_eye": camera("cam_eye", (12.5, 70.6, 0.15 + 1.7), target=(90.0, 66.0, 1.1), lens=30.0),
     "landside_busstop": camera("cam_busstop", (87.0, 72.8, 0.15 + 1.7), target=(75.0, 70.0, 1.0), lens=24.0),
     "landside_carpark": camera("cam_carpark", (8.8, 27.4, 1.7), target=(40.0, 33.0, 0.4), lens=22.0),
+    "landside_kissfly": camera("cam_kissfly", (30.0, 48.0, 18.0), target=(28.0, 66.0, 0.0), lens=28.0),
     "landside_walkway": camera("cam_walkway", (44.0, 31.0, 0.15 + 1.7), target=(44.0, 74.0, 1.6), lens=24.0),
 }
 os.makedirs(PREVIEWS, exist_ok=True)

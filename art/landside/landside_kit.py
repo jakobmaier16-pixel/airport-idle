@@ -147,7 +147,40 @@ def make_materials() -> dict:
     mats["metal_light"] = flat("metal_light", "#8A9096", 0.35, 1.0)
     # Godot: alpha-blended, no refraction (art_direction §4). Same in the preview.
     mats["glass"] = flat("glass", "#9FB6BF", 0.05, 0.0, alpha=0.25)
+    mats["bark"] = flat("bark", "#5A4A3C", 0.95)
+    mats["foliage"] = _vertex_tinted("foliage", "#4F6B3A", 0.9)
+    mats["decals"] = _decals()
     return mats
+
+
+def _vertex_tinted(name: str, hex_colour: str, roughness: float) -> bpy.types.Material:
+    """Flat colour × vertex colour (per-instance / per-crown variation, as foliage.tres)."""
+    mat = flat(name, hex_colour, roughness)
+    nodes, links = mat.node_tree.nodes, mat.node_tree.links
+    vc = nodes.new("ShaderNodeVertexColor")
+    vc.layer_name = "Col"
+    mul = nodes.new("ShaderNodeMix")
+    mul.data_type = "RGBA"
+    mul.blend_type = "MULTIPLY"
+    mul.inputs["Factor"].default_value = 1.0
+    mul.inputs[6].default_value = (*hex_lin(hex_colour), 1.0)
+    links.new(vc.outputs["Color"], mul.inputs[7])
+    links.new(mul.outputs[2], nodes["Principled BSDF"].inputs["Base Color"])
+    return mat
+
+
+def _decals() -> bpy.types.Material:
+    mat = bpy.data.materials.new("decals")
+    mat.use_nodes = True
+    nodes, links = mat.node_tree.nodes, mat.node_tree.links
+    bsdf = nodes["Principled BSDF"]
+    t = nodes.new("ShaderNodeTexImage")
+    t.image = _img(os.path.join(TEX, "decals", "decals_albedo.png"), False)
+    t.image.alpha_mode = "STRAIGHT"
+    links.new(t.outputs["Color"], bsdf.inputs["Base Color"])
+    links.new(t.outputs["Alpha"], bsdf.inputs["Alpha"])
+    bsdf.inputs["Roughness"].default_value = 0.9
+    return mat
 
 
 # --- Mesh builder -------------------------------------------------------------------------------
@@ -585,12 +618,55 @@ def _bays(p: Piece, length: float, bay: float, col: tuple) -> None:
         line(p.marks, [(xc, LANE_B + LANE_BOUNDARY_W / 2), (xc, CURB_Y)], w, col=col)
 
 
+# Kiss & Fly: sawtooth (echelon) bays, recessed into the sidewalk. Each pocket: a curb running
+# into the sidewalk at 25° (the car stops along it, nose in), then a steep step back to the curb
+# line. The next pocket starts at the curb line again, so every car drives in AND out forwards
+# without waiting for the car in front (as at real drop-off curbs and sawtooth bus stations).
+KF_PITCH = 8.0           # 3 pockets per 24 m piece
+KF_DIAG = 5.5            # length along X of the angled curb
+KF_ANGLE = 25.0          # car axis to the curb line
+KF_RECESS = KF_DIAG * math.tan(math.radians(KF_ANGLE))   # ~2.56 m into the sidewalk
+
+
+def kf_curb(cy: float) -> list:
+    pts = [(-12.0, cy)]
+    for i in range(3):
+        x0 = -12.0 + KF_PITCH * i
+        pts += [(x0 + KF_DIAG, cy + KF_RECESS), (x0 + KF_PITCH, cy)]
+    return pts
+
+
+def kf_car_pose(i: int, cy: float) -> tuple:
+    """(x, y, heading°) of a 4.5 × 1.8 m car standing in pocket i (piece coords)."""
+    a = math.radians(KF_ANGLE)
+    x0 = -12.0 + KF_PITCH * i
+    t = 3.2                                    # car centre this far along the angled curb
+    nx, ny = math.sin(a), -math.cos(a)         # from the curb towards the road
+    return (x0 + t * math.cos(a) + nx * 1.3, cy + t * math.sin(a) + ny * 1.3, KF_ANGLE)
+
+
 def curb_dropoff_segment() -> Piece:
-    p = Piece("curb_dropoff_segment", (24.0, 12.0), "curb road with 4 Kiss & Fly bays (6 m, white), lettering")
-    _curb_base(p, 24.0)
-    _bays(p, 24.0, 6.0, WHITE)
-    for x0 in (-12.0, 0.0):                                  # lettering in bays 1 and 3
-        road_text(p.marks, ["KISS &", "FLY"], (x0 + 1.6, 3.5), 0.0, pitch=0.55)
+    """Curb road + 6 m terminal sidewalk (piece 18 m deep, y -9..9, like curb_bus_bay) with three
+    Kiss & Fly sawtooth pockets. "KISS &" / "FLY" stacked in each pocket, read in driving direction."""
+    p = Piece("curb_dropoff_segment", (24.0, 18.0),
+              "curb road + sidewalk with 3 Kiss & Fly sawtooth bays (drive in and out forwards)")
+    cy = 2.5
+    curb = kf_curb(cy)
+    rect(p.lod0, -12, -9, 12, cy, 0.0, "asphalt")
+    off = offset_polyline(curb, CURB_W)
+    for i in range(len(curb) - 1):
+        top(p.lod0, [curb[i], curb[i + 1], (curb[i + 1][0], cy), (curb[i][0], cy)], 0.0, "asphalt")
+        top(p.lod0, [curb[i], curb[i + 1], off[i + 1], off[i]], CURB_H, "concrete")
+        wall(p.lod0, curb[i], curb[i + 1], 0.0, CURB_H, "concrete")
+        top(p.lod0, [off[i], off[i + 1], (off[i + 1][0], 9.0), (off[i][0], 9.0)], CURB_H, "paving")
+    line(p.marks, [(-12, -8.5), (12, -8.5)], EDGE_W)
+    dashed(p.marks, (-12, -5), (12, -5), DIVIDER_W, ONEWAY_PERIOD)
+    dashed(p.marks, (-12, -1.5), (12, -1.5), LANE_BOUNDARY_W, ONEWAY_PERIOD)
+    for i in range(3):
+        x0 = -12.0 + KF_PITCH * i
+        road_text(p.marks, ["KISS &", "FLY"], (x0 + 1.5, 0.95), 0.0, pitch=0.55)
+    rect(p.far, -12, -9, 12, cy, 0.0, "asphalt")
+    rect(p.far, -12, cy, 12, 9.0, CURB_H, "paving")
     return p
 
 
@@ -868,9 +944,141 @@ def bus_shelter() -> Piece:
     s.face([(-0.4, -0.601, 2.04), (0.4, -0.601, 2.04), (0.4, -0.601, 2.34), (-0.4, -0.601, 2.34)],
            [(0, 0), (1, 0), (1, 1), (0, 1)], "metal_light")                    # display face
     box(s, 2.75, -0.65, 0.0, 2.81, -0.59, 2.7, "metal_light")                   # stop sign pole
-    box(s, 2.56, -0.64, 2.2, 3.0, -0.60, 2.64, "metal_dark", sides="nesw")     # sign plate
+    # Stop sign: yellow disc with a green "H" (fictional regional style), both faces.
+    ring = [(2.78 + 0.25 * math.cos(2 * math.pi * k / 12), 2.42 + 0.25 * math.sin(2 * math.pi * k / 12)) for k in range(12)]
+    for yy, sgn in ((-0.665, -1), (-0.575, 1)):
+        face_pts = [(x_, yy, z_) for x_, z_ in ring]
+        s.face(face_pts if sgn > 0 else face_pts[::-1], [SOLID_UV] * 12, "markings", tint(BUS_SIGN_YELLOW))
+        lw = 0.22
+        u0, v0, u1, v1 = rect_uv(L.road_letter_rect("H"))
+        xa, xb = (2.78 - lw / 2, 2.78 + lw / 2) if sgn < 0 else (2.78 + lw / 2, 2.78 - lw / 2)
+        yl = yy + 0.002 * sgn
+        s.face([(xa, yl, 2.42 - 0.13), (xb, yl, 2.42 - 0.13), (xb, yl, 2.42 + 0.13), (xa, yl, 2.42 + 0.13)],
+               [(u0, v0), (u1, v0), (u1, v1), (u0, v1)], "markings", tint(BUS_SIGN_GREEN))
     box(p.far, -2.5, -0.65, 0.0, 2.5, 0.65, 2.55, "metal_dark")
     return p
+
+
+BUS_SIGN_YELLOW = "#E8B830"
+BUS_SIGN_GREEN = "#2F7D4F"
+WAYFINDING_YELLOW = "#E8B830"
+
+
+def _letters(mb: MB, text: str, x0: float, y: float, zc: float, h: float, col: tuple, facing: int = -1) -> float:
+    """Upright sign letters from the road-letter atlas cells, natural proportions (the cells are
+    pre-squeezed 2.6 : 1, so a quad of width h / 1.18 un-squeezes them). Returns the end x."""
+    w = h * L.ROAD_LETTER_CELL[0] / L.ROAD_LETTER_CELL[1] * 2.6
+    x = x0
+    for ch in text:
+        if ch != " ":
+            u0, v0, u1, v1 = rect_uv(L.road_letter_rect(ch))
+            mb.face([(x, y, zc - h / 2), (x + w, y, zc - h / 2), (x + w, y, zc + h / 2), (x, y, zc + h / 2)],
+                    [(u0, v0), (u1, v0), (u1, v1), (u0, v1)], "markings", col)
+        x += w * 0.92
+    return x
+
+
+def _sign_arrow(mb: MB, xc: float, y: float, zc: float, size: float, left: bool, col: tuple) -> None:
+    s_ = -1 if left else 1
+    pts = [(-0.5, -0.08), (0.1, -0.08), (0.1, -0.25), (0.5, 0.0), (0.1, 0.25), (0.1, 0.08), (-0.5, 0.08)]
+    p3 = [(xc + s_ * px * size, y, zc + pz * size) for px, pz in pts]
+    shaft = [p3[0], p3[1], p3[5], p3[6]]
+    head = [p3[2], p3[3], p3[4]]
+    for poly in (shaft, head):
+        if left:
+            poly = poly[::-1]
+        mb.face(poly, [SOLID_UV] * len(poly), "markings", col)
+
+
+def sign_wayfinding() -> Piece:
+    """Airport wayfinding sign (yellow / anthracite), readable from -Y: P <-, BUS ->, TAXI ->."""
+    p = Piece("sign_wayfinding", (1.4, 0.2), "wayfinding sign 1.2 × 0.9 m: P, BUS, TAXI with arrows")
+    g = p.lod0
+    for x in (-0.5, 0.44):
+        box(g, x, 0.0, 0.0, x + 0.06, 0.06, 2.9, "metal_dark")
+    box(g, -0.62, -0.03, 2.0, 0.62, 0.0, 2.92, "metal_dark", sides="nesw", bottom=True)
+    dark = tint("#2E3236")
+    yel = tint(WAYFINDING_YELLOW)
+    for k, (text, left) in enumerate((("P", True), ("BUS", False), ("TAXI", False))):
+        zc = 2.77 - k * 0.3
+        y = -0.031
+        g.face([(-0.58, y, zc - 0.13), (0.58, y, zc - 0.13), (0.58, y, zc + 0.13), (-0.58, y, zc + 0.13)],
+               [SOLID_UV] * 4, "markings", yel)
+        _letters(g, text, -0.5 if not left else -0.08, y - 0.001, zc, 0.17, dark)
+        _sign_arrow(g, 0.38 if not left else -0.36, y - 0.001, zc, 0.3, left, dark)
+    return p
+
+
+def tree_deciduous() -> Piece:
+    """Low-poly deciduous tree, ~8 m: trunk + two crowns (subdivided icosahedra), crown colours
+    differ slightly (vertex colour). Drawn as MultiMesh in the game; _lodfar = flat crown disc."""
+    p = Piece("tree_deciduous", (5.0, 5.0), "tree ~8 m, trunk + 2 crowns")
+    cylinder(p.lod0, 0, 0, 0.0, 3.4, 0.16, "bark", n=6, r1=0.1, cap=False)
+    for c, r, col in (((0.0, 0.0, 5.2), 2.4, (1.0, 1.0, 1.0, 1.0)), ((0.6, -0.4, 6.6), 1.7, (1.12, 1.15, 1.0, 1.0))):
+        _ico(p.lod0, c, r, (1.0, 1.0, 0.85), "foliage", col)
+    hexa = [(2.3 * math.cos(2 * math.pi * k / 6), 2.3 * math.sin(2 * math.pi * k / 6)) for k in range(6)]
+    top(p.far, hexa, 0.05, "foliage")
+    return p
+
+
+def hedge_2m() -> Piece:
+    """Clipped hedge, 2 × 0.8 m, 1.1 m high (planted islands, car park edges)."""
+    p = Piece("hedge_2m", (2.0, 0.8), "hedge 2 × 0.8 × 1.1 m")
+    box(p.lod0, -1.0, -0.4, 0.0, 1.0, 0.4, 1.1, "foliage", col=(0.85, 0.9, 0.85, 1.0))
+    rect(p.far, -1.0, -0.4, 1.0, 0.4, 0.05, "foliage")
+    return p
+
+
+def _ico(mb: MB, c, r: float, scale: tuple, mat: str, col: tuple) -> None:
+    t = (1 + 5 ** 0.5) / 2
+    v = [(-1, t, 0), (1, t, 0), (-1, -t, 0), (1, -t, 0), (0, -1, t), (0, 1, t), (0, -1, -t), (0, 1, -t),
+         (t, 0, -1), (t, 0, 1), (-t, 0, -1), (-t, 0, 1)]
+    f = [(0, 11, 5), (0, 5, 1), (0, 1, 7), (0, 7, 10), (0, 10, 11), (1, 5, 9), (5, 11, 4), (11, 10, 2),
+         (10, 7, 6), (7, 1, 8), (3, 9, 4), (3, 4, 2), (3, 2, 6), (3, 6, 8), (3, 8, 9), (4, 9, 5),
+         (2, 4, 11), (6, 2, 10), (8, 6, 7), (9, 8, 1)]
+
+    def norm(a):
+        ln = math.sqrt(sum(x * x for x in a))
+        return tuple(x / ln for x in a)
+
+    v = [norm(a) for a in v]
+    tris = []
+    for a, b, cc in f:                                   # one subdivision: 80 triangles
+        ab = norm(tuple((v[a][i] + v[b][i]) / 2 for i in range(3)))
+        bc = norm(tuple((v[b][i] + v[cc][i]) / 2 for i in range(3)))
+        ca = norm(tuple((v[cc][i] + v[a][i]) / 2 for i in range(3)))
+        tris += [(v[a], ab, ca), (ab, v[b], bc), (ca, bc, v[cc]), (ab, bc, ca)]
+    import random as _r
+    rng = _r.Random(11)
+    for tri in tris:
+        pts = []
+        for q in tri:
+            jitter = 1.0 + 0.08 * math.sin(q[0] * 7.1 + q[1] * 5.3 + q[2] * 3.7)
+            pts.append((c[0] + q[0] * r * scale[0] * jitter, c[1] + q[1] * r * scale[1] * jitter,
+                        c[2] + q[2] * r * scale[2] * jitter))
+        shade = 0.9 + 0.2 * rng.random()
+        mb.face(pts, [(0, 0)] * 3, mat, tuple(min(1.5, k * shade) for k in col[:3]) + (1.0,))
+
+
+def _wear(name: str, size: tuple, desc: str) -> Piece:
+    from landside_textures import DECALS
+    p = Piece(name, size, desc)
+    rect_px = DECALS[name.replace("decal_", "")][0]
+    x, y, w, h = rect_px
+    n = 512.0
+    u0, v0, u1, v1 = x / n, 1 - (y + h) / n, (x + w) / n, 1 - y / n
+    hx, hy = size[0] / 2, size[1] / 2
+    z = Z_MARK + 2 * Z_LAYER
+    p.marks.face([(-hx, -hy, z), (hx, -hy, z), (hx, hy, z), (-hx, hy, z)],
+                 [(u0, v0), (u1, v0), (u1, v1), (u0, v1)], "decals")
+    return p
+
+
+def wear_decals() -> list:
+    return [_wear("decal_oil_stain", (1.2, 1.2), "oil stain (bay centre)"),
+            _wear("decal_patch", (2.0, 2.0), "asphalt repair patch"),
+            _wear("decal_drain_grate", (0.5, 1.0), "gully grate in the gutter"),
+            _wear("decal_tyre_marks", (6.0, 0.7), "faint tyre marks (barrier, curbs)")]
 
 
 # --- Small props (hidden in the build view: no _lodfar, use visibility_range_end) --------------
@@ -975,15 +1183,16 @@ def all_pieces() -> list:
         carpark_module(), carpark_end_aisle(), carpark_walkway(False), carpark_walkway(True),
         carpark_barrier_gate(), bus_shelter(),
         bollard(), light_mast(), fence_panel_2m(), fence_post(), fence_gate_pedestrian(),
-        carpark_info_board(), sign_parking(), pay_station(),
-    ]
+        carpark_info_board(), sign_parking(), pay_station(), sign_wayfinding(),
+        tree_deciduous(), hedge_2m(),
+    ] + wear_decals()
 
 
 def build_objects(piece: Piece, mats: dict, collection=None) -> list:
     """LOD0 (+ markings) and lodfar (if any) as objects at the origin. Markings cast no shadow."""
-    objs = [piece.lod0.build(piece.name, mats, collection)]
+    objs = [piece.lod0.build(piece.name, mats, collection)] if piece.lod0.faces else []
     if piece.marks.faces:
-        m = piece.marks.build(piece.name + "_markings", mats, collection)
+        m = piece.marks.build(piece.name + ("_markings" if objs else ""), mats, collection)
         m.visible_shadow = False
         objs.append(m)
     if piece.far.faces:

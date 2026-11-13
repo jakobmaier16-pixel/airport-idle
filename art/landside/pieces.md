@@ -43,7 +43,7 @@ The curb road's through lanes sit on the same 8 m band as the loop road (first 8
 | `road_oneway_corner` | 8 × 8 | -Y edge west half, +X edge north half (90° turn, radius 8–16 m) | — |
 | `curb_plain_segment` | 4 × 6 | curb road ±X; terminal sidewalk on +Y; car-park sidewalk on -Y | longer curb |
 | `curb_plain_segment_arrows` | 4 × 6 | same, arrows in the through lanes | — |
-| `curb_dropoff_segment` | 12 × 6 | curb road ±X, 4 Kiss & Fly bays of 6 m (white), "KISS & / FLY" in bays 1 and 3 | longer curb → two levels with ramps (bigger footprint) |
+| `curb_dropoff_segment` | 12 × 9 | curb road ±X **plus** 6 m terminal sidewalk; 3 Kiss & Fly sawtooth pockets (8 m pitch, curb at 25°, 2.56 m into the sidewalk): every car drives in and out forwards, never blocked by the car in front; "KISS &" / "FLY" stacked in each pocket, read in driving direction | longer curb → two levels with ramps (bigger footprint) |
 | `curb_taxi_rank_4` | 12 × 6 | curb road ±X, 4 taxi bays of 6 m (yellow), "TAXI" in each bay | 12 bays (longer) → taxi holding area (needs free cells) |
 | `zebra_crossing` | 4 × 6 | curb road ±X; 4 m zebra across all lanes; lowered curb on +Y | — |
 | `curb_bus_bay` | 12 × 9 | curb road ±X **plus** 6 m terminal sidewalk; bay recessed 1.5 m (6 m entry taper, 14 m stand, 4 m exit taper), "BUS", tactile boarding field + guide strip at the front door | second bay → bus station |
@@ -59,6 +59,10 @@ The curb road's through lanes sit on the same 8 m band as the loop road (first 8
 | `carpark_barrier_gate` | 4 × 8 | entry lane (+X = in), 2 m island, exit lane with "EXIT" and a give-way line; 2 m corner radii on the -X (road) side | more lanes, pay-on-exit lanes |
 | `road_oneway_2lane_access` | 8 × 4 | one-way road whose right (-Y) edge line becomes a broken junction line over 16 m: the mouth of the car park gate | — |
 
+Why sawtooth and not 45–60° herringbone: angled bays at 45–60° need ~5.3 m of depth and are left
+by reversing into the traffic lane. A drop-off curb must be left forwards, so real airports use
+shallow sawtooth (echelon) pockets; the 25° angle fits into the curbside lane plus a 2.56 m recess.
+
 ### Props
 
 | Prop | Size | Use |
@@ -71,6 +75,32 @@ The curb road's through lanes sit on the same 8 m band as the loop road (first 8
 | `carpark_info_board` | 2 × 1 m face on posts | tariffs and opening hours at the car park entry (readable from -Y) |
 | `sign_parking` | 0.9 m "P" on a 3 m pole | before the car park access on the loop road |
 | `pay_station` | 0.7 × 0.45 × 1.8 m | pay machine next to the pedestrian exit (pay before returning to the car) |
+| `sign_wayfinding` | 1.2 × 0.9 m on posts | yellow / anthracite airport wayfinding: P ←, BUS →, TAXI → |
+| `tree_deciduous` | ~8 m, 172 tris | car park islands, perimeter, road verges; MultiMesh, random yaw / scale 0.6–1.2; `_lodfar` = flat crown disc |
+| `hedge_2m` | 2 × 0.8 × 1.1 m | outside the south fence, along the west fence |
+| `decal_oil_stain`, `decal_patch`, `decal_tyre_marks`, `decal_drain_grate` | 1.2 / 2 / 6 × 0.7 / 0.5 × 1 m | subtle wear, material `decals` (512² RGBA), flush, **cast_shadow off**; scattered per placement, hidden in the build view |
+
+The bus stop sign on the shelter is a yellow disc with a green "H" (fictional regional style).
+
+## Settings for the in-game stage (Godot)
+
+**Fence (mobile, no shimmering):**
+- Posts are geometry (`metal_dark`), the mesh is the `fence_mesh` atlas piece on two back-to-back quads.
+- Give the fence its own material copy of `markings` with **Transparency = Alpha Scissor**
+  (threshold ~0.5) and **Alpha Antialiasing = Alpha to Coverage** (keeps thin wires smooth with MSAA
+  on iPhone; without MSAA use "Alpha to Coverage + Alpha Edge Blend"). Mipmaps on (the atlas
+  imports with mipmaps; the wires fade to a semi-transparent tone instead of flickering).
+  Alpha scissor writes depth, so no sorting problems with many panels.
+- Visibility: mesh panels `visibility_range_end` ≈ 60 m with a fade (`visibility_range_fade_mode`
+  = Self, margin ~10 m) in the manager view. The build view shows only `fence_*_lodfar` (flat line).
+- Draw runs as a MultiMesh (one per car park).
+
+**Other:**
+- `*_markings` objects and the wear decals: `cast_shadow = off`.
+- Barrier booms use the markings atlas as solid paint: alpha scissor too.
+- Small props (bollards, masts, signs, pay station, decals): `visibility_range_end` ~80 m, hidden in
+  the build view; bollards, fence, trees, hedges, oil stains as MultiMesh.
+- `foliage` uses vertex colour (crown variation); per-instance tint via MultiMesh colour.
 
 ## Start layout (preview)
 
