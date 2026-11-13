@@ -57,11 +57,29 @@ RECTS = {
     "red_line":      (0, 272, 1024, 32),    # solid red: stand safety / boundary line
     "centre_dash":   (0, 308, 1024, 32),    # runway centreline, 1024 px = 50 m (30 m dash, 20 m gap)
     "short_dash":    (0, 344, 1024, 32),    # dashed white, 64 px period = 2 m (1 m dash, 1 m gap)
-    "zebra":         (0, 380, 1024, 96),    # zebra, 32 px/m: 0.5 m bars repeat along U, 3 m across V
+    "zebra":         (0, 380, 1024, 32),    # zebra, 32 px/m: 0.5 m bars repeat along U; V = bar length (any)
+    # Landside pieces (row 416-508). Map the whole rect onto a quad of the stated size.
+    "fence_mesh":    (424, 416, 128, 92),   # welded mesh fence panel, 2 × 2 m: wires 0.1 m apart, double rails every 0.2 m
+    "parking_board": (556, 416, 184, 92),   # car park tariff / information board face, 2 × 1 m
+    "p_sign":        (744, 416, 92, 92),    # parking sign face "P", 0.9 × 0.9 m
+    "tactile_dots":  (840, 416, 88, 88),    # tactile warning field (studs), 0.6 × 0.6 m
+    "tactile_ribs":  (932, 416, 88, 88),    # tactile direction field (ribs along atlas Y), 0.6 × 0.6 m
     # Quarter curves of the yellow taxi line. Arc centre = bottom-left corner of the rect.
     "taxi_curve_r20": (0, 512, 512, 512),   # 24 px/m: rect 21.33 m, radius 20 m, line 0.3 m
     "taxi_curve_r10": (512, 512, 512, 512), # 48 px/m: rect 10.67 m, radius 10 m, line 0.3 m
 }
+# Road-marking letters (white, tint with vertex colour), pre-elongated: cell 30 × 92 px, row 416.
+# Map one cell onto ROAD_LETTER (width × length along the reading direction).
+ROAD_LETTERS = "ABEFIKLPSTUXY&"
+ROAD_LETTER_CELL = (30, 92)
+ROAD_LETTER = (0.5, 1.6)   # m: elongated like real road lettering (read from a moving car)
+
+
+def road_letter_rect(ch: str) -> tuple:
+    i = ROAD_LETTERS.index(ch)
+    return (i * ROAD_LETTER_CELL[0], 416, ROAD_LETTER_CELL[0], ROAD_LETTER_CELL[1])
+
+
 CENTRE_DASH_PERIOD_M = 50.0
 ZEBRA_STRIP_M = 32.0         # metres of zebra in one atlas width
 SHORT_DASH_STRIP_M = 32.0    # metres of short dash in one atlas width

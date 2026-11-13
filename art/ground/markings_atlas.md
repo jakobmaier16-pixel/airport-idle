@@ -11,7 +11,7 @@
   Solid strips can use any U range (sample the middle, e.g. 0.25–0.75). V covers the strip height;
   the quad's width is the line width.
 - Columns 1020–1023 and rows 0–3 stay empty, so nothing bleeds in when the texture wraps.
-- Paint is white or palette colour. The material multiplies the vertex colour
+- Paint is white or palette colour (signs and tactile paving carry their own colours; use vertex colour white). The material multiplies the vertex colour
   (`vertex_color_use_as_albedo`), so white pieces can be tinted, e.g. digits in yellow for stand IDs.
 - Transparent pixels carry the colour of the nearest marking (no dark edges when filtered).
 
@@ -26,7 +26,13 @@
 | `red_line` | `0, 272, 1024, 32` | strip, solid | 0.2 m | stand safety / boundary lines |
 | `centre_dash` | `0, 308, 1024, 32` | strip, dashed | 1024 px = 50 m: 30 m dash (px 0–614), 20 m gap; 0.9 m wide | runway centreline |
 | `short_dash` | `0, 344, 1024, 32` | strip, dashed | 1024 px = 32 m: 1 m dash + 1 m gap; 0.2 m wide | dashed terminal edge, road lane divider |
-| `zebra` | `0, 380, 1024, 96` | strip, bars | 32 px/m: 1024 px = 32 m; 0.5 m bar + 0.5 m gap along U, 3 m across V | zebra crossing at a right angle across a road (U = walking direction) |
+| `zebra` | `0, 380, 1024, 32` | strip, bars | 32 px/m: 1024 px = 32 m; 0.5 m bar + 0.5 m gap along U; V = bar length (any, e.g. 3 m apron, 4 m road) | zebra crossing at a right angle across a road (U = walking direction) |
+| road letters `A B E F I K L P S T U X Y &` | `30·i, 416, 30, 92` (i in that order) | piece | 0.5 × 1.6 m (width × length along travel), elongated 2.6 : 1, white | road lettering (`TAXI` tinted yellow, `BUS`, `KISS & FLY`, `EXIT`); rendered from Blender's built-in font (`atlas_text.py`) |
+| `fence_mesh` | `424, 416, 128, 92` | piece | 2 × 2 m, anthracite wires 0.1 m apart, double rails every 0.2 m | welded mesh fence panel (alpha) |
+| `parking_board` | `556, 416, 184, 92` | piece | 2 × 1 m | car park tariff board (fictional prices, English) |
+| `p_sign` | `744, 416, 92, 92` | piece | 0.9 × 0.9 m, white P on anthracite | parking sign, pay station header |
+| `tactile_dots` | `840, 416, 88, 88` | piece | 0.6 × 0.6 m, studs (warning / boarding field) | tactile paving |
+| `tactile_ribs` | `932, 416, 88, 88` | piece | 0.6 × 0.6 m, ribs along V (direction field) | tactile paving |
 | `taxi_curve_r20` | `0, 512, 512, 512` | piece | 21.33 m square (24 px/m), radius 20 m, line 0.3 m | 90° taxi-line curve |
 | `taxi_curve_r10` | `512, 512, 512, 512` | piece | 10.67 m square (48 px/m), radius 10 m, line 0.3 m | tighter 90° curve |
 
