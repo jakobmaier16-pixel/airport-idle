@@ -1,7 +1,7 @@
 class_name Reputation
 extends RefCounted
 ## The airport's reputation (design doc §11.7): a 1–5 star rating from passenger satisfaction and
-## the on-time rate of departures. Pure data; Airport.stars() combines it with the satisfaction.
+## the on-time rate of departures. Pure data; the airport combines it with the satisfaction.
 
 ## A departure counts as on time with at most this much delay, in seconds (compressed time).
 const ON_TIME_LIMIT: float = 10.0

@@ -36,6 +36,7 @@ func test_reputation_sets_demand() -> void:
 		Airport.passenger_flow.satisfaction.average = satisfaction
 		Airport.reputation.on_time_rate = on_time
 		var schedule := FlightSchedule.new()
+		schedule.world = Airport
 		var total := 0
 		for i in 200:
 			schedule._schedule(gate, 1000.0 + i * 180.0)

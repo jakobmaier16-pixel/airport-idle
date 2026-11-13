@@ -18,6 +18,9 @@ const PLANE_ARRIVES: float = 130.0
 ## A flight waits at most this long for passengers who are already airside (checked-in bags would
 ## otherwise have to be unloaded). Fits before the next plane arrives at the same stand.
 const MAX_HOLD: float = 30.0
+## The airport this part of the simulation works for; set by the Airport autoload.
+var world: AirportWorld
+
 ## Every landing and take-off occupies a runway this long (design doc §7.5a). A variable, so
 ## tests can make runways the bottleneck.
 var runway_seconds: float = RUNWAY_SECONDS
@@ -124,13 +127,13 @@ func upcoming() -> Array[Flight]:
 # A gate's turnaround slot: the airline owed the most flights gets it; with no demand it stays empty.
 func _plan_slot(gate: Building, departure_time: float) -> void:
 	# Night curfew (design doc §12.4): no landing or take-off in the quiet hours.
-	var now := Airport.passenger_flow.time
-	if Airport.curfew_at(departure_time - now) or Airport.curfew_at(departure_time - PLANE_ARRIVES - now):
+	var now := world.passenger_flow.time
+	if world.curfew_at(departure_time - now) or world.curfew_at(departure_time - PLANE_ARRIVES - now):
 		_last_planned[gate] = departure_time
 		return
-	var stand := Airport.stand_behind(gate)
+	var stand := world.stand_behind(gate)
 	var cargo := gate.type.role == BuildingType.Role.CARGO_TERMINAL
-	var airline := Airport.airlines.next_airline(stand != null and stand.type.wide_body, cargo)
+	var airline := world.airlines.next_airline(stand != null and stand.type.wide_body, cargo)
 	if airline != null:
 		_schedule(gate, departure_time, airline)
 	else:
@@ -143,7 +146,7 @@ func _schedule(gate: Building, departure_time: float, airline: Airline = null) -
 	flight.number = "%s %d" % [airline.type.code if airline != null else NO_AIRLINE_CODE, _next_number]
 	_next_number += 1
 	flight.gate = gate
-	flight.stand = Airport.stand_behind(gate)
+	flight.stand = world.stand_behind(gate)
 	# The airline's route type sets the passenger mix (design doc §10.1); random without one.
 	flight.route = airline.type.route if airline != null else ROUTES.keys()[rng.randi() % ROUTES.size()]
 	flight.wide_body = airline != null and airline.type.wide_body
@@ -159,8 +162,8 @@ func _schedule(gate: Building, departure_time: float, airline: Airline = null) -
 	var size_factor := WIDE_BODY_FACTOR if flight.wide_body else 1.0
 	flight.seats = roundi(SEATS * size_factor)
 	# Busy mornings and evenings, quiet nights (design doc §12.1), holiday peaks in summer (§12.2).
-	size_factor *= Clock.demand_factor(Airport.clock.hour_at(departure_time - Airport.passenger_flow.time))
-	size_factor *= Weather.demand_factor(flight.route, Airport.season())
+	size_factor *= Clock.demand_factor(world.clock.hour_at(departure_time - world.passenger_flow.time))
+	size_factor *= Weather.demand_factor(flight.route, world.season())
 	flight.booked = roundi(_passenger_count() * size_factor)
 	flight.departure_time = departure_time
 	if airline != null:
@@ -177,7 +180,7 @@ func _schedule(gate: Building, departure_time: float, airline: Airline = null) -
 
 # Passengers on one leg: a well-rated airport attracts more of them (design doc §11.7).
 func _passenger_count() -> int:
-	return roundi(rng.randi_range(BOOKED_MIN, BOOKED_MAX) * Airport.reputation.demand_factor(Airport.stars()))
+	return roundi(rng.randi_range(BOOKED_MIN, BOOKED_MAX) * world.reputation.demand_factor(world.stars()))
 
 
 # Decides type and arrival time of every booked passenger, from the route's mix.
@@ -208,7 +211,7 @@ func _advance(flight: Flight, now: float, delta: float, flow: PassengerFlow) -> 
 	var time_left := flight.departs_at() - now
 	# Arrival phases run late by the absorbed arrival delay.
 	var arrival_left := time_left + flight.arrival_delay
-	var ramp_open := not Airport.weather.ramp_closed()
+	var ramp_open := not world.weather.ramp_closed()
 
 	# Passengers arrive at the entrance at their planned times.
 	while flight.spawned < flight.booked and flight.arrival_times[flight.spawned] <= now:
@@ -260,7 +263,7 @@ func _advance(flight: Flight, now: float, delta: float, flow: PassengerFlow) -> 
 		phase = Flight.Phase.BOARDING
 	if phase >= Flight.Phase.DEPARTING and flight.phase == Flight.Phase.BOARDING:
 		# Snow: de-icing before pushback (design doc §12.2), a weather delay.
-		var deicing := Airport.weather.deicing_seconds(Airport.has_deicing_pad())
+		var deicing := world.weather.deicing_seconds(world.has_deicing_pad())
 		if flight.deiced < deicing:
 			flight.deiced += delta
 			flight.delay += delta
@@ -273,23 +276,23 @@ func _advance(flight: Flight, now: float, delta: float, flow: PassengerFlow) -> 
 		flight.takeoff_booked = true
 	if phase >= Flight.Phase.DEPARTING and flight.phase < Flight.Phase.DEPARTING:
 		# Only delays the airport caused count (design doc §12.2).
-		Airport.reputation.record_departure(flight.airport_delay())
+		world.reputation.record_departure(flight.airport_delay())
 		# Doors close: whoever isn't on board has missed the flight.
 		flight.missed = flow.remove_flight_passengers(flight, true)
 		flow.departed_count += flight.boarded
-		Airport.progression.passengers += flight.boarded
+		world.progression.passengers += flight.boarded
 		if flight.cargo:
 			# Paid per tonne handled (design doc §10.3); the handlers gain experience.
-			Airport.economy.earn(flight.tonnes_handled * flight.fee_per_passenger + Economy.FLIGHT_FEE, Economy.CARGO)
-			var handlers := Airport.staff_working_at(flight.gate)
+			world.economy.earn(flight.tonnes_handled * flight.fee_per_passenger + Economy.FLIGHT_FEE, Economy.CARGO)
+			var handlers := world.staff_working_at(flight.gate)
 			for handler in handlers:
 				var role := BuildingType.Role.CARGO_TERMINAL
 				handler.served[role] = handler.served.get(role, 0) + roundi(flight.tonnes_handled / handlers.size())
 		else:
 			# The airline pays per passenger (as agreed in its deal) and per flight (design doc §11.5).
-			Airport.economy.earn(flight.boarded * flight.fee_per_passenger + Economy.FLIGHT_FEE)
+			world.economy.earn(flight.boarded * flight.fee_per_passenger + Economy.FLIGHT_FEE)
 		var missed_share := float(flight.missed) / maxi(flight.booked, 1)
-		Airport.airlines.record_flight(flight.airline, flight.airport_delay() > Reputation.ON_TIME_LIMIT, missed_share)
+		world.airlines.record_flight(flight.airline, flight.airport_delay() > Reputation.ON_TIME_LIMIT, missed_share)
 	if phase == Flight.Phase.ARRIVING and flight.phase == Flight.Phase.SCHEDULED:
 		plane_arriving.emit(flight)
 	flight.phase = phase
@@ -303,7 +306,7 @@ const HANDLER_RATE: float = 0.25
 
 func _handling_rate(terminal: Building) -> float:
 	var rate := 0.0
-	for handler in Airport.staff_working_at(terminal):
+	for handler in world.staff_working_at(terminal):
 		rate += HANDLER_RATE / handler.time_factor()
 	return rate
 
@@ -327,8 +330,8 @@ func _book_runway(flight: Flight, now: float, queue: bool = false) -> bool:
 func _runway_for(flight: Flight) -> Building:
 	if flight.stand == null:
 		return null
-	var path := Airport.plane_network.path_to_stand(flight.stand)
-	return Airport.plane_network.runway_at(path[0]) if not path.is_empty() else null
+	var path := world.plane_network.path_to_stand(flight.stand)
+	return world.plane_network.runway_at(path[0]) if not path.is_empty() else null
 
 
 # Why `flight` must wait this step (design doc §12.2): weather (no landing, no ground work), or
@@ -336,7 +339,7 @@ func _runway_for(flight: Flight) -> Building:
 # that plane was held by weather).
 func _hold_reason(flight: Flight, now: float) -> Hold:
 	var arrival_left := flight.departs_at() - now + flight.arrival_delay
-	var weather := Airport.weather
+	var weather := world.weather
 	if flight.phase == Flight.Phase.SCHEDULED and arrival_left <= PLANE_ARRIVES:
 		if weather.landing_closed():
 			return Hold.WEATHER

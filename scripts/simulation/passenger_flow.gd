@@ -54,6 +54,9 @@ const STATION_ROLES: Array[BuildingType.Role] = [Role.CHECK_IN, Role.SECURITY, R
 const COLOR_COUNT: int = 6
 ## Safety limit, so a layout where passengers can't leave doesn't fill up endlessly.
 const MAX_PASSENGERS: int = 600
+## The airport this part of the simulation works for; set by the Airport autoload.
+var world: AirportWorld
+
 ## The limit in use (the device benchmark raises it, see scripts/dev/benchmark.gd).
 var max_passengers: int = MAX_PASSENGERS
 
@@ -111,7 +114,7 @@ func departures_text(max_lines: int = 4) -> String:
 		Flight.Phase.DEPARTING: "Departed",
 	}
 	var lines: PackedStringArray = []
-	if schedule.flights.is_empty() and Airport.curfew_at():
+	if schedule.flights.is_empty() and world.curfew_at():
 		lines.append("Night curfew: no flights until %02d:00" % int(Clock.CURFEW_END))
 	for flight in schedule.upcoming().slice(0, max_lines):
 		var seconds := maxi(ceili(flight.departs_at() - time), 0)
@@ -133,7 +136,7 @@ func station_for(building: Building) -> Station:
 func stations() -> Array[Station]:
 	var result: Array[Station] = []
 	for role in [Role.CHECK_IN, Role.SECURITY, Role.TRANSFER_SECURITY, Role.GATE, Role.SHOP, Role.LOUNGE, Role.BAGGAGE_CLAIM, Role.CAR_PARK]:
-		for building in Airport.buildings:
+		for building in world.buildings:
 			if building.type.role == role and _stations.has(building):
 				result.append(_stations[building])
 	return result
@@ -141,7 +144,7 @@ func stations() -> Array[Station]:
 
 ## "Check-in 2", or just "Security" when there is only one of a kind.
 func station_label(building: Building) -> String:
-	var same_kind := Airport.buildings.filter(func(b: Building) -> bool: return b.type == building.type)
+	var same_kind := world.buildings.filter(func(b: Building) -> bool: return b.type == building.type)
 	if same_kind.size() == 1:
 		return building.type.display_name
 	return "%s %d" % [building.type.display_name, same_kind.find(building) + 1]
@@ -164,7 +167,7 @@ func bottleneck(min_wait: float = 5.0) -> Station:
 ## Gates are numbered in the order they were built, starting at 1.
 func gate_number(gate: Building) -> int:
 	var number := 0
-	for building in Airport.buildings:
+	for building in world.buildings:
 		if building.type.role == Role.GATE:
 			number += 1
 			if building == gate:
@@ -190,8 +193,8 @@ func _find_usable_gates() -> Array[Building]:
 
 
 func on_layout_changed() -> void:
-	_network.rebuild(Airport.grid)
-	for building in Airport.buildings:
+	_network.rebuild(world.grid)
+	for building in world.buildings:
 		if not _stations.has(building) and building.type.role in STATION_ROLES:
 			_stations[building] = Station.new(building)
 	for station: Station in _stations.values():
@@ -294,7 +297,7 @@ func board(flight: Flight, max_count: int) -> int:
 	flight.boarded += boarding.size()
 	var transfers := boarding.filter(func(p: Passenger) -> bool: return p.is_transfer).size()
 	transferred_count += transfers
-	Airport.progression.transfers += transfers
+	world.progression.transfers += transfers
 	return boarding.size()
 
 
@@ -356,7 +359,7 @@ func _connecting_flight(inbound: Flight) -> Flight:
 	if not transfers_possible:
 		return null
 	var share: float = FlightSchedule.TRANSFER_SHARES.get(inbound.route, 0.0)
-	if Airport.progression.tier == Progression.Tier.HUB:
+	if world.progression.tier == Progression.Tier.HUB:
 		share *= Progression.HUB_TRANSFER_FACTOR
 	if transfer_share_override >= 0.0:
 		share = transfer_share_override
@@ -387,7 +390,7 @@ func remove_building(building: Building) -> void:
 		passenger.state = Passenger.State.WALKING
 		# Step out of the building onto the nearest walkway before looking for a new way.
 		if not station.entry_cells.is_empty():
-			var door: Vector2i = _closest_cell_in_area(station.entry_cells, Airport.grid.world_to_cell(passenger.position), -1)
+			var door: Vector2i = _closest_cell_in_area(station.entry_cells, world.grid.world_to_cell(passenger.position), -1)
 			passenger.position = _cell_point(door, passenger)
 			passenger.previous_position = passenger.position
 	# Everyone on their way to it, or just displaced, finds a new way after the layout update.
@@ -434,7 +437,7 @@ func _plan(passenger: Passenger) -> void:
 	if passenger.goal == Role.ENTRANCE:
 		_plan_exit(passenger)
 		return
-	var cell := Airport.grid.world_to_cell(passenger.position)
+	var cell := world.grid.world_to_cell(passenger.position)
 	if not _network.is_walkable(cell):
 		var nearest: Variant = _network.nearest_walkable(cell)
 		if nearest == null:
@@ -518,13 +521,13 @@ func _arrive(passenger: Passenger) -> void:
 		# Out of the airport: the arrival is complete (design doc §8.8).
 		passenger.state = Passenger.State.GONE
 		arrived_count += 1
-		Airport.progression.passengers += 1
+		world.progression.passengers += 1
 		if passenger.target != null and _stations.has(passenger.target):
 			# Back from their trip: they pay for parking on the way out (design doc §11.8).
-			Airport.economy.earn(PARKING_FEE, Economy.PARKING)
+			world.economy.earn(PARKING_FEE, Economy.PARKING)
 			_stations[passenger.target].record_income(time, PARKING_FEE)
 		_finish_journey(passenger)
-		Airport.economy.earn(Economy.ARRIVAL_FEE, Economy.ARRIVAL_FEES)
+		world.economy.earn(Economy.ARRIVAL_FEE, Economy.ARRIVAL_FEES)
 		return
 	var station := _stations[passenger.target]
 	if station.role() == Role.GATE:
@@ -553,7 +556,7 @@ func _arrive(passenger: Passenger) -> void:
 			while spot < station.queue.size() and _is_business(station.queue[spot]):
 				spot += 1
 			station.queue.insert(spot, passenger)
-			Airport.economy.earn(FAST_TRACK_FEE, Economy.FAST_TRACK)
+			world.economy.earn(FAST_TRACK_FEE, Economy.FAST_TRACK)
 			station.record_income(time, FAST_TRACK_FEE)
 		else:
 			station.queue.append(passenger)
@@ -581,8 +584,8 @@ func _tick_station(station: Station, delta: float) -> void:
 
 	station.sync_slots()
 	# One employee per counter (design doc §9.1): counter i is open only if employee i exists.
-	var working := Airport.staff_working_at(station.building)
-	var manager_here := Airport.is_manager_near(station.building)
+	var working := world.staff_working_at(station.building)
+	var manager_here := world.is_manager_near(station.building)
 	for i in station.serving.size():
 		var served := station.serving[i]
 		if served != null:
@@ -626,7 +629,7 @@ func _finish_service(station: Station, passenger: Passenger) -> void:
 			passenger.goal = Role.GATE
 			_maybe_shop(passenger, Role.GATE, 0.0, _shop_chance(passenger))
 			# Through the security lane: appear behind the building.
-			var exit: Vector2i = _closest_cell_in_area(station.exit_cells, Airport.grid.world_to_cell(passenger.position), -1)
+			var exit: Vector2i = _closest_cell_in_area(station.exit_cells, world.grid.world_to_cell(passenger.position), -1)
 			passenger.position = _cell_point(exit, passenger)
 			passenger.previous_position = passenger.position
 			_plan(passenger)
@@ -690,7 +693,7 @@ func _tick_shop(station: Station, delta: float) -> void:
 		var income := rng.randf_range(type.spend_min, type.spend_max) * spend_factor * mood_factor * Economy.CONCESSION_SHARE
 		if type.airport_run:
 			income = type.spend_min  # a fixed price, all of it for the airport
-		Airport.economy.earn(income, Economy.LOUNGE if type.airport_run else Economy.SHOPS)
+		world.economy.earn(income, Economy.LOUNGE if type.airport_run else Economy.SHOPS)
 		station.record_income(time, income)
 		# Out of the front door and on to the gate.
 		if not station.entry_cells.is_empty():
@@ -725,7 +728,7 @@ func _tick_baggage_claim(station: Station) -> void:
 
 # Arriving passengers leave the airport through the nearest reachable entrance.
 func _plan_exit(passenger: Passenger) -> void:
-	var cell := Airport.grid.world_to_cell(passenger.position)
+	var cell := world.grid.world_to_cell(passenger.position)
 	if not _network.is_walkable(cell):
 		var nearest: Variant = _network.nearest_walkable(cell)
 		if nearest == null:
@@ -738,7 +741,7 @@ func _plan_exit(passenger: Passenger) -> void:
 	if passenger.by_car:
 		# Car travellers walk to their car (design doc §11.8), if a car park is reachable.
 		var best_distance := INF
-		for car_park in Airport.buildings:
+		for car_park in world.buildings:
 			if car_park.type.role != Role.CAR_PARK:
 				continue
 			var door: Variant = _closest_cell_in_area(_access_cells(car_park, true), cell, area)
@@ -748,7 +751,7 @@ func _plan_exit(passenger: Passenger) -> void:
 				passenger.target = car_park
 	if exit == null:
 		var exits: Array[Vector2i] = []
-		for building in Airport.buildings:
+		for building in world.buildings:
 			if building.type.role == Role.ENTRANCE:
 				exits.append_array(_access_cells(building, false))
 		exit = _closest_cell_in_area(exits, cell, area)
@@ -785,9 +788,9 @@ func _lane_base(station: Station, lane: int) -> Vector3:
 	if cells.is_empty():
 		var type := station.building.type
 		var size := Building.rotated_size(type.footprint, station.building.rotation_steps)
-		return Airport.grid.block_center(station.building.origin_cell, size)
+		return world.grid.block_center(station.building.origin_cell, size)
 	var index := int((lane + 0.5) * cells.size() / _lane_count(station))
-	return Airport.grid.cell_to_world(cells[index])
+	return world.grid.cell_to_world(cells[index])
 
 
 func _move_towards(passenger: Passenger, target: Vector3, delta: float) -> void:
@@ -861,17 +864,17 @@ func _access_cells(building: Building, front: bool) -> Array[Vector2i]:
 		side_zone = AirportGrid.Zone.AIRSIDE
 	elif type.zone_rule == BuildingType.ZoneRule.ANY:
 		# A café serves the side it stands on.
-		side_zone = Airport.grid.get_zone(building.origin_cell)
+		side_zone = world.grid.get_zone(building.origin_cell)
 	var cells: Array[Vector2i] = []
 	for cell in Building.outside_row(type.footprint, building.origin_cell, building.rotation_steps, front):
-		if _network.is_walkable(cell) and Airport.grid.get_zone(cell) == side_zone:
+		if _network.is_walkable(cell) and world.grid.get_zone(cell) == side_zone:
 			cells.append(cell)
 	return cells
 
 
 func _is_usable_gate(station: Station) -> bool:
 	var building := station.building
-	return Airport.connection_problem(building.type, building.origin_cell, building.rotation_steps).is_empty()
+	return world.connection_problem(building.type, building.origin_cell, building.rotation_steps).is_empty()
 
 
 # The cell in `cells` closest to `from`, only counting cells in `area` (-1 = any area).
@@ -889,7 +892,7 @@ func _closest_cell_in_area(cells: Array[Vector2i], from: Vector2i, area: int) ->
 
 
 func _cell_point(cell: Vector2i, passenger: Passenger) -> Vector3:
-	return Airport.grid.cell_to_world(cell) + passenger.offset
+	return world.grid.cell_to_world(cell) + passenger.offset
 
 
 func _update_route() -> void:
@@ -897,9 +900,9 @@ func _update_route() -> void:
 	_usable_gates = _find_usable_gates()
 	# Cargo doesn't need the passenger route (design doc §10.3): a connected stand and handlers.
 	_usable_cargo_terminals.clear()
-	for building in Airport.buildings:
-		if building.type.role == Role.CARGO_TERMINAL and not Airport.staff_at(building).is_empty() \
-				and Airport.connection_problem(building.type, building.origin_cell, building.rotation_steps).is_empty():
+	for building in world.buildings:
+		if building.type.role == Role.CARGO_TERMINAL and not world.staff_at(building).is_empty() \
+				and world.connection_problem(building.type, building.origin_cell, building.rotation_steps).is_empty():
 			_usable_cargo_terminals.append(building)
 
 
@@ -915,7 +918,7 @@ func _check_route() -> void:
 	transfers_possible = false
 	var entrance_areas: Dictionary[int, bool] = {}
 	var has_entrance := false
-	for building in Airport.buildings:
+	for building in world.buildings:
 		if building.type.role == Role.ENTRANCE:
 			has_entrance = true
 			for cell in _access_cells(building, false):
@@ -975,12 +978,12 @@ func _check_route() -> void:
 	# out to it again, and someone to run it (design doc §8.9).
 	transfers_possible = _stations.values().any(func(s: Station) -> bool:
 		return s.role() == Role.TRANSFER_SECURITY \
-			and not Airport.staff_at(s.building).is_empty() \
+			and not world.staff_at(s.building).is_empty() \
 			and s.entry_cells.any(func(c: Vector2i) -> bool: return gate_areas.has(_network.area_of(c))) \
 			and s.exit_cells.any(func(c: Vector2i) -> bool: return gate_areas.has(_network.area_of(c))))
 
 	route_problem = ""
-	for building in Airport.buildings:
+	for building in world.buildings:
 		if building.type.role == Role.ENTRANCE:
 			if _access_cells(building, false).any(func(c: Vector2i) -> bool: return good_areas.has(_network.area_of(c))):
 				_route_entrances.append(building)
