@@ -14,6 +14,8 @@ var exit_cells: Array[Vector2i] = []
 ## Direction from the building out of its front side, on the ground (world).
 var outward: Vector3 = Vector3.ZERO
 
+## Where each counter's line starts (worked out once per simulation step by the flow).
+var lane_bases: PackedVector3Array = PackedVector3Array()
 var queue: Array[Passenger] = []
 ## One entry per counter / lane; null = free.
 var serving: Array[Passenger] = []

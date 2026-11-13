@@ -89,6 +89,11 @@ var route_problem: String = ""
 
 var _network: WalkwayNetwork = WalkwayNetwork.new()
 var _stations: Dictionary[Building, Station] = {}
+# Role -> its stations, in the order of `_stations`; rebuilt whenever a station is added or removed.
+# Planning a walk looks only at stations of the goal's kind instead of scanning all of them.
+var _stations_by_role: Dictionary[int, Array] = {}
+# Set when a passenger leaves (GONE), so the list is only cleaned up when needed.
+var _someone_gone: bool = false
 var _route_entrances: Array[Building] = []
 # Car parks connected to the passenger route (design doc §11.8).
 var _route_car_parks: Array[Building] = []
@@ -195,6 +200,15 @@ func _find_usable_gates() -> Array[Building]:
 	return gates
 
 
+func _rebuild_station_index() -> void:
+	_stations_by_role.clear()
+	for station: Station in _stations.values():
+		var role := int(station.role())
+		if not _stations_by_role.has(role):
+			_stations_by_role[role] = []
+		(_stations_by_role[role] as Array).append(station)
+
+
 func on_layout_changed() -> void:
 	_network.rebuild(world.grid)
 	for building in world.buildings:
@@ -205,6 +219,7 @@ func on_layout_changed() -> void:
 		var reversed := station.role() == Role.BAGGAGE_CLAIM
 		station.entry_cells = _access_cells(station.building, not reversed)
 		station.exit_cells = _access_cells(station.building, reversed)
+	_rebuild_station_index()
 	_update_route()
 	# Walkways may have changed under people's feet: everyone on the move looks for a new way.
 	for passenger in passengers:
@@ -232,8 +247,10 @@ func save_state() -> Dictionary:
 	var saved_passengers: Array[Dictionary] = []
 	for passenger in passengers:
 		passenger_index[passenger] = saved_passengers.size()
+		# The save format still stores positions (changes in save format 6).
 		var flat := PackedFloat32Array()
-		for point in passenger.path:
+		for i in passenger.path.size():
+			var point := _waypoint(passenger, i)
 			flat.append_array(PackedFloat32Array([point.x, point.y, point.z]))
 		saved_passengers.append({
 			"state": int(passenger.state), "flight": flight_index.get(passenger.flight, -1),
@@ -305,7 +322,9 @@ func load_state(data: Dictionary, by_id: Dictionary[int, Building]) -> void:
 		passenger.previous_position = _vector(entry.get("previous_position"))
 		var flat: Array = entry.get("path", [])
 		for k in range(0, flat.size() - 2, 3):
-			passenger.path.append(Vector3(flat[k], flat[k + 1], flat[k + 2]))
+			var point := Vector3(flat[k], flat[k + 1], flat[k + 2]) - passenger.offset
+			var cell := world.grid.world_to_cell(point)
+			passenger.path.append(cell.y * world.grid.size.x + cell.x)
 		passenger.path_index = int(entry.get("path_index", 0))
 		passenger.offset = _vector(entry.get("offset"))
 		passenger.color_index = int(entry.get("color", 0))
@@ -383,8 +402,15 @@ func tick(delta: float) -> void:
 				passenger.retry_in -= delta
 				if passenger.retry_in <= 0.0:
 					_plan(passenger)
-	if passengers.any(func(p: Passenger) -> bool: return p.state == Passenger.State.GONE):
-		passengers = passengers.filter(func(p: Passenger) -> bool: return p.state != Passenger.State.GONE)
+	if _someone_gone:
+		_someone_gone = false
+		# Compact in place, keeping the order (the order decides who rolls the dice first).
+		var kept := 0
+		for passenger in passengers:
+			if passenger.state != Passenger.State.GONE:
+				passengers[kept] = passenger
+				kept += 1
+		passengers.resize(kept)
 
 
 # --- Arrivals and departures (called by the schedule) ---
@@ -528,6 +554,7 @@ func remove_building(building: Building) -> void:
 	if station == null:
 		return
 	_stations.erase(building)
+	_rebuild_station_index()
 	var displaced: Array[Passenger] = []
 	displaced.append_array(station.queue)
 	displaced.append_array(station.waiting)
@@ -598,9 +625,7 @@ func _plan(passenger: Passenger) -> void:
 
 	var candidates: Array[Station] = []
 	var candidate_cells: Array[Vector2i] = []
-	for station: Station in _stations.values():
-		if station.role() != passenger.goal:
-			continue
+	for station: Station in _stations_by_role.get(int(passenger.goal), []):
 		if passenger.goal == Role.GATE and station.building != passenger.flight.gate:
 			continue
 		if passenger.goal in [Role.SHOP, Role.LOUNGE] and not _has_room(station):
@@ -636,10 +661,7 @@ func _plan(passenger: Passenger) -> void:
 	if cells.is_empty():
 		_set_stuck(passenger)
 		return
-	passenger.path = PackedVector3Array()
-	for path_cell in cells:
-		passenger.path.append(_cell_point(path_cell, passenger))
-	passenger.path_index = 0
+	_set_path(passenger, cells)
 	passenger.target = candidates[choice].building
 	passenger.state = Passenger.State.WALKING
 
@@ -653,10 +675,11 @@ func _walk(passenger: Passenger, delta: float) -> void:
 	if too_far > 0.0:
 		_lose_mood(passenger, Satisfaction.LONG_WALKS, too_far * WALK_PENALTY)
 	while step > 0.0 and passenger.path_index < passenger.path.size():
-		var to_target := passenger.path[passenger.path_index] - passenger.position
+		var waypoint := _waypoint(passenger, passenger.path_index)
+		var to_target := waypoint - passenger.position
 		var distance := to_target.length()
 		if distance <= step:
-			passenger.position = passenger.path[passenger.path_index]
+			passenger.position = waypoint
 			passenger.path_index += 1
 			step -= distance
 		else:
@@ -670,6 +693,7 @@ func _arrive(passenger: Passenger) -> void:
 	if passenger.goal == Role.ENTRANCE:
 		# Out of the airport: the arrival is complete (design doc §8.8).
 		passenger.state = Passenger.State.GONE
+		_someone_gone = true
 		arrived_count += 1
 		world.progression.passengers += 1
 		if passenger.target != null and _stations.has(passenger.target):
@@ -733,6 +757,8 @@ func _tick_station(station: Station, delta: float) -> void:
 		return
 
 	station.sync_slots()
+	if station.queue.is_empty() and station.serving.count(null) == station.serving.size():
+		return  # an idle station has nothing to do (and nobody to look up)
 	# One employee per counter (design doc §9.1): counter i is open only if employee i exists.
 	var working := world.staff_working_at(station.building)
 	var manager_here := world.is_manager_near(station.building)
@@ -761,11 +787,19 @@ func _tick_station(station: Station, delta: float) -> void:
 			station.service_left[i] = station.building.service_time() * _type_factor(next, station) \
 				* staff_time_factor(working[i], working, manager_here) * rng.randf_range(0.75, 1.25)
 
+	# The counters' lane positions are the same for everyone in this step: work them out once.
+	var lanes := _lane_count(station)
+	station.lane_bases.resize(lanes)
+	for lane in lanes:
+		station.lane_bases[lane] = _lane_base(station, lane)
 	for k in station.queue.size():
-		_move_towards(station.queue[k], _queue_spot(station, k), delta)
+		var queued := station.queue[k]
+		var spot := station.lane_bases[k % lanes] + station.outward * (0.3 + (k / lanes) * QUEUE_SPACING)
+		if queued.position != spot:  # people already standing at their spot need no move
+			_move_towards(queued, spot, delta)
 	for i in station.serving.size():
 		if station.serving[i] != null:
-			_move_towards(station.serving[i], _desk_spot(station, i), delta)
+			_move_towards(station.serving[i], station.lane_bases[i % lanes] - station.outward * 0.5, delta)
 
 
 func _finish_service(station: Station, passenger: Passenger) -> void:
@@ -925,23 +959,11 @@ func _plan_exit(passenger: Passenger) -> void:
 	if cells.is_empty():
 		_set_stuck(passenger)
 		return
-	passenger.path = PackedVector3Array()
-	for path_cell in cells:
-		passenger.path.append(_cell_point(path_cell, passenger))
-	passenger.path_index = 0
+	_set_path(passenger, cells)
 	passenger.state = Passenger.State.WALKING
 
 
-# Queues form straight lines in front of the counters, one line per counter.
-func _queue_spot(station: Station, index: int) -> Vector3:
-	var lanes := _lane_count(station)
-	return _lane_base(station, index % lanes) + station.outward * (0.3 + (index / lanes) * QUEUE_SPACING)
-
-
-func _desk_spot(station: Station, slot: int) -> Vector3:
-	return _lane_base(station, slot % _lane_count(station)) - station.outward * 0.5
-
-
+# Queues form straight lines in front of the counters, one line per counter (see _tick_station).
 func _lane_count(station: Station) -> int:
 	return clampi(station.serving.size(), 1, maxi(station.entry_cells.size(), 1))
 
@@ -1046,6 +1068,21 @@ func _closest_cell_in_area(cells: Array[Vector2i], from: Vector2i, area: int) ->
 			best_distance = distance
 			best = cell
 	return best
+
+
+# Stores a found route in the passenger as cell indices.
+func _set_path(passenger: Passenger, cells: Array[Vector2i]) -> void:
+	passenger.path.resize(cells.size())
+	var width := world.grid.size.x
+	for i in cells.size():
+		passenger.path[i] = cells[i].y * width + cells[i].x
+	passenger.path_index = 0
+
+
+func _waypoint(passenger: Passenger, index: int) -> Vector3:
+	var width := world.grid.size.x
+	var packed := passenger.path[index]
+	return _cell_point(Vector2i(packed % width, packed / width), passenger)
 
 
 func _cell_point(cell: Vector2i, passenger: Passenger) -> Vector3:
