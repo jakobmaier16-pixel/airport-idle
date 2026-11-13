@@ -65,41 +65,69 @@ func test_big_map_costs_the_same_as_a_small_one() -> void:
 
 
 # Random edits: a map that is recomputed over and over (stale zones must be undone) gives the same
-# result as a fresh computation of the same grid.
+# result as a fresh computation of the same grid. Edits add and remove walkways, taxiways and
+# buildings (all types, any rotation), not just add walkways.
 func test_repeated_recompute_equals_fresh() -> void:
 	await start_game()
 	build_reference_airport()
 	var grid := _clone(Vector2i(64, 64))
-	var buildings := Airport.brain.buildings
+	var buildings: Array[Building] = Airport.brain.buildings.duplicate()
+	var types := AirportWorld.CATALOG.types
 	var zones := ZoneMap.new()
 	var areas := AreaMap.new()
 	var dice := RandomNumberGenerator.new()
 	dice.seed = 56
-	for round in 60:
+	var added := 0
+	var removed := 0
+	for round in 120:
 		for edit in dice.randi_range(1, 6):
 			var cell := Vector2i(dice.randi_range(0, 63), dice.randi_range(0, 63))
-			if grid.is_empty(cell):
-				grid.set_walkway(cell, dice.randf() < 0.6)
+			match dice.randi_range(0, 9):
+				0, 1, 2:
+					if grid.is_empty(cell):
+						grid.set_walkway(cell, dice.randf() < 0.6)
+				3, 4:
+					# Removing walkways: also next to and under buildings.
+					grid.set_walkway(cell, false)
+				5:
+					if grid.is_empty(cell):
+						grid.set_taxiway(cell, dice.randf() < 0.6)
+				6:
+					grid.set_taxiway(cell, false)
+				7, 8:
+					var building := Building.new(types[dice.randi_range(0, types.size() - 1)], cell, dice.randi_range(0, 3))
+					if grid.are_cells_free(building.get_cells()):
+						for own in building.get_cells():
+							grid.set_content(own, building)
+						buildings.append(building)
+						added += 1
+				_:
+					if not buildings.is_empty():
+						var gone: Building = buildings.pop_at(dice.randi_range(0, buildings.size() - 1))
+						for own in gone.get_cells():
+							grid.set_content(own, null)
+						removed += 1
 		zones.recompute(grid, buildings)
 		areas.recompute(grid, buildings)
 		var fresh := ZoneMap.new()
 		var fresh_areas := AreaMap.new()
-		var reference := _clone_grid(grid)
+		var reference := _clone_grid(grid, buildings)
 		fresh.recompute(reference, buildings)
 		fresh_areas.recompute(reference, buildings)
 		if _zones_of(grid) != _zones_of(reference) or zones.airside_reached != fresh.airside_reached \
 				or JSON.stringify(areas.areas()) != JSON.stringify(fresh_areas.areas()):
 			check(false, "round %d: repeated recompute differs from a fresh one" % round)
 			return
-	check(true, "60 rounds of random edits: repeated == fresh")
+	check(added > 10 and removed > 10, "the edits really added (%d) and removed (%d) buildings" % [added, removed])
+	check(true, "120 rounds of random edits: repeated == fresh")
 
 
-func _clone_grid(source: AirportGrid) -> AirportGrid:
+func _clone_grid(source: AirportGrid, buildings: Array[Building]) -> AirportGrid:
 	var copy := AirportGrid.new(source.size, source.cell_size)
 	for cell in source.get_nonempty_cells():
 		copy.set_walkway(cell, source.is_walkway(cell))
 		copy.set_taxiway(cell, source.is_taxiway(cell))
-	for building in Airport.brain.buildings:
+	for building in buildings:
 		for cell in building.get_cells():
 			copy.set_content(cell, building)
 	return copy

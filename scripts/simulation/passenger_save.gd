@@ -133,10 +133,11 @@ static func decode(packed: Dictionary) -> Array[Dictionary]:
 	return records
 
 
-## Cells of a record's path on a grid of another width: the same (x, y) cells, or an empty path if
-## one of them doesn't exist on the current grid (the passenger then finds a new way).
-static func remap_path(path: PackedInt32Array, from_width: int, to_size: Vector2i) -> PackedInt32Array:
-	if from_width == to_size.x:
+## Cells of a record's path on a grid of another width: the same (x, y) cells moved by `shift`
+## (a smaller map placed in the middle of a bigger one), or an empty path if one of them doesn't
+## exist on the current grid (the passenger then finds a new way).
+static func remap_path(path: PackedInt32Array, from_width: int, to_size: Vector2i, shift: Vector2i = Vector2i.ZERO) -> PackedInt32Array:
+	if from_width == to_size.x and shift == Vector2i.ZERO:
 		for cell in path:
 			if cell < 0 or cell >= to_size.x * to_size.y:
 				return PackedInt32Array()
@@ -145,9 +146,9 @@ static func remap_path(path: PackedInt32Array, from_width: int, to_size: Vector2
 	if from_width <= 0:
 		return result
 	for cell in path:
-		var x := cell % from_width
-		var y := cell / from_width
-		if cell < 0 or x >= to_size.x or y >= to_size.y:
+		var x := cell % from_width + shift.x
+		var y := cell / from_width + shift.y
+		if cell < 0 or x < 0 or y < 0 or x >= to_size.x or y >= to_size.y:
 			return PackedInt32Array()
 		result.append(y * to_size.x + x)
 	return result

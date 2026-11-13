@@ -22,6 +22,8 @@ const REWARDS: Array[String] = [
 ## Regional airports own this part of the map (the middle columns, from the terminal area down to
 ## the runway at the south edge); from National on, all of it.
 const REGIONAL_LAND: Rect2i = Rect2i(8, 8, 48, 56)
+## The map size REGIONAL_LAND is given for.
+const REGIONAL_LAND_MAP: Vector2i = Vector2i(64, 64)
 ## Hub status: transfer shares of every route are multiplied by this (design doc §14.1).
 const HUB_TRANSFER_FACTOR: float = 2.0
 
@@ -72,7 +74,9 @@ func progress_text(stars: float) -> String:
 func owned_land(map_size: Vector2i) -> Rect2i:
 	if tier >= Tier.NATIONAL:
 		return Rect2i(Vector2i.ZERO, map_size)
-	return REGIONAL_LAND.intersection(Rect2i(Vector2i.ZERO, map_size))
+	# Given for a 64 x 64 map; a bigger or smaller map keeps it in the middle (a save is placed there too).
+	var land := Rect2i(REGIONAL_LAND.position + (map_size - REGIONAL_LAND_MAP) / 2, REGIONAL_LAND.size)
+	return land.intersection(Rect2i(Vector2i.ZERO, map_size))
 
 
 func save_state() -> Dictionary:

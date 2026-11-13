@@ -53,6 +53,8 @@ const FIRST_NAMES: Array[String] = [
 const SIM_STEP: float = 0.1
 
 var grid: AirportGrid = AirportGrid.new(MAP_SIZE_CELLS, CELL_SIZE)
+## The map size this brain was made with (tests make bigger ones); `reset()` keeps it.
+var map_size: Vector2i = MAP_SIZE_CELLS
 var buildings: Array[Building] = []
 var passenger_flow: PassengerFlow = PassengerFlow.new()
 ## Where planes can move: taxiways, stands, runways (design doc §7.5a).
@@ -101,7 +103,9 @@ var _running_cost_per_minute: float = 0.0
 var _salaries_per_minute: float = 0.0
 
 
-func _init() -> void:
+func _init(size_in_cells: Vector2i = MAP_SIZE_CELLS) -> void:
+	map_size = size_in_cells
+	grid = AirportGrid.new(map_size, CELL_SIZE)
 	# The very first dice come from the clock; every later new game takes its seed from them.
 	var first := RandomNumberGenerator.new()
 	first.randomize()
@@ -698,7 +702,7 @@ func connection_problem(type: BuildingType, origin_cell: Vector2i, rotation_step
 ## the scene). The new game's dice start from `new_seed`, or (if negative) from a seed the current
 ## dice roll, so a seeded test stays repeatable even when it starts a new game.
 func reset(with_runway: bool = true, new_seed: int = -1) -> void:
-	grid = AirportGrid.new(MAP_SIZE_CELLS, CELL_SIZE)
+	grid = AirportGrid.new(map_size, CELL_SIZE)
 	buildings.clear()
 	_next_building_id = 1
 	zone_map.recompute(grid, buildings)
@@ -757,8 +761,8 @@ func save_state() -> Dictionary:
 		"staff": saved_staff,
 		"next_building_id": _next_building_id,
 		"map_size": [grid.size.x, grid.size.y],
-		"walkways": Marshalls.raw_to_base64(grid.get_walkway_data()),
-		"taxiways": Marshalls.raw_to_base64(grid.get_taxiway_data()),
+		"walkways": GridSave.encode(grid, AirportGrid.WALKWAY_BIT),
+		"taxiways": GridSave.encode(grid, AirportGrid.TAXIWAY_BIT),
 		"money": economy.balance,
 		"over_limit": economy.over_limit_seconds,
 		"average_profit": economy.average_profit_per_minute,
@@ -790,11 +794,10 @@ func load_state(data: Dictionary) -> int:
 		game_seed = str(data.get("seed", "0")).to_int()
 		rng.seed = game_seed
 		rng.state = str(data["rng_state"]).to_int()
-	# JSON stores every number as a float, hence the explicit conversion.
-	var saved_size: Array = data.get("map_size", [])
-	if saved_size.size() == 2 and Vector2i(int(saved_size[0]), int(saved_size[1])) == grid.size:
-		grid.set_walkway_data(Marshalls.base64_to_raw(data.get("walkways", "")))
-		grid.set_taxiway_data(Marshalls.base64_to_raw(data.get("taxiways", "")))
+	# A save from a map of another size is placed in the middle of this one (see _load_layers).
+	var saved_size := _saved_map_size(data)
+	var shift := cell_shift_from(saved_size)
+	_load_layers(data, saved_size, shift)
 	progression.load_state(data.get("progression", {}))
 	goals.hidden = bool(data.get("goals_hidden", false))
 	if not data.has("clock_elapsed"):
@@ -815,7 +818,7 @@ func load_state(data: Dictionary) -> int:
 	for entry: Dictionary in data.get("buildings", []):
 		var type := CATALOG.find(StringName(entry.get("type", "")))
 		var cell: Array = entry.get("cell", [0, 0])
-		var origin := Vector2i(int(cell[0]), int(cell[1]))
+		var origin := Vector2i(int(cell[0]), int(cell[1])) + shift
 		var building := place_building(type, origin, int(entry.get("rotation", 0)), false) if type != null else null
 		if building == null:
 			skipped += 1
@@ -882,8 +885,46 @@ func load_state(data: Dictionary) -> int:
 	# Flights and passengers on their way (saves before version 3 have none), after the layout
 	# so the stations exist.
 	if data.has("flow"):
-		passenger_flow.load_state(data["flow"], by_saved_id)
+		passenger_flow.load_state(data["flow"], by_saved_id, shift)
 	return skipped
+
+
+## How many cells a map of `saved_size` is moved to sit in the middle of this one: (new - old) / 2,
+## rounded towards zero. The grid is centred on the world origin, so with an even difference every
+## world position (metres) stays the same; with an odd one everything moves by half a cell.
+func cell_shift_from(saved_size: Vector2i) -> Vector2i:
+	return (grid.size - saved_size) / 2
+
+
+# The map size of a save (this map's size if the save doesn't say).
+func _saved_map_size(data: Dictionary) -> Vector2i:
+	var saved: Variant = data.get("map_size", [])
+	if saved is Array and (saved as Array).size() == 2 and int(saved[0]) > 0 and int(saved[1]) > 0:
+		return Vector2i(int(saved[0]), int(saved[1]))
+	return grid.size
+
+
+# Walkways and taxiways of a save (chunk lists, GridSave), moved by `shift` cells. Cells that don't
+# fit on this map are skipped with a warning. Only the used chunks are visited, never the whole map.
+func _load_layers(data: Dictionary, saved_size: Vector2i, shift: Vector2i) -> void:
+	var skipped := 0
+	for layer: Array in [["walkways", AirportGrid.WALKWAY_BIT], ["taxiways", AirportGrid.TAXIWAY_BIT]]:
+		var saved: Variant = data.get(layer[0], [])
+		if saved is String:
+			# A dense layer (format 8 and below) that SaveGame didn't convert.
+			saved = GridSave.from_dense(Marshalls.base64_to_raw(saved), saved_size)
+		if not saved is Array:
+			continue
+		for cell in GridSave.cells_of(saved):
+			var target := cell + shift
+			if not grid.is_inside(target):
+				skipped += 1
+			elif layer[1] == AirportGrid.WALKWAY_BIT:
+				grid.set_walkway(target, true)
+			else:
+				grid.set_taxiway(target, true)
+	if skipped > 0:
+		push_warning("%d saved walkway or taxiway cells do not fit on this map and were skipped." % skipped)
 
 
 ## The aircraft stand behind a gate (its STAND side), or null.
@@ -964,7 +1005,7 @@ func manager_start() -> Array:
 ## Lays the runway a new airport starts with, on airside (design doc §7.5a).
 func add_starting_runway() -> void:
 	var type := CATALOG.find(&"runway")
-	place_building(type, DEFAULT_RUNWAY_ORIGIN, 0, false)
+	place_building(type, DEFAULT_RUNWAY_ORIGIN + (grid.size - MAP_SIZE_CELLS) / 2, 0, false)
 
 
 func _is_aircraft_stand(cell: Vector2i) -> bool:
