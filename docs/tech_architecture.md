@@ -38,6 +38,7 @@ The game is split into three parts that are kept strictly apart:
   - **Done** (2026-11-06): today the dice live in the global airport object (`Airport.rng`) and are shared with every part of the brain; every test runs with its own fixed seed.
   - **When the brain becomes one object, the shared dice move with it:** the brain object owns them, every part of the brain gets them from the brain, and they are saved with it. Nothing may keep its own dice or fall back to the global ones.
 - **The brain is one object.** The whole airport lives in one self-contained object instead of being spread over a global that everything reaches into. A test can create a fresh airport in a split second; later a second airport could exist for previews.
+  - **Step 2b done** (2026-11-13): the brain is `AirportWorld` (`scripts/simulation/airport_brain.gd`, RefCounted, owns the dice); the autoload `Airport` (`AirportHost`) only steps it and forwards properties, methods and signals. `dispose()` breaks the reference cycles. Still open (2c): replace the brain on reset instead of rebuilding its parts.
 
 **Later:** running the brain on its own processor core (a background thread) if the heartbeat gets too heavy for big hubs.
 

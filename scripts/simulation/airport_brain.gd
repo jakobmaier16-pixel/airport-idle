@@ -1,9 +1,9 @@
 class_name AirportWorld
-extends Node
-## Root of the airport simulation, registered as the autoload "Airport".
-## The simulation is pure data: it runs all the time, for the whole airport, independent of
-## what is on screen (see "Performance architecture" in CLAUDE.md).
-## Visuals listen to its signals and never change simulation data directly.
+extends RefCounted
+## The brain (tech_architecture.md §3): the whole airport simulation as one self-contained object.
+## It is pure data: no nodes, no scene tree, no globals, so a test can create a fresh one in a
+## split second. The autoload "Airport" (airport_host.gd) owns one and drives it with `step()`.
+## Visuals listen to its signals (re-emitted by the host) and never change its data directly.
 
 signal building_placed(building: Building)
 ## An upgrade started or finished (design doc §7.8).
@@ -48,8 +48,6 @@ const FIRST_NAMES: Array[String] = [
 ## The simulation advances in fixed steps of this many seconds (10 per second): cheap and
 ## independent of the frame rate. Visuals move smoothly between steps using `sim_alpha`.
 const SIM_STEP: float = 0.1
-## Most steps caught up in one frame, so a slow frame can't snowball.
-const MAX_STEPS_PER_FRAME: int = 5
 
 var grid: AirportGrid = AirportGrid.new(MAP_SIZE_CELLS, CELL_SIZE)
 var buildings: Array[Building] = []
@@ -79,11 +77,6 @@ var manager_position: Vector3 = NOBODY_THERE
 var manager_yaw: float = 0.0
 ## The manager's place from the save game ({"x", "z", "yaw"}), or empty: then they start at the entrance.
 var saved_manager: Dictionary = {}
-## How far the current frame is between the last and the next simulation step (0..1).
-var sim_alpha: float = 0.0
-## How long each simulation step of the current frame took, in microseconds (for the device
-## benchmark, scripts/dev/benchmark.gd). Refilled every frame.
-var last_heartbeats_usec: PackedInt32Array = PackedInt32Array()
 ## The airport's dice (tech_architecture.md §3). Every random choice of the simulation comes from
 ## here, so the same seed and the same player actions give exactly the same game. Shared with
 ## PassengerFlow, FlightSchedule, Airlines and Weather; saved with the game.
@@ -91,7 +84,6 @@ var rng: RandomNumberGenerator = RandomNumberGenerator.new()
 ## The number the dice started from, for replaying a game (e.g. a failing test).
 var game_seed: int = 0
 
-var _sim_time: float = 0.0
 # While loading a save, layout_changed is sent once at the end instead of for every building.
 var _loading: bool = false
 # Running costs of everything built plus salaries, in euros per minute (recalculated when the
@@ -103,7 +95,7 @@ var _salaries_per_minute: float = 0.0
 var _zone_locks: Dictionary[Vector2i, int] = {}
 
 
-func _ready() -> void:
+func _init() -> void:
 	# The very first dice come from the clock; every later new game takes its seed from them.
 	var first := RandomNumberGenerator.new()
 	first.randomize()
@@ -112,20 +104,6 @@ func _ready() -> void:
 	passenger_flow.vip_finished.connect(_on_vip_finished)
 	progression.tier_reached.connect(_on_tier_reached)
 	_on_layout_changed()
-
-
-func _process(delta: float) -> void:
-	_sim_time += delta
-	var steps := 0
-	last_heartbeats_usec.clear()
-	while _sim_time >= SIM_STEP and steps < MAX_STEPS_PER_FRAME:
-		var started := Time.get_ticks_usec()
-		step(SIM_STEP)
-		last_heartbeats_usec.append(Time.get_ticks_usec() - started)
-		_sim_time -= SIM_STEP
-		steps += 1
-	_sim_time = minf(_sim_time, SIM_STEP)
-	sim_alpha = _sim_time / SIM_STEP
 
 
 ## Starts the dice from `new_seed`: the same seed and the same player actions give the same game.
@@ -144,6 +122,21 @@ func _share_rng() -> void:
 	passenger_flow.schedule.rng = rng
 	airlines.rng = rng
 	weather.rng = rng
+
+
+## Breaks the reference cycles so the brain can be freed (RefCounted objects that point at each
+## other are never freed otherwise): the parts' `world` fields point back at the brain, and
+## the brain listens to some of its own parts. Call it before dropping a brain; it is unusable after.
+func dispose() -> void:
+	if layout_changed.is_connected(_on_layout_changed):
+		layout_changed.disconnect(_on_layout_changed)
+	if passenger_flow.vip_finished.is_connected(_on_vip_finished):
+		passenger_flow.vip_finished.disconnect(_on_vip_finished)
+	if progression.tier_reached.is_connected(_on_tier_reached):
+		progression.tier_reached.disconnect(_on_tier_reached)
+	passenger_flow.world = null
+	passenger_flow.schedule.world = null
+	goals.world = null
 
 
 ## Advances the whole simulation by one step: passengers, flights and money.

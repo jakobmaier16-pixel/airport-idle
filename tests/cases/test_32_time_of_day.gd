@@ -28,7 +28,7 @@ func test_night_flights_are_emptier() -> void:
 	var average_booked := func(hour: float) -> float:
 		Airport.clock.game_seconds = hour * 3600.0
 		var schedule := FlightSchedule.new()
-		schedule.world = Airport
+		schedule.world = Airport.brain
 		for i in 200:
 			schedule._schedule(gate, Airport.passenger_flow.time)  # departing right now
 		var total := 0
