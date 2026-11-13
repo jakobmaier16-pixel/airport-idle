@@ -1,3 +1,4 @@
+class_name AirportWorld
 extends Node
 ## Root of the airport simulation, registered as the autoload "Airport".
 ## The simulation is pure data: it runs all the time, for the whole airport, independent of
@@ -137,6 +138,9 @@ func reseed(new_seed: int) -> void:
 # Every part of the simulation rolls the same dice.
 func _share_rng() -> void:
 	passenger_flow.rng = rng
+	passenger_flow.world = self
+	passenger_flow.schedule.world = self
+	goals.world = self
 	passenger_flow.schedule.rng = rng
 	airlines.rng = rng
 	weather.rng = rng

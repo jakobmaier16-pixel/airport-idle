@@ -20,6 +20,9 @@ const STEPS: Array = [
 	["Reach National airport (see Stats for your progress)", "_is_national"],
 ]
 
+## The airport this part of the simulation works for; set by the Airport autoload.
+var world: AirportWorld
+
 ## The player hid the goals.
 var hidden: bool = false
 
@@ -41,7 +44,7 @@ func text() -> String:
 
 
 func _has_airside() -> bool:
-	return Airport.grid.get_zone_data().has(AirportGrid.Zone.AIRSIDE)
+	return world.grid.get_zone_data().has(AirportGrid.Zone.AIRSIDE)
 
 
 func _has_entrance() -> bool:
@@ -57,38 +60,38 @@ func _has_security() -> bool:
 
 
 func _has_gate() -> bool:
-	return not Airport.passenger_flow.usable_gates().is_empty() or _route_needs_only_a_claim()
+	return not world.passenger_flow.usable_gates().is_empty() or _route_needs_only_a_claim()
 
 
 func _has_claim() -> bool:
-	return Airport.passenger_flow.route_problem.is_empty()
+	return world.passenger_flow.route_problem.is_empty()
 
 
 func _has_staff() -> bool:
 	for role in [Role.CHECK_IN, Role.SECURITY]:
-		if not Airport.buildings.any(func(b: Building) -> bool: return b.type.role == role and not Airport.staff_at(b).is_empty()):
+		if not world.buildings.any(func(b: Building) -> bool: return b.type.role == role and not world.staff_at(b).is_empty()):
 			return false
 	return true
 
 
 func _has_departure() -> bool:
-	return Airport.progression.passengers > 0
+	return world.progression.passengers > 0
 
 
 func _has_second_airline() -> bool:
-	return Airport.airlines.signed.size() >= 2
+	return world.airlines.signed.size() >= 2
 
 
 func _is_national() -> bool:
-	return Airport.progression.tier >= Progression.Tier.NATIONAL
+	return world.progression.tier >= Progression.Tier.NATIONAL
 
 
 # A building of `role` exists with all its sides connected.
 func _connected(role: BuildingType.Role) -> bool:
-	return Airport.buildings.any(func(b: Building) -> bool:
-		return b.type.role == role and Airport.connection_problem(b.type, b.origin_cell, b.rotation_steps).is_empty())
+	return world.buildings.any(func(b: Building) -> bool:
+		return b.type.role == role and world.connection_problem(b.type, b.origin_cell, b.rotation_steps).is_empty())
 
 
 # Gates can't be "usable" while the route lacks a baggage claim, so accept that state too.
 func _route_needs_only_a_claim() -> bool:
-	return Airport.passenger_flow.route_problem.contains("baggage claim")
+	return world.passenger_flow.route_problem.contains("baggage claim")

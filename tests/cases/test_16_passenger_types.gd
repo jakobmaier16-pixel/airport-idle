@@ -9,6 +9,7 @@ func _flights() -> Array[Flight]:
 # Many flights, to compare averages without depending on luck.
 func _many_flights(count: int) -> Array[Flight]:
 	var schedule := FlightSchedule.new()
+	schedule.world = Airport
 	var gate := Building.new(type_of(&"gate"), Vector2i(0, 0), 0)
 	var result: Array[Flight] = []
 	for i in count:
@@ -76,6 +77,7 @@ func test_types_move_and_are_processed_differently() -> void:
 	check(family.check_in_time_factor > business.check_in_time_factor, "families need longer at check-in")
 	check(business.spend_factor > family.spend_factor, "business travellers spend more")
 	var flow := PassengerFlow.new()
+	flow.world = Airport
 	var passenger := Passenger.new()
 	passenger.type = family
 	check_eq(flow._speed(passenger), family.walk_speed, "speed comes from the type")
