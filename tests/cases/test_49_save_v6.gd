@@ -69,7 +69,7 @@ func test_v5_converter_packs_the_passengers() -> void:
 	var old_passengers: Array = saved["flow"]["passengers"]
 	check(old_passengers.size() > 10, "it has passengers (%d)" % old_passengers.size())
 	var converted := SaveGame.migrate(saved)
-	check_eq(converted["version"], 6, "now version 6")
+	check_eq(converted["version"], 7, "now version 7")
 	var packed: Dictionary = converted["flow"]["passengers"]
 	check_eq(int(packed["count"]), old_passengers.size(), "no passenger lost")
 	check_eq(int(packed["grid_width"]), 64, "the grid width is stored")
@@ -95,7 +95,7 @@ func test_v5_converter_packs_the_passengers() -> void:
 func test_example_v6_loads() -> void:
 	var saved: Dictionary = JSON.parse_string(FileAccess.get_file_as_string(SHOWCASE_V6))
 	check_eq(int(saved["version"]), 6, "an example save of version 6")
-	check_eq(SaveGame.migrate(saved)["version"], 6, "nothing left to convert")
+	check_eq(SaveGame.migrate(saved)["version"], 7, "converted up to the current version")
 	var loaded := _fresh(saved)
 	check_eq(loaded.passenger_flow.passengers.size(), int(saved["flow"]["passengers"]["count"]), "its passengers are back")
 	check_eq(loaded.buildings.size(), SHOWCASE_BUILDINGS, "its buildings are back")
