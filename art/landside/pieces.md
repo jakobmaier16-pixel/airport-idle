@@ -73,7 +73,7 @@ shallow sawtooth (echelon) pockets; the 25° angle fits into the curbside lane p
 | `fence_post` | 2.05 m | end / corner of a fence run |
 | `fence_gate_pedestrian` | 4 m, 2 m opening | pedestrian exit in the car park fence, in line with the walkway and the zebra |
 | `carpark_info_board` | 2 × 1 m face on posts | tariffs and opening hours at the car park entry (readable from -Y) |
-| `sign_parking` | 0.9 m "P" on a 3 m pole | before the car park access on the loop road |
+| `sign_parking` | German Zeichen 314: 0.6 × 0.6 m blue square, white "P" and border, lower edge 2.0 m, 76 mm pole with clamps | before the car park access on the loop road |
 | `pay_station` | 0.7 × 0.45 × 1.8 m | pay machine next to the pedestrian exit (pay before returning to the car) |
 | `sign_wayfinding` | 1.2 × 0.9 m on posts | yellow / anthracite airport wayfinding: P ←, BUS →, TAXI → |
 | `tree_deciduous` | ~8 m, 172 tris | car park islands, perimeter, road verges; MultiMesh, random yaw / scale 0.6–1.2; `_lodfar` = flat crown disc |
@@ -120,4 +120,5 @@ and around the car park.
 - Terminal sidewalk 6 m tiles + the curb road's 0.5 m raised strip = 6.5 m.
 - Car park 96 × 32 m with 128 bays (8 modules of 10 m, a 4 m walkway, two 6 m cross aisles);
   ~140 would need a wider lot.
-- "P" signs are white on anthracite (art_direction palette), not the blue of the German road sign.
+- The "P" road sign is the real German Zeichen 314 (blue, white "P", art_direction §3), standard size
+  0.6 m (was a 0.9 m panel). The small "P" on the info board and pay station uses the same sign face.
