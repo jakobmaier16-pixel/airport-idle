@@ -696,13 +696,7 @@ func paint_walkway(cells: Array[Vector2i], walkway: bool) -> String:
 ## Adds (or removes) taxiway on `cells` (design doc §7.5a): airside only, never on walkway.
 ## Returns "" if it worked, or a hint why nothing was painted.
 func paint_taxiway(cells: Array[Vector2i], taxiway: bool) -> String:
-	var changing: Array[Vector2i] = []
-	for cell in cells:
-		if not grid.is_inside(cell) or grid.is_taxiway(cell) == taxiway or not owns_cell(cell):
-			continue
-		if taxiway and grid.is_walkway(cell):
-			continue
-		changing.append(cell)
+	var changing := _taxiway_changes(cells, taxiway)
 	if changing.is_empty():
 		return ""
 	if taxiway:
@@ -715,6 +709,25 @@ func paint_taxiway(cells: Array[Vector2i], taxiway: bool) -> String:
 	walkways_changed.emit()
 	layout_changed.emit()
 	return ""
+
+
+## What `paint_taxiway(cells, true)` would charge, and how many cells it would really change
+## (the build view shows it while the player drags the brush).
+func taxiway_cost(cells: Array[Vector2i], taxiway: bool) -> float:
+	if not taxiway:
+		return 0.0
+	return _taxiway_changes(cells, true).size() * Economy.TAXIWAY_COST_PER_CELL
+
+
+func _taxiway_changes(cells: Array[Vector2i], taxiway: bool) -> Array[Vector2i]:
+	var changing: Array[Vector2i] = []
+	for cell in cells:
+		if not grid.is_inside(cell) or grid.is_taxiway(cell) == taxiway or not owns_cell(cell):
+			continue
+		if taxiway and grid.is_walkway(cell):
+			continue
+		changing.append(cell)
+	return changing
 
 
 ## What a building at this spot still needs to be connected, as a short hint, or "" if nothing.

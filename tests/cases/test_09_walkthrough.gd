@@ -27,6 +27,8 @@ func test_build_airport_by_touch_and_fly_passengers() -> void:
 	check(await place("Stand", at(Vector2i(38, 39))), "stand 2")
 	check(not Airport.passenger_flow.route_problem.is_empty(), "stands without a taxiway get no planes")
 	# Taxiways from both stands down to the runway (design doc §7.5a).
+	# The taxiway brush is 24 m wide, so each strip costs about €11k: top up the budget.
+	Airport.economy.balance += 25000.0
 	await paint("TaxiwayButton", at(Vector2i(15, 62)), at(Vector2i(16, 80)))
 	await paint("TaxiwayButton", at(Vector2i(43, 62)), at(Vector2i(44, 80)))
 	check(not Airport.passenger_flow.route_problem.is_empty(), "without a baggage claim arrivals have no way out")
