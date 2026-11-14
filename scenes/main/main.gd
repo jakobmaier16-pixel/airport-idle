@@ -14,10 +14,12 @@ var _last_pick: String = ""
 @onready var _build_camera: BuildCamera = $BuildCamera
 @onready var _build_mode: BuildMode = $BuildMode
 @onready var _hud: Hud = $HUD
+@onready var _ground: Ground = $Ground
 
 
 func _ready() -> void:
 	_hud.view_toggle_pressed.connect(_on_view_toggle_pressed)
+	_hud.zone_overlay_toggled.connect(_ground.set_zone_overlay_enabled)
 	_hud.setup_build_menu(Airport.CATALOG.types)
 	_hud.building_type_selected.connect(_build_mode.start_placement)
 	_hud.paint_tool_selected.connect(_build_mode.start_painting)
@@ -240,6 +242,7 @@ func _set_view(view: View) -> void:
 	_build_mode.active = building
 	_hud.hide_station()
 	_hud.set_build_view_open(building)
+	_ground.set_build_view(building)
 	# Build view: adding a second finger turns a pan into a pinch.
 	# Manager view: every finger is its own gesture (one walks, the other looks around).
 	TouchGestures.pinch_cancels_drag = building

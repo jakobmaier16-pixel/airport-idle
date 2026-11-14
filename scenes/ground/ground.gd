@@ -4,6 +4,8 @@ extends StaticBody3D
 ## reads the grid's flag layer from an R8 texture (GroundFlagTexture), so the visuals always match
 ## the simulation data. Unowned land is shaded from `Progression.owned_land` (a rectangle uniform;
 ## the grid's owned bit stays unused so its chunks stay sparse).
+## Zone colours and the cell grid are an overlay for the build view only (`zone_overlay_enabled` is
+## the player's toggle; the shader only gets it while the build view is open).
 
 @onready var _mesh_instance: MeshInstance3D = $MeshInstance3D
 @onready var _collision_shape: CollisionShape3D = $CollisionShape3D
@@ -14,6 +16,9 @@ var _flags: GroundFlagTexture
 var _flags_grid: AirportGrid
 # Set by the change signals; the texture is brought up to date once per frame in _process.
 var _cells_dirty: bool = false
+## The player's HUD toggle for the zone colours (remembered across view switches).
+var zone_overlay_enabled: bool = false
+var _build_view: bool = false
 
 
 func _ready() -> void:
@@ -36,6 +41,9 @@ func _ready() -> void:
 	Airport.land_changed.connect(_update_land)
 	Airport.zones_changed.connect(_mark_cells_dirty)
 	Airport.walkways_changed.connect(_mark_cells_dirty)
+	# Stands and runways lay their surface into the flag layer when placed / demolished.
+	Airport.layout_changed.connect(_mark_cells_dirty)
+	_update_overlay()
 
 
 func _process(_delta: float) -> void:
@@ -48,6 +56,28 @@ func _process(_delta: float) -> void:
 # upload happens at most once per frame.
 func _mark_cells_dirty() -> void:
 	_cells_dirty = true
+
+
+## Tells the ground which view is open: the zone overlay and the grid exist in the build view only.
+func set_build_view(open: bool) -> void:
+	_build_view = open
+	_update_overlay()
+
+
+## The HUD toggle for the zone colours (only visible while the build view is open).
+func set_zone_overlay_enabled(enabled: bool) -> void:
+	zone_overlay_enabled = enabled
+	_update_overlay()
+
+
+## True while the shader draws the zone colours.
+func is_zone_overlay_shown() -> bool:
+	return _build_view and zone_overlay_enabled
+
+
+func _update_overlay() -> void:
+	_material.set_shader_parameter(&"zone_overlay", 1.0 if is_zone_overlay_shown() else 0.0)
+	_material.set_shader_parameter(&"show_grid", 1.0 if _build_view else 0.0)
 
 
 ## The flag texture (for tests).

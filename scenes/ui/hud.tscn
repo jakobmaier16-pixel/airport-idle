@@ -234,6 +234,13 @@ layout_mode = 2
 focus_mode = 0
 text = "Demolish"
 
+[node name="ZonesButton" type="Button" parent="SafeArea/BuildMenu/PaintButtons"]
+custom_minimum_size = Vector2(120, 72)
+layout_mode = 2
+focus_mode = 0
+toggle_mode = true
+text = "Zones"
+
 [node name="ResetButton" type="Button" parent="SafeArea/BuildMenu/PaintButtons"]
 custom_minimum_size = Vector2(120, 72)
 layout_mode = 2

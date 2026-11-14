@@ -68,6 +68,22 @@ func get_cells() -> Array[Vector2i]:
 	return footprint_cells(type.footprint, origin_cell, rotation_steps)
 
 
+## The ground surface this building lays under itself (AirportGrid.SURFACE_*), 0 for none. The ground
+## shader paints it (concrete under stands, asphalt under runways); the building's own box is not drawn.
+static func ground_surface_of(type: BuildingType) -> int:
+	match type.role:
+		BuildingType.Role.AIRCRAFT_STAND:
+			return AirportGrid.SURFACE_CONCRETE
+		BuildingType.Role.RUNWAY:
+			return AirportGrid.SURFACE_RUNWAY
+	return 0
+
+
+## The footprint as a cell rectangle (after rotation).
+func get_rect() -> Rect2i:
+	return Rect2i(origin_cell, rotated_size(type.footprint, rotation_steps))
+
+
 ## Footprint size after rotation: a quarter turn swaps width and depth.
 static func rotated_size(footprint: Vector2i, rotation: int) -> Vector2i:
 	if posmod(rotation, 2) == 1:

@@ -39,7 +39,8 @@ func _ready() -> void:
 func _add_visual(building: Building) -> void:
 	var cell_size := Airport.grid.cell_size
 	var visual := BuildingVisual.new()
-	visual.setup(building.type, cell_size, _material_for(building.type), _front_material)
+	visual.setup(building.type, cell_size, _material_for(building.type), _front_material,
+			true, Building.ground_surface_of(building.type) == 0)
 	visual.place_on_grid(Airport.grid, building.type.footprint, building.origin_cell, building.rotation_steps)
 	if building.type.is_solid:
 		visual.add_collision(building.type, cell_size).set_meta(BUILDING_META, building)

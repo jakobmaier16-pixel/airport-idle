@@ -41,6 +41,13 @@ const TAXIWAY_BIT: int = 0x10
 ## Reserved for "owned land" (later PRs); nothing sets it yet. The ground shades unowned land from
 ## `Progression.owned_land` (a rectangle uniform) instead, so the chunks stay sparse.
 const OWNED_BIT: int = 0x20
+## Ground surface under stands and runways (bits 6-7, a 2-bit value; 0 = none). These are buildings, not
+## painted layers: the brain fills the footprint when one is placed and clears it when it is demolished,
+## so the bits are derived from the buildings and never saved (a load places the buildings again).
+## Only the ground shader reads them (concrete apron, asphalt runway).
+const SURFACE_MASK: int = 0xC0
+const SURFACE_CONCRETE: int = 0x40
+const SURFACE_RUNWAY: int = 0x80
 
 
 ## One chunk: the flag bytes of its cells (row by row) and how many of them are not zero.
@@ -152,6 +159,20 @@ func is_taxiway(cell: Vector2i) -> bool:
 func set_taxiway(cell: Vector2i, taxiway: bool) -> void:
 	assert(is_inside(cell), "Cell %s is outside the map" % cell)
 	_write(cell, TAXIWAY_BIT, TAXIWAY_BIT if taxiway else 0)
+
+
+## The ground surface of `cell`: 0, SURFACE_CONCRETE or SURFACE_RUNWAY.
+func get_surface(cell: Vector2i) -> int:
+	return get_flags(cell) & SURFACE_MASK
+
+
+## Sets the surface (0, SURFACE_CONCRETE or SURFACE_RUNWAY) of every cell of `rect` (clipped to the
+## map). The cost follows the rectangle; chunks that stay all zero are not allocated.
+func set_surface_rect(rect: Rect2i, surface: int) -> void:
+	var area := rect.intersection(Rect2i(Vector2i.ZERO, size))
+	for y in range(area.position.y, area.end.y):
+		for x in range(area.position.x, area.end.x):
+			_write(Vector2i(x, y), SURFACE_MASK, surface & SURFACE_MASK)
 
 
 ## All taxiway flags, one byte per cell (0 or 1), row by row (for the ground and save games).

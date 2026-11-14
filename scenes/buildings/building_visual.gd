@@ -26,13 +26,15 @@ const AWNING_COLORS: Array[Color] = [Color(0.85, 0.2, 0.2), Color(0.97, 0.95, 0.
 
 ## Builds the meshes. Call once, right after creating the node.
 func setup(type: BuildingType, cell_size: float, body_material: Material, front_material: Material,
-		cast_shadows: bool = true) -> void:
+		cast_shadows: bool = true, draw_body: bool = true) -> void:
 	var size := Vector3(type.footprint.x * cell_size, type.height, type.footprint.y * cell_size)
 
-	var body_mesh := BoxMesh.new()
-	body_mesh.size = size
-	body_mesh.material = body_material
-	_add_mesh(body_mesh, Vector3(0.0, size.y * 0.5, 0.0), cast_shadows)
+	# Stands and runways have no body: the ground shader paints their surface (concrete / asphalt).
+	if draw_body:
+		var body_mesh := BoxMesh.new()
+		body_mesh.size = size
+		body_mesh.material = body_material
+		_add_mesh(body_mesh, Vector3(0.0, size.y * 0.5, 0.0), cast_shadows)
 
 	# The front is the -Z side of the unrotated building (design doc §7.1a).
 	var front_mesh := BoxMesh.new()
