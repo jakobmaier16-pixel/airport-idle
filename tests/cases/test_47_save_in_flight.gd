@@ -5,9 +5,9 @@ extends TestCase
 const SHOWCASE_V3: String = "res://tests/saves/v3_showcase.json"
 
 
-# A busy showcase airport after about five game minutes, with everything in flight.
+# A busy showcase airport (a 3 minute warm-up, longer than the showcase's own), with everything in flight.
 func _busy_airport() -> void:
-	ShowcaseAirport.build()
+	ShowcaseAirport.build(180.0)
 	sim_seconds(20.0)
 
 

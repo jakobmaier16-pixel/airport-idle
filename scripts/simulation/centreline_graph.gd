@@ -20,9 +20,16 @@ const LEAD_IN_RADIUS: int = 24
 ## Corner rounding radius in metres (design doc: about 30 m).
 const CORNER_RADIUS_M: float = 30.0
 const ARC_STEPS: int = 6
+## A corner that turns less than this (radians) is left as it is.
+const MIN_DEFLECTION: float = 0.05
+## The corner before a stand's straight run is only rounded if it turns more than this (about 11 degrees):
+## a smaller kink is invisible, and its tiny arc would only wobble the line.
+const STAND_MIN_DEFLECTION: float = 0.2
 const MIN_GAP: float = 4.0
 ## Room (cells) each side of a pulled-tight line; small, so a thin taxiway's wobble straightens out.
-const PULL_ROOM: float = 0.4
+const PULL_ROOM: float = 4.2
+## Cells of pavement kept free on every side of a rounded corner (a plane's middle stays 8 m inside).
+const CURVE_ROOM: float = 4.1
 ## Node ids of stand lead-ins start here (AStar2D ids can't be negative); block ids are far smaller.
 const LEAD_IN_BASE: int = 1 << 40
 
@@ -282,7 +289,7 @@ func _find_exits(runway: Building) -> void:
 		for other in astar.get_point_connections(id):
 			var point := astar.get_point_position(other)
 			var offset := absf(point.y - middle.y) if along_x else absf(point.x - middle.x)
-			if offset > BLOCK * 1.5 and not on_line.has(other):
+			if offset > BLOCK and not on_line.has(other):
 				exits.append(id)
 				break
 	_exits[runway.id] = exits
@@ -334,12 +341,53 @@ func segment_clear(a: Vector2, b: Vector2, room: float = 0.9) -> bool:
 ## `points` are cell corner coordinates; `origin` and `cell_size` map them to world metres.
 func smooth(points: PackedVector2Array, origin: Vector2, cell_size: float) -> PackedVector2Array:
 	var pulled := _drop_close_points(_string_pull(points))
-	var rounded := _round_corners(pulled, CORNER_RADIUS_M / cell_size)
-	var result := PackedVector2Array()
-	result.resize(rounded.size())
-	for i in rounded.size():
-		result[i] = origin + rounded[i] * cell_size
+	var anchor := _anchor_of(pulled)
+	var rounded := _round_corners(_relative(pulled, anchor), CORNER_RADIUS_M / cell_size, MIN_DEFLECTION, anchor)
+	return _to_metres(rounded, anchor, origin, cell_size)
+
+
+## Like `smooth`, for a route that ends with a straight run along a stand's axis. `points` runs from
+## the runway exit to the push-back point B (its last point), `middle` is the stand's middle (cell
+## corner coordinates). Returns two lines in metres: [0] the way in, exit to the stand's middle, with
+## the corner at B rounded; [1] exit to B, whose last corner stays sharp: pushed back, the plane turns
+## there, on the taxiway (see PlaneRoute).
+func smooth_to_stand(points: PackedVector2Array, middle: Vector2, origin: Vector2, cell_size: float) -> Array[PackedVector2Array]:
+	var pulled := _drop_close_points(_string_pull(points))
+	var radius := CORNER_RADIUS_M / cell_size
+	var anchor := _anchor_of(pulled)
+	var relative := _relative(pulled, anchor)
+	var way_out := _round_corners(relative, radius, MIN_DEFLECTION, anchor)
+	var with_middle := relative.duplicate()
+	with_middle.append(middle - anchor)
+	var way_in := _round_corners(with_middle, radius, STAND_MIN_DEFLECTION, anchor)
+	var result: Array[PackedVector2Array] = []
+	result.append(_to_metres(way_in, anchor, origin, cell_size))
+	result.append(_to_metres(way_out, anchor, origin, cell_size))
 	return result
+
+
+# The curves are computed relative to a whole-cell anchor near the line, so that their float values
+# do not depend on how far from the map's corner they are (a map of another size gives the very same
+# route, bit for bit: the behaviour hash relies on it).
+func _anchor_of(line: PackedVector2Array) -> Vector2:
+	return line[0].floor() if not line.is_empty() else Vector2.ZERO
+
+
+func _relative(line: PackedVector2Array, anchor: Vector2) -> PackedVector2Array:
+	var result := PackedVector2Array()
+	result.resize(line.size())
+	for i in line.size():
+		result[i] = line[i] - anchor
+	return result
+
+
+func _to_metres(line: PackedVector2Array, anchor: Vector2, origin: Vector2, cell_size: float) -> PackedVector2Array:
+	var base := origin + anchor * cell_size
+	var metres := PackedVector2Array()
+	metres.resize(line.size())
+	for i in line.size():
+		metres[i] = base + line[i] * cell_size
+	return metres
 
 
 # Keeps only the points that are needed: from each kept point, the farthest later point that can
@@ -400,10 +448,19 @@ func _drop_close_points(line: PackedVector2Array) -> PackedVector2Array:
 	return result
 
 
+# True if `point` and the eight points `room` cells around it (a box) are on paved cells.
+func has_room(point: Vector2, room: float, anchor: Vector2 = Vector2.ZERO) -> bool:
+	for dy in [-room, 0.0, room]:
+		for dx in [-room, 0.0, room]:
+			if not is_paved_point(anchor + point + Vector2(dx, dy)):
+				return false
+	return true
+
+
 # Cuts every corner with a quadratic curve, as wide as the pavement allows: the tangent length of a
 # circle of `radius` (cell units), at most half of each neighbouring line, halved until the whole
 # curve stays on paved cells.
-func _round_corners(line: PackedVector2Array, radius: float) -> PackedVector2Array:
+func _round_corners(line: PackedVector2Array, radius: float, last_min_deflection: float = MIN_DEFLECTION, anchor: Vector2 = Vector2.ZERO) -> PackedVector2Array:
 	if line.size() < 3:
 		return line
 	var result := PackedVector2Array()
@@ -420,28 +477,34 @@ func _round_corners(line: PackedVector2Array, radius: float) -> PackedVector2Arr
 		var dir_next := to_next / next_length
 		# Deflection angle between the incoming and the outgoing direction.
 		var deflection := PI - absf(dir_prev.angle_to(dir_next))
-		if deflection < 0.05:
+		if deflection < (last_min_deflection if i == line.size() - 2 else MIN_DEFLECTION):
 			result.append(corner)
 			continue
-		var tangent := minf(radius * tan(deflection * 0.5), 0.5 * minf(prev_length, next_length))
+		var full_tangent := minf(radius * tan(deflection * 0.5), 0.5 * minf(prev_length, next_length))
 		var done := false
-		for attempt in 4:
-			var start := corner + dir_prev * tangent
-			var end := corner + dir_next * tangent
-			var curve := PackedVector2Array()
-			var ok := true
-			for s in ARC_STEPS + 1:
-				var t := float(s) / ARC_STEPS
-				var p := start.lerp(corner, t).lerp(corner.lerp(end, t), t)
-				if not (is_paved_point(p)):
-					ok = false
+		# As much room to the pavement's edge as there is; a tight junction gets a tighter curve
+		# (down to the centre point only) rather than a sharp corner.
+		for room in [CURVE_ROOM, 2.5, 0.0]:
+			var tangent := full_tangent
+			for attempt in 4:
+				var start := corner + dir_prev * tangent
+				var end := corner + dir_next * tangent
+				var curve := PackedVector2Array()
+				var ok := true
+				for s in ARC_STEPS + 1:
+					var t := float(s) / ARC_STEPS
+					var p := start.lerp(corner, t).lerp(corner.lerp(end, t), t)
+					if not has_room(p, room, anchor):
+						ok = false
+						break
+					curve.append(p)
+				if ok:
+					result.append_array(curve)
+					done = true
 					break
-				curve.append(p)
-			if ok:
-				result.append_array(curve)
-				done = true
+				tangent *= 0.5
+			if done:
 				break
-			tangent *= 0.5
 		if not done:
 			result.append(corner)
 	result.append(line[line.size() - 1])

@@ -113,9 +113,9 @@ func test_a_building_in_the_runway_band_moves_the_runway_and_flights_still_happe
 	var gate: Building = Airport.buildings.filter(func(b: Building) -> bool: return b.type.role == BuildingType.Role.GATE)[0]
 	var stand := Airport.place_building(type_of(&"aircraft_stand"), gate.origin_cell + Vector2i(-8, 5), 0)
 	check(stand != null, "a stand under the gate")
-	var link_x := stand.origin_cell.x + 9
+	var link_x := stand.origin_cell.x + 4
 	var link_top := stand.origin_cell.y + stand.type.footprint.y
-	Airport.paint_taxiway(cells(Vector2i(link_x, link_top), Vector2i(2, runway.origin_cell.y - link_top)), true)
+	Airport.paint_taxiway(cells(Vector2i(link_x, link_top), Vector2i(12, runway.origin_cell.y - link_top)), true)
 	check(Airport.usable_gates().size() > 0, "a complete route")
 	check(first_flight(0, 3000.0) != null, "flights happen")
 

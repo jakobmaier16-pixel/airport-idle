@@ -3,7 +3,7 @@ extends TestCase
 
 # Showcase results of the zone and area maps, re-recorded for the real-scale showcase (PR 6B, 2026-11-14; they were the old dense implementation's results before). Re-recorded again by the strip-to-core PR 1 (the showcase lost its shops, lounge, baggage claim and transfer corridor). They change only when the showcase layout does.
 ## Re-baselined by strip PR 2: the showcase lost its cargo terminal and stand (a0dd6197... -> 2cbda5d0...).
-const SHOWCASE_ZONE_HASH := "2cbda5d0294d423f3d153a39eb1ab15b6662b091b90c6349863fe6382980aa93"
+const SHOWCASE_ZONE_HASH := "53b971698dc12f3112127c8eff55dddef3df52fcbdba727d767f8874721d4a24"
 const SHOWCASE_AREA_HASH := "4a7ad156d09ee164b2afd4dbec430bbe2426207db663ba21d1c0fbf20fef4a40"
 const BIG := Vector2i(2200, 1600)
 # The part of the map the zone hashes cover: the real-scale showcase, in reference-map cells (128 x 128).

@@ -89,8 +89,9 @@ func test_rebuild_follows_used_cells_not_map_size() -> void:
 		for y in range(10, 30):
 			for x in range(10, 40):
 				grid.set_walkway(Vector2i(x, y), true)
-		for x in range(5, 60):
-			grid.set_taxiway(Vector2i(x, 50), true)
+		for y in range(50, 62):
+			for x in range(5, 60):
+				grid.set_taxiway(Vector2i(x, y), true)
 	var plane_big := PlaneNetwork.new()
 	var before := OS.get_static_memory_usage()
 	var started := Time.get_ticks_usec()
@@ -102,7 +103,7 @@ func test_rebuild_follows_used_cells_not_map_size() -> void:
 	plane_small.rebuild(small, [] as Array[Building])
 	var small_ms := (Time.get_ticks_usec() - started) / 1000.0
 	print("INFO sparse rebuild 2200x1600: %.1f ms, +%.2f MB; 64x64: %.1f ms" % [big_ms, grown / 1048576.0, small_ms])
-	check_eq(plane_big.paved_count(), 55, "paved cells on the big map")
+	check_eq(plane_big.paved_count(), 55 * 12, "paved cells on the big map")
 	# A full-map version needs over 100 MB here; the sparse one a few MB at most.
 	check(grown < 16 * 1048576, "memory follows the used cells (+%.1f MB)" % [grown / 1048576.0])
 	# Generous: the same work as the small map, plus the cost of walking the (few) chunks.
