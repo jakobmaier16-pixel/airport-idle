@@ -310,9 +310,22 @@ func segment_clear(a: Vector2, b: Vector2, room: float = 0.9) -> bool:
 	var length := span.length()
 	var side := Vector2(-span.y, span.x) / length * room if length > 0.001 else Vector2.ZERO
 	var steps := maxi(int(length / 0.5), 1)
+	# is_paved_point written out three times: this is the hot loop of building the routes.
+	var width := cell_width
+	var height := cell_height
 	for i in steps + 1:
 		var p := a + span * (float(i) / steps)
-		if not (is_paved_point(p) and is_paved_point(p + side) and is_paved_point(p - side)):
+		var x := floori(p.x)
+		var y := floori(p.y)
+		if x < 0 or y < 0 or x >= width or y >= height or not _cells.has(y * width + x):
+			return false
+		x = floori(p.x + side.x)
+		y = floori(p.y + side.y)
+		if x < 0 or y < 0 or x >= width or y >= height or not _cells.has(y * width + x):
+			return false
+		x = floori(p.x - side.x)
+		y = floori(p.y - side.y)
+		if x < 0 or y < 0 or x >= width or y >= height or not _cells.has(y * width + x):
 			return false
 	return true
 

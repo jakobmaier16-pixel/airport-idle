@@ -504,7 +504,7 @@ func deplane_passenger(flight: Flight, type: PassengerType) -> bool:
 	passenger.is_arriving = true
 	passenger.has_bag = rng.randf() < type.checked_bag_chance
 	passenger.by_car = rng.randf() < CAR_SHARE
-	var parked_at := flight.departs_at() + flight.arrival_delay - (FlightSchedule.PLANE_ARRIVES - FlightSchedule.TAXI_TIME)
+	var parked_at := flight.departs_at() + flight.arrival_delay - FlightSchedule.STAND_DWELL
 	passenger.bag_ready_at = parked_at + rng.randf_range(FlightSchedule.BAGS_FROM, FlightSchedule.BAGS_UNTIL)
 	passenger.offset = Vector3(rng.randf_range(-MAX_OFFSET, MAX_OFFSET), 0.0, rng.randf_range(-MAX_OFFSET, MAX_OFFSET))
 	passenger.color_index = rng.randi() % COLOR_COUNT

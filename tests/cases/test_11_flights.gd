@@ -156,17 +156,18 @@ func test_plane_is_solid() -> void:
 	var stand := flight.stand
 	var stand_center := Airport.grid.block_center(stand.origin_cell, Building.rotated_size(stand.type.footprint, stand.rotation_steps))
 	# Start south of the plane's tail and walk north, straight into it.
-	manager().global_position = stand_center + Vector3(0.0, 0.0, 16.0)
+	manager().global_position = stand_center + Vector3(0.0, 0.0, 24.0)
 	await physics_frames(10)
 	Input.action_press(&"move_up")
 	await physics_frames(300)  # 5 s: enough to walk 30 m
 	Input.action_release(&"move_up")
-	var tail_end_z := stand_center.z + PlaneVisual.LENGTH * 0.5
+	var size := PlaneVisual.size_for(flight)
+	var tail_end_z := stand_center.z + PlaneVisual.LENGTH * size * 0.5
 	check(manager().global_position.z > tail_end_z - 1.0, "manager stopped at the tail: z=%.1f, tail at %.1f" % [manager().global_position.z, tail_end_z])
 	# And from the side, into the wing.
-	manager().global_position = stand_center + Vector3(-PlaneVisual.WINGSPAN * 0.5 - 4.0, 0.0, 0.5)
+	manager().global_position = stand_center + Vector3(-PlaneVisual.WINGSPAN * size * 0.5 - 4.0, 0.0, 0.5)
 	await physics_frames(10)
 	Input.action_press(&"move_right")
 	await physics_frames(300)
 	Input.action_release(&"move_right")
-	check(manager().global_position.x < stand_center.x - PlaneVisual.WINGSPAN * 0.5 + 1.0, "manager stopped at the wing tip: x=%.1f" % manager().global_position.x)
+	check(manager().global_position.x < stand_center.x - PlaneVisual.WINGSPAN * size * 0.5 + 1.0, "manager stopped at the wing tip: x=%.1f" % manager().global_position.x)

@@ -50,13 +50,14 @@ func test_showcase_stands_reach_the_runway() -> void:
 func test_one_movement_at_a_time() -> void:
 	ShowcaseAirport.build(0.0)
 	var schedule := Airport.passenger_flow.schedule
-	schedule.runway_seconds = 60.0  # a slow runway: it becomes the bottleneck
+	schedule.runway_margin = 60.0  # a slow runway: it becomes the bottleneck
 	sim_seconds(900)
 	var bookings: Array = schedule.runway_bookings
 	check(bookings.size() >= 8, "landings and take-offs: %d" % bookings.size())
 	var overlaps := 0
 	for i in range(1, bookings.size()):
-		if bookings[i][1] - bookings[i - 1][1] < 60.0 - 0.01:
+		# [runway, start, end]: the next movement starts after the one before it has ended.
+		if bookings[i][1] < bookings[i - 1][2] - 0.01:
 			overlaps += 1
 	check_eq(overlaps, 0, "never two planes on the runway")
 	check(Airport.passenger_flow.schedule.flights.any(func(f: Flight) -> bool: return f.airport_delay() > 0.0) \
@@ -72,7 +73,9 @@ func test_plane_follows_the_taxiway() -> void:
 		Airport.step(Airport.SIM_STEP)
 		for candidate in Airport.passenger_flow.schedule.flights:
 			var left := candidate.departs_at() - Airport.passenger_flow.time
-			if candidate.phase == Flight.Phase.ARRIVING and left < FlightSchedule.PLANE_ARRIVES - 8.0:
+			var route := Airport.passenger_flow.schedule.route_of(candidate)
+			if candidate.phase == Flight.Phase.ARRIVING and route != null \
+					and left < FlightSchedule.lead_of(route) - route.roll_in_time - 8.0:
 				flight = candidate
 		if flight != null:
 			break

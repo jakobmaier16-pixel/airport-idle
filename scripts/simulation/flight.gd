@@ -39,6 +39,8 @@ var arrival_delay: float = 0.0
 ## Runway slots booked for landing and take-off (design doc §7.5a).
 var landing_booked: bool = false
 var takeoff_booked: bool = false
+## When the take-off run starts (after taxiing out and any wait at the runway); -1 until booked.
+var takeoff_at: float = -1.0
 var seats: int
 var booked: int
 ## When each booked passenger arrives at the entrance (simulation time, ascending) and their type.
