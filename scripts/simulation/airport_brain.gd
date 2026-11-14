@@ -591,6 +591,9 @@ func place_building(type: BuildingType, origin_cell: Vector2i, rotation_steps: i
 	for cell in building.get_cells():
 		grid.set_content(cell, building)
 	buildings.append(building)
+	var surface := Building.ground_surface_of(type)
+	if surface != 0:
+		grid.set_surface_rect(building.get_rect(), surface)
 	building_placed.emit(building)
 	if not _loading:
 		layout_changed.emit()
@@ -616,6 +619,8 @@ func demolish(building: Building) -> bool:
 	for cell in building.get_cells():
 		grid.set_content(cell, null)
 	buildings.erase(building)
+	if Building.ground_surface_of(building.type) != 0:
+		grid.set_surface_rect(building.get_rect(), 0)
 	passenger_flow.remove_building(building)
 	building_removed.emit(building)
 	layout_changed.emit()

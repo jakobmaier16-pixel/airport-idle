@@ -4,6 +4,8 @@ extends CanvasLayer
 ## The HUD only shows state and reports button presses; main.gd connects it to the game.
 
 signal view_toggle_pressed
+## The build menu's Zones toggle: show the zone colours over the ground (build view only).
+signal zone_overlay_toggled(enabled: bool)
 signal building_type_selected(type: BuildingType)
 signal paint_tool_selected(kind: BuildMode.PaintKind)
 signal rotate_pressed
@@ -119,6 +121,7 @@ func _ready() -> void:
 	}
 	for path: NodePath in paint_buttons:
 		(get_node(path) as Button).pressed.connect(paint_tool_selected.emit.bind(paint_buttons[path]))
+	$SafeArea/BuildMenu/PaintButtons/ZonesButton.toggled.connect(zone_overlay_toggled.emit)
 	_rotate_button.pressed.connect(rotate_pressed.emit)
 	_cancel_button.pressed.connect(cancel_pressed.emit)
 	_place_button.pressed.connect(place_pressed.emit)

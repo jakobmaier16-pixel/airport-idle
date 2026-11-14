@@ -1,6 +1,16 @@
 [gd_resource type="ShaderMaterial" format=3]
 
 [ext_resource type="Shader" path="res://assets/materials/ground_grid.gdshader" id="1_shader"]
+[ext_resource type="Texture2D" uid="uid://bqaroeiy31sai" path="res://assets/textures/grass/grass_albedo.png" id="2_grass"]
+[ext_resource type="Texture2D" uid="uid://bpqavek4rpumb" path="res://assets/textures/asphalt/asphalt_albedo.png" id="3_asphalt"]
+[ext_resource type="Texture2D" uid="uid://dsga61qinep1q" path="res://assets/textures/concrete/concrete_albedo.png" id="4_concrete"]
+[ext_resource type="Texture2D" uid="uid://dus2du457grjf" path="res://assets/textures/paving/paving_albedo.png" id="5_paving"]
+[ext_resource type="Texture2D" uid="uid://d15ub4bqmylku" path="res://assets/textures/markings/markings_albedo.png" id="6_markings"]
 
 [resource]
 shader = ExtResource("1_shader")
+shader_parameter/grass_tex = ExtResource("2_grass")
+shader_parameter/asphalt_tex = ExtResource("3_asphalt")
+shader_parameter/concrete_tex = ExtResource("4_concrete")
+shader_parameter/paving_tex = ExtResource("5_paving")
+shader_parameter/markings_tex = ExtResource("6_markings")
