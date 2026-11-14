@@ -78,6 +78,21 @@ func _ready() -> void:
 		engine.radial_segments = 10
 		_add(engine, _engine_material, Vector3(side * k, body_height - 1.3 * k, -0.4 * k), Vector3(PI * 0.5, 0.0, 0.0))
 
+	# Landing gear: nose wheel and two main wheels. Their bottoms sit exactly at y = 0, the node's
+	# origin, so the plane stands on the ground at any size (everything is multiplied by k).
+	var wheel_radius := 0.45 * k
+	var strut_top := body_height - 0.6 * k
+	for gear in [Vector2(0.0, -length * 0.3), Vector2(-2.0 * k, 1.5 * k), Vector2(2.0 * k, 1.5 * k)]:
+		var strut := BoxMesh.new()
+		strut.size = Vector3(0.25 * k, strut_top - wheel_radius, 0.25 * k)
+		_add(strut, _engine_material, Vector3(gear.x, (strut_top + wheel_radius) * 0.5, gear.y), Vector3.ZERO)
+		var wheel := CylinderMesh.new()
+		wheel.top_radius = wheel_radius
+		wheel.bottom_radius = wheel_radius
+		wheel.height = 0.5 * k
+		wheel.radial_segments = 8
+		_add(wheel, _engine_material, Vector3(gear.x, wheel_radius, gear.y), Vector3(0.0, 0.0, PI * 0.5))
+
 	var fin := BoxMesh.new()
 	fin.size = Vector3(0.3, 3.0, 2.6) * k
 	_add(fin, _tail_materials[tail_color], Vector3(0.0, body_height + 2.2 * k, length * 0.5 - 1.6 * k), Vector3.ZERO)
