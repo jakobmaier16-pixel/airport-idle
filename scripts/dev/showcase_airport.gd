@@ -48,7 +48,9 @@ static func build(warm_up_seconds: float = 30.0, map_size: Vector2i = Vector2i.Z
 	# swing round on wide curves) with the parallel taxiway below it, and a link at each end across the gap to the
 	# runway (so planes pushed back onto the parallel taxiway turn onto it and taxi along it).
 	Airport.paint_taxiway(_cells(Vector2i(-40, 79), Vector2i(171, 12)), true)
-	Airport.paint_taxiway(_cells(Vector2i(-40, 62), Vector2i(171, 17)), true)
+	# (two pieces: the wide-body stand fills the middle, and nothing is painted under a building)
+	Airport.paint_taxiway(_cells(Vector2i(-40, 62), Vector2i(66, 17)), true)
+	Airport.paint_taxiway(_cells(Vector2i(61, 62), Vector2i(70, 17)), true)
 	Airport.paint_taxiway(_cells(Vector2i(-40, 91), Vector2i(24, 3)), true)
 	Airport.paint_taxiway(_cells(Vector2i(107, 91), Vector2i(24, 3)), true)
 
