@@ -141,7 +141,15 @@ func upcoming() -> Array[Flight]:
 	return sorted
 
 
-## The next departures, one line each: number, gate, status, time to departure.
+## "in 1:23", or "now" once the time has come.
+static func countdown_text(seconds: float) -> String:
+	var whole := maxi(ceili(seconds), 0)
+	if whole == 0:
+		return "now"
+	return "in %d:%02d" % [whole / 60, whole % 60]
+
+
+## The next departures, one line each: number, gate, phase, countdown to departure.
 func departures_text(max_lines: int = 4) -> String:
 	var phase_names := {
 		Flight.Phase.SCHEDULED: "Scheduled", Flight.Phase.ARRIVING: "Plane arriving",
@@ -150,12 +158,41 @@ func departures_text(max_lines: int = 4) -> String:
 	}
 	var lines: PackedStringArray = []
 	for flight in upcoming().slice(0, max_lines):
-		var seconds := maxi(ceili(flight.departs_at() - world.sim_time), 0)
 		var status: String = phase_names[flight.phase]
 		if flight.delay > 0.0 and flight.phase == Flight.Phase.BOARDING:
 			status = "Delayed"
-		lines.append("%s   Gate %d   %s   %d:%02d" % [flight.number, world.gate_number(flight.gate), status, seconds / 60, seconds % 60])
+		lines.append("%s   Gate %d   %s   %s" % [flight.number, world.gate_number(flight.gate), status,
+			countdown_text(flight.departs_at() - world.sim_time)])
 	return "\n".join(lines)
+
+
+## Seconds until the next plane touches down (flights not landed yet and planned slots), or -1
+## if nothing is planned.
+func next_flight_in() -> float:
+	var now := world.sim_time
+	var best := -1.0
+	for flight in flights:
+		if flight.phase != Flight.Phase.SCHEDULED and flight.phase != Flight.Phase.ARRIVING:
+			continue
+		var wait := flight.departs_at() - lead_of(route_of(flight)) - now
+		if flight.phase == Flight.Phase.ARRIVING and wait < 0.0:
+			continue  # already on the ground
+		best = _earlier(best, maxf(wait, 0.0))
+	for slot in world.timetable.pending():
+		var stand := world.stand_behind(slot.gate)
+		var route := world.plane_network.route_to_stand(stand) if stand != null else null
+		best = _earlier(best, maxf(slot.departure_time - lead_of(route) - now, 0.0))
+	return best
+
+
+static func _earlier(best: float, candidate: float) -> float:
+	return candidate if best < 0.0 or candidate < best else best
+
+
+## The HUD line about the next landing.
+func next_flight_text() -> String:
+	var wait := next_flight_in()
+	return "No flight planned" if wait < 0.0 else "Next flight in %d s" % ceili(wait)
 
 
 ## The schedule as plain data for the save game (tech_architecture.md §13). Buildings are stored

@@ -71,7 +71,6 @@ func test_showcase_v1_loads_completely() -> void:
 	SaveGame.load_game()
 	_check_removed_types_silent()
 	check_eq(_building_counts(), _loadable(counts_after_legacy_removal(EXAMPLE_BUILDINGS)), "every other building is back, with the new runway")
-	check_eq(Airport.clock.game_seconds, 28800.0, "the clock is back (08:00)")
 	check_eq(Airport.game_seed, 4259094339, "the seed is back")
 	check(Airport.usable_gates().is_empty(), "the gates wait for new stands")
 	check_eq(Airport.schedule.flights.size(), 0, "flights of an old save are dropped")
@@ -85,7 +84,6 @@ func test_early_v1_loads() -> void:
 	var kept: Array = saved["buildings"].filter(func(e: Dictionary) -> bool: return not LEGACY_AIRSIDE_TYPES.has(str(e["type"])))
 	_check_removed_types_silent()
 	check_eq(Airport.buildings.size(), kept.size() + 1, "its other buildings plus the starting runway")
-	check_eq(Airport.clock.game_seconds, Clock.START_HOUR * 3600.0, "the clock starts at 06:00")
 	_clean_up()
 
 

@@ -21,13 +21,6 @@ func _ready() -> void:
 	if "--landside-only" in OS.get_cmdline_user_args():
 		get_tree().quit()
 		return
-	# Night and evening light (design doc §12.1); back to the morning afterwards.
-	var morning := Airport.clock.game_seconds
-	Airport.clock.game_seconds = 23.0 * 3600.0
-	await _shot("night")
-	Airport.clock.game_seconds = 19.5 * 3600.0
-	await _shot("evening")
-	Airport.clock.game_seconds = morning
 	hud().get_node("SafeArea/NoticeBox/NoticePanel").visible = false
 
 	# South of gate 1's stand, looking across the plane to the gate, while it boards (first departure at 210 s, boarding from 120 s).

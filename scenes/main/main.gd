@@ -80,6 +80,7 @@ func set_view(view: View) -> void:
 
 func _process(_delta: float) -> void:
 	_hud.set_status(Airport.status_text())
+	_hud.set_next_flight(Airport.schedule.next_flight_text())
 	_hud.set_departures(Airport.schedule.departures_text())
 
 

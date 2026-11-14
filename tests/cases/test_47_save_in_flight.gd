@@ -28,7 +28,7 @@ func _summary(brain: AirportWorld) -> Dictionary:
 	return {
 		"flights": brain.schedule.flights.size(), "phases": phases, "delays": snappedf(delays, 0.001),
 		"departed": brain.schedule.departures, "slots": brain.timetable.slots.size(),
-		"time": snappedf(brain.sim_time, 0.001), "clock": snappedf(brain.clock.game_seconds, 0.001),
+		"time": snappedf(brain.sim_time, 0.001),
 	}
 
 
@@ -64,7 +64,7 @@ func test_loaded_game_continues_exactly() -> void:
 func test_saved_flights_keep_their_places() -> void:
 	_busy_airport()
 	var loaded := _load_fresh(_through_json(Airport.save_state()))
-	check_eq(loaded.sim_time, Airport.sim_time, "the clock is saved, not restarted")
+	check_eq(loaded.sim_time, Airport.sim_time, "the time is saved, not restarted")
 	check_eq(loaded.schedule.flights.size(), Airport.schedule.flights.size(), "every flight is back")
 	for i in loaded.schedule.flights.size():
 		var flight := loaded.schedule.flights[i]
@@ -108,7 +108,7 @@ func test_example_v3_loads() -> void:
 	check_eq(int(saved["version"]), 3, "an example save of version 3")
 	var loaded := _load_fresh(SaveGame.migrate(saved.duplicate(true)))
 	check_eq(loaded.schedule.flights.size(), 0, "its old flights are dropped (format 11)")
-	check_eq(loaded.sim_time, float(saved["flow"]["time"]), "its clock is back")
+	check(is_equal_approx(loaded.sim_time, float(saved["flow"]["time"])), "its time is back")
 	for i in int(60.0 / AirportWorld.SIM_STEP):
 		loaded.step(AirportWorld.SIM_STEP)
 	check(loaded.sim_time > float(saved["flow"]["time"]), "it keeps running")

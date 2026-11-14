@@ -46,7 +46,7 @@ func test_a_gate_needs_a_turnaround_between_departures() -> void:
 		var times: Array = departures[gate]
 		for i in range(1, times.size()):
 			# The timetable gives a gate one departure per turnaround.
-			check(times[i] - times[i - 1] >= Timetable.period_real() - 0.001, "gate %d: departures at least a turnaround apart %s" % [gate, times])
+			check(times[i] - times[i - 1] >= Timetable.TURNAROUND_SECONDS - 0.001, "gate %d: departures at least a turnaround apart %s" % [gate, times])
 
 
 func test_a_flight_goes_through_its_phases_and_departs() -> void:
@@ -85,11 +85,33 @@ func test_departures_board() -> void:
 	check(columns[0].begins_with(FlightSchedule.NUMBER_PREFIX + " "), "flight number: '%s'" % columns[0])
 	check(columns[1].begins_with("Gate "), "gate: '%s'" % columns[1])
 	check(columns[2] in ["Scheduled", "Plane arriving", "At stand", "Boarding", "Delayed", "Departed"], "status: '%s'" % columns[2])
-	var regex := RegEx.create_from_string("^\\d+:\\d\\d$")
-	check(regex.search(columns[3]) != null, "time to departure: '%s'" % columns[3])
+	var regex := RegEx.create_from_string("^(now|in \\d+:\\d\\d)$")
+	check(regex.search(columns[3]) != null, "countdown to departure: '%s'" % columns[3])
 	await start_game()
 	await frames(2)
 	check_eq((ui("InfoPanel/DeparturesLabel") as Label).text.split("\n").size(), lines.size(), "board shown in the HUD")
+	check(hud().get_node_or_null("SafeArea/TopButtons/ClockLabel") == null, "the HUD shows no time of day")
+	check(main.get_node_or_null("DayNight") == null, "and the lights do not change")
+	var next := (ui("InfoPanel/NextFlightLabel") as Label).text
+	check(next.begins_with("Next flight in ") or next == "No flight planned", "the next flight line: '%s'" % next)
+
+
+func test_countdown_text() -> void:
+	check_eq(FlightSchedule.countdown_text(83.0), "in 1:23", "a minute and 23 seconds")
+	check_eq(FlightSchedule.countdown_text(0.2), "in 0:01", "rounded up")
+	check_eq(FlightSchedule.countdown_text(0.0), "now", "now")
+	check_eq(FlightSchedule.countdown_text(-5.0), "now", "already due")
+
+
+func test_next_flight_line_counts_down_to_the_first_landing() -> void:
+	check_eq(Airport.schedule.next_flight_text(), "No flight planned", "no gate, nothing planned")
+	ShowcaseAirport.build(0.0)
+	sim_seconds(1.0)
+	var first := Airport.schedule.next_flight_in()
+	check(first >= 0.0 and first < 30.0, "the first landing is within 30 seconds: %.1f" % first)
+	check_eq(Airport.schedule.next_flight_text(), "Next flight in %d s" % ceili(first), "the HUD line")
+	sim_seconds(5.0)
+	check(Airport.schedule.next_flight_in() < first or Airport.schedule.next_flight_in() > 100.0, "it counts down, then jumps to the one after")
 
 
 func test_plane_parks_nose_in_at_the_stand() -> void:

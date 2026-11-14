@@ -24,10 +24,10 @@ func test_fresh_brain_runs_on_its_own() -> void:
 	var check_in := brain.place_building(Airport.CATALOG.find(&"check_in"), MapAnchor.cell(Vector2i(20, 20), brain.grid.size), 0)
 	check(check_in != null, "a building can be placed in a fresh brain")
 	check_eq(placed.size(), 1, "the fresh brain sent its own building_placed signal")
-	var start_seconds := brain.clock.game_seconds
+	var start_seconds := brain.sim_time
 	for i in int(60.0 / AirportWorld.SIM_STEP):
 		brain.step(AirportWorld.SIM_STEP)
-	check(brain.clock.game_seconds > start_seconds, "the fresh brain's clock advanced")
+	check(brain.sim_time > start_seconds, "the fresh brain's time advanced")
 	check_eq(brain.buildings.size(), 1, "the fresh brain holds its building")
 	check(brain.schedule.world == brain, "the parts point at their own brain")
 	check(Airport.buildings.is_empty(), "the running game's airport is untouched")

@@ -165,7 +165,7 @@ Starting airport · day/night lighting · pause and speed controls · optional 1
 | First-person view | Enjoy the airport, walk around, inspect and upgrade stations and staff. Incidents come much later |
 | Top-down view | Understand the airport and passenger flow, place buildings, read statistics, enjoy |
 | Tiers | 4 tiers as built (Regional → National → International → Hub) |
-| Time | Day length as built (96 real minutes); clock starts at 06:00 on day 1 and runs 24 h |
+| Time | **Removed 2026-11-14** (docs/decisions.md): no clock, no day/night. Was: day length 96 real minutes; clock starts at 06:00 on day 1 and runs 24 h |
 | Offline | Average profit of the last ~10 min; 4 h of income after 36 h or more away |
 | Saving | Every change, on background, 30 s safety save, with timestamp |
 | Services | Total capacity (fire and police need to be close enough) |

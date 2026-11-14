@@ -63,12 +63,10 @@ static func build(warm_up_seconds: float = 30.0, map_size: Vector2i = Vector2i.Z
 
 	Airport.end_batch()
 
-	# Morning when the player looks (after the warm-up: about 08:00).
-	Airport.clock.game_seconds = 7.25 * 3600.0
 	if warm_up_seconds > 0.0:
-		# The timetable's first slot opens its flight a little after the start: wait for it, so
-		# the warm-up always shows a first flight on its way (at most about 10 game hours).
-		for i in int(2400.0 / Airport.SIM_STEP):
+		# The timetable's opening flight comes a little after the start: wait for it, so
+		# the warm-up always shows a first flight on its way (at most two minutes).
+		for i in int(120.0 / Airport.SIM_STEP):
 			if not Airport.schedule.flights.is_empty():
 				break
 			Airport.step(Airport.SIM_STEP)

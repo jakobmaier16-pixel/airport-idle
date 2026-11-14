@@ -10,7 +10,6 @@
 [ext_resource type="Script" path="res://scenes/buildings/building_layer.gd" id="8_building_layer"]
 [ext_resource type="Script" path="res://scenes/buildings/landside_layer.gd" id="12_landside_layer"]
 [ext_resource type="Script" path="res://scenes/planes/plane_layer.gd" id="10_plane_layer"]
-[ext_resource type="Script" path="res://scenes/day_night/day_night.gd" id="11_day_night"]
 
 [sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_sky"]
 
@@ -31,15 +30,11 @@ environment = SubResource("Environment_main")
 
 [node name="Sun" type="DirectionalLight3D" parent="."]
 transform = Transform3D(0.81915206, -0.46984634, 0.32898995, 0, 0.57357645, 0.81915206, -0.57357645, -0.6710101, 0.46984634, 0, 10, 0)
+light_color = Color(1, 0.98, 0.94, 1)
 shadow_enabled = true
 directional_shadow_mode = 1
 directional_shadow_blend_splits = true
 directional_shadow_max_distance = 50.0
-
-[node name="DayNight" type="Node" parent="." node_paths=PackedStringArray("sun", "world_environment")]
-script = ExtResource("11_day_night")
-sun = NodePath("../Sun")
-world_environment = NodePath("../WorldEnvironment")
 
 [node name="Ground" parent="." instance=ExtResource("1_ground")]
 

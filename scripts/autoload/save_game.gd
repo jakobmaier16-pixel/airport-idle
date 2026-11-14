@@ -7,7 +7,7 @@ extends Node
 
 ## Bump when the save format changes in a way older code can't read, and add a converter to
 ## `migrations` for the old version (tech_architecture.md §13). Keep every old converter.
-const FORMAT_VERSION: int = 11
+const FORMAT_VERSION: int = 12
 ## Wait this long after a change before saving, so a burst of changes is saved once.
 const SAVE_DELAY: float = 1.0
 ## The running airport is also saved this often while playing (seconds).
@@ -135,7 +135,7 @@ func migrate(data: Dictionary) -> Dictionary:
 
 ## The converters this build ships (tests put them back after swapping in their own).
 func default_migrations() -> Dictionary[int, Callable]:
-	return {1: _v1_to_v2, 2: _v2_to_v3, 3: _v3_to_v4, 4: _v4_to_v5, 5: _v5_to_v6, 6: _v6_to_v7, 7: _v7_to_v8, 8: _v8_to_v9, 9: _v9_to_v10, 10: _v10_to_v11}
+	return {1: _v1_to_v2, 2: _v2_to_v3, 3: _v3_to_v4, 4: _v4_to_v5, 5: _v5_to_v6, 6: _v6_to_v7, 7: _v7_to_v8, 8: _v8_to_v9, 9: _v9_to_v10, 10: _v10_to_v11, 11: _v11_to_v12}
 
 
 ## Version 1 -> 2: buildings get permanent IDs (their old list position + 1) and staff point to
@@ -205,7 +205,7 @@ func _v6_to_v7(data: Dictionary) -> Dictionary:
 ## planned, so the first step plans the rest of today (and tomorrow) with the saved dice.
 ## (Plain numbers: those enums changed with format 11, which drops this timetable anyway.)
 func _v7_to_v8(data: Dictionary) -> Dictionary:
-	var day := int(float(data.get("clock", Clock.START_HOUR * 3600.0)) / 86400.0) + 1
+	var day := int(float(data.get("clock", 21600.0)) / 86400.0) + 1
 	var slots: Array = []
 	for entry: Dictionary in data.get("flow", {}).get("schedule", {}).get("flights", []):
 		if not bool(entry.get("scheduled", true)):
@@ -280,6 +280,28 @@ func _v10_to_v11(data: Dictionary) -> Dictionary:
 			entry.erase(key)
 		kept.append(entry)
 	data["buildings"] = kept
+	return data
+
+
+## Version 11 -> 12: the clock and day/night are gone (docs/removed_features.md). "clock" (game
+## seconds since midnight) and "clock_elapsed" (game seconds since the start) are dropped; the
+## running time is saved as "sim_time" in real seconds (clock_elapsed / 15, the factor the clock
+## had). Flights already carry real seconds. The timetable's "next" departures were game seconds on
+## the clock's day: they are moved onto sim_time (sim = (game - (clock - clock_elapsed)) / 15).
+# 21600 = 06:00 in game seconds, where the removed clock started.
+const V12_GAME_PER_REAL: float = 15.0
+
+
+func _v11_to_v12(data: Dictionary) -> Dictionary:
+	var elapsed := float(data.get("clock_elapsed", 0.0))
+	var offset := float(data.get("clock", 21600.0)) - elapsed
+	data["sim_time"] = elapsed / V12_GAME_PER_REAL
+	var timetable: Variant = data.get("timetable")
+	if timetable is Dictionary and (timetable as Dictionary).get("next") is Array:
+		for pair: Array in (timetable as Dictionary)["next"]:
+			pair[1] = (float(pair[1]) - offset) / V12_GAME_PER_REAL
+	data.erase("clock")
+	data.erase("clock_elapsed")
 	return data
 
 

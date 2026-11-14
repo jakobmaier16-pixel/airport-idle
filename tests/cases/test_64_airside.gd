@@ -294,7 +294,7 @@ func test_only_the_first_gate_of_a_fresh_airport_gets_an_opening_flight() -> voi
 				times.append(slot.departure_time)
 		times.sort()
 		for i in range(1, times.size()):
-			check(times[i] - times[i - 1] >= Timetable.period_real() - 0.01 or absf(times[i] - times[i - 1]) < 0.01, "gate %d: departures a turnaround apart" % gate.id)
+			check(times[i] - times[i - 1] >= Timetable.TURNAROUND_SECONDS - 0.01 or absf(times[i] - times[i - 1]) < 0.01, "gate %d: departures a turnaround apart" % gate.id)
 
 
 func test_the_opening_flight_happens_once_per_fresh_airport() -> void:
@@ -309,5 +309,5 @@ func test_the_opening_flight_happens_once_per_fresh_airport() -> void:
 	var before := Airport.sim_time
 	for i in int(30.0 / Airport.SIM_STEP):
 		Airport.step(Airport.SIM_STEP)
-	var early := Airport.schedule.flights.filter(func(f: Flight) -> bool: return f.departure_time < before + Timetable.period_real() * 0.2)
+	var early := Airport.schedule.flights.filter(func(f: Flight) -> bool: return f.departure_time < before + Timetable.TURNAROUND_SECONDS * 0.2)
 	check_eq(early.size(), 0, "no second opening flight after everything was cancelled")

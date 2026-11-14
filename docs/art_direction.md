@@ -97,7 +97,7 @@ Few shared materials, reused by every asset. Each is a Godot `StandardMaterial3D
 
 ## 5. Light (hybrid)
 
-The day-night cycle (`scenes/day_night/`) moves a real sun, so only what doesn't move is baked.
+(The day-night cycle was removed 2026-11-14: fixed daylight, see docs/removed_features.md.) The day-night cycle (`scenes/day_night/`) moved a real sun, so only what doesn't move is baked.
 
 - **Outside:** one `DirectionalLight3D` (the sun) with shadows; shadow distance kept short in the
   manager view. Sky / ambient colour comes from DayNight.
