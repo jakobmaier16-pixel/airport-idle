@@ -24,6 +24,12 @@ const CLIMB_TIME: float = 6.0
 ## A flight waits at most this long for passengers who are already airside (checked-in bags would
 ## otherwise have to be unloaded). Fits before the next plane arrives at the same stand.
 const MAX_HOLD: float = 30.0
+## A plane that has waited this long at the holding point goes before landings (design doc §7.5a):
+## no new landing is booked until it has taken off. Without it landings (booked 6 s ahead) always
+## beat take-offs (which need a free runway right now) and the holding point can starve (the
+## longest wait was 140 s on the showcase day). Not shorter, because a landing that waits is a
+## late departure, while a take-off that waits is not (punctuality counts the push-back).
+const HOLDING_PRIORITY_AFTER: float = 80.0
 ## The airport this part of the simulation works for; set by the Airport autoload.
 var world: AirportWorld
 
@@ -84,6 +90,8 @@ var runway_bookings: Array = []
 # Departure time of the latest flight planned at each gate.
 var _last_planned: Dictionary[Building, float] = {}
 var _next_number: int = 101
+# True while a plane has waited long enough at the holding point to go before landings (set per tick).
+var _takeoff_priority: bool = false
 ## Dice. Airport replaces them with its shared, seeded dice (tech_architecture.md §3).
 var rng: RandomNumberGenerator = RandomNumberGenerator.new()
 
@@ -106,6 +114,14 @@ func tick(now: float, delta: float, flow: PassengerFlow) -> void:
 		if slot.state == TimetableSlot.State.PENDING and slot.departure_time - now <= fill_window():
 			_fill_slot(slot, usable, now)
 
+	_takeoff_priority = false
+	for flight in flights:
+		if not flight.takeoff_booked and flight.phase == Flight.Phase.DEPARTING:
+			var route := route_of(flight)
+			if route != null and route.runway != null \
+					and now >= flight.departs_at() + taxi_out_of(route) + HOLDING_PRIORITY_AFTER:
+				_takeoff_priority = true
+				break
 	for flight in flights:
 		_advance(flight, now, delta, flow)
 	flights = flights.filter(func(f: Flight) -> bool: return f.is_active())
@@ -297,7 +313,7 @@ func _fill_slot(slot: TimetableSlot, usable: Array[Building], now: float) -> voi
 	# Night curfew (design doc §12.4): no landing or take-off in the quiet hours.
 	if world.timetable.in_curfew(slot.departure_time):
 		return
-	var gate := _gate_for(slot, usable)
+	var gate := _gate_for(slot, usable, now)
 	if gate == null:
 		return
 	# Signed deals fill their quotas first; without a deal the default airline flies the narrow-bodies.
@@ -316,7 +332,9 @@ func _fill_slot(slot: TimetableSlot, usable: Array[Building], now: float) -> voi
 # The gate that takes `slot`: free for a turnaround before it, and the one with the shortest planned
 # route (close stands are worth more), ties by id. Wide-body slots need a wide-body stand
 # (stand_behind decides what fits), so narrow-body slots keep off those gates while another one is free.
-func _gate_for(slot: TimetableSlot, usable: Array[Building]) -> Building:
+# A stand whose plane would have to land before `now` (a far stand built mid-day while this slot
+# was already planned) is skipped: the plane could not touch down in time.
+func _gate_for(slot: TimetableSlot, usable: Array[Building], now: float = -INF) -> Building:
 	var best: Building = null
 	var best_wide := false
 	var best_time := INF
@@ -337,6 +355,8 @@ func _gate_for(slot: TimetableSlot, usable: Array[Building]) -> Building:
 		if wide_stand and slot.plane_class == TimetableSlot.PlaneClass.NARROW and _wide_slot_near(slot):
 			continue  # a wide-body slot needs this gate right about now
 		var route := world.plane_network.route_to_stand(stand) if stand != null else null
+		if route != null and slot.departure_time - now < lead_of(route) + APPROACH_TIME:
+			continue
 		var planned := 2.0 * FALLBACK_TAXI_TIME if route == null else route.taxi_in_time + route.taxi_out_time
 		var better := best == null or (best_wide and not wide_stand) or (best_wide == wide_stand \
 				and (planned < best_time - 0.001 or (absf(planned - best_time) <= 0.001 and gate.id < best.id)))
@@ -567,7 +587,7 @@ func _hold_reason(flight: Flight, now: float) -> Hold:
 		# A landing slot on the runway: the roll starts after the approach (design doc §7.5a).
 		if not flight.landing_booked:
 			var runway := _runway_for(flight)
-			if runway != null and not _book_runway(runway, now + APPROACH_TIME, occupancy(flight, true)):
+			if runway != null and (_takeoff_priority or not _book_runway(runway, now + APPROACH_TIME, occupancy(flight, true))):
 				return Hold.AIRPORT
 			flight.landing_booked = true
 	return Hold.NONE
