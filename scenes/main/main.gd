@@ -37,21 +37,12 @@ func _ready() -> void:
 	_hud.showcase_confirmed.connect(_on_showcase_confirmed)
 	_hud.benchmark_confirmed.connect(_on_benchmark_confirmed)
 	TouchGestures.tapped.connect(_on_tapped)
-	Airport.restructured.connect(_on_restructured)
-	Airport.tier_reached.connect(_on_tier_reached)
-	Airport.offer_arrived.connect(_on_offer_arrived)
-	Airport.airline_unhappy.connect(_on_airline_unhappy)
-	Airport.airline_left.connect(_on_airline_left)
 	# First person: start where the manager was, or inside the entrance (design doc §15).
 	var start: Array = Airport.manager_start()
 	_manager.global_position = start[0]
 	_manager_camera.yaw = start[1]
 	_manager_camera.snap_to_target()
 	_set_view(View.MANAGER)
-	if SaveGame.welcome_back_bonus > 0.0:
-		_hud.notify("Welcome back! You were away %d hours. Your airport earned %s while you were gone." % [
-			floori(SaveGame.away_seconds / 3600.0), Economy.format(SaveGame.welcome_back_bonus)])
-		SaveGame.welcome_back_bonus = 0.0
 	if not SaveGame.load_problem.is_empty():
 		_hud.notify(SaveGame.load_problem)
 		SaveGame.load_problem = ""
@@ -88,41 +79,8 @@ func set_view(view: View) -> void:
 
 
 func _process(_delta: float) -> void:
-	_hud.set_money(Airport.economy.balance, Airport.economy.profit_per_minute())
-	var economy := Airport.economy
-	_hud.set_loan(economy.debt(), economy.interest_per_minute(), Airport.credit_limit(), Airport.restructure_in())
-	_hud.set_rating(Airport.stars(), Airport.progression.name_of(Airport.progression.tier))
 	_hud.set_status(Airport.status_text())
 	_hud.set_departures(Airport.schedule.departures_text())
-
-
-func _on_restructured(sold: PackedStringArray) -> void:
-	var what := "Sold: %s." % ", ".join(sold) if not sold.is_empty() else "Nothing was left to sell."
-	_hud.notify("The bank restructured your airport to cover the debt. %s The rest was written off. Reputation −1 star." % what)
-
-
-func _on_tier_reached(tier: Progression.Tier) -> void:
-	_hud.show_milestone("%s airport!" % Airport.progression.name_of(tier), Progression.REWARDS[tier])
-	# Newly unlocked buildings lose their "(National)" note.
-	_hud.setup_build_menu(Airport.CATALOG.types)
-
-
-func _on_offer_arrived(offer: AirlineOffer) -> void:
-	if offer.is_renewal:
-		_hud.notify("%s's contract ends in 10 minutes. They offer to renew: %d flights/h at %s. Tap Airlines; without a renewal they leave." % [
-			offer.type.display_name, offer.flights_per_hour, Economy.format(offer.fee)])
-		return
-	_hud.notify("New offer: %s (%s) wants %d flights per hour. Tap Airlines to negotiate." % [
-		offer.type.display_name, offer.type.route, offer.flights_per_hour])
-
-
-func _on_airline_unhappy(airline: Airline) -> void:
-	_hud.notify("%s is unhappy (%d %%): late flights, missed passengers or no free gate. If it gets worse, they leave." % [
-		airline.type.display_name, roundi(airline.happiness)])
-
-
-func _on_airline_left(airline: Airline) -> void:
-	_hud.notify("%s ended its deal and left the airport." % airline.type.display_name)
 
 
 # Manager view: tapping a building opens its panel; tapping elsewhere closes it.

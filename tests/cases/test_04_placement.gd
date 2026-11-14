@@ -13,7 +13,7 @@ func test_all_mvp_buildings_in_menu() -> void:
 	check_eq(texts.call(), ["‹", "Entrance", "Check-in", "Security", "Gate"], "terminal buildings")
 	await press(_menu_button(row, "‹"))
 	await press(_menu_button(row, "Airside ›"))
-	check_eq(texts.call(), ["‹", "Stand", "Wide-body stand (International)", "Runway", "Cargo terminal (National)"], "airside")
+	check_eq(texts.call(), ["‹", "Stand", "Wide-body stand", "Runway"], "airside")
 	await close_build_view()
 	await open_build_view()
 	check_eq(texts.call(), ["Terminal ›", "Airside ›", "Landside ›"], "menu starts at the categories again")

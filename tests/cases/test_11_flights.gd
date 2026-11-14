@@ -45,8 +45,8 @@ func test_a_gate_needs_a_turnaround_between_departures() -> void:
 	for gate in departures:
 		var times: Array = departures[gate]
 		for i in range(1, times.size()):
-			# The planner only gives a slot to a gate that is free for a turnaround before it.
-			check(times[i] - times[i - 1] >= FlightSchedule.INTERVAL - 0.001, "gate %d: departures at least a turnaround apart %s" % [gate, times])
+			# The timetable gives a gate one departure per turnaround.
+			check(times[i] - times[i - 1] >= Timetable.period_real() - 0.001, "gate %d: departures at least a turnaround apart %s" % [gate, times])
 
 
 func test_a_flight_goes_through_its_phases_and_departs() -> void:
@@ -56,10 +56,10 @@ func test_a_flight_goes_through_its_phases_and_departs() -> void:
 	check_eq(flight.phase, Flight.Phase.AT_STAND, "the plane waits at the stand")
 	sim_seconds(FlightSchedule.BOARDING_OPENS - 1.0)
 	check_eq(flight.phase, Flight.Phase.BOARDING, "the last stretch before the doors close")
-	var departures := Airport.reputation.departures
+	var departures := Airport.schedule.departures
 	sim_seconds(3.0)
 	check(flight.phase >= Flight.Phase.DEPARTING, "doors closed at departure time")
-	check_eq(Airport.reputation.departures, departures + 1, "the departure is counted")
+	check_eq(Airport.schedule.departures, departures + 1, "the departure is counted")
 
 
 func test_unusable_gate_cancels_its_flight() -> void:
@@ -82,13 +82,11 @@ func test_departures_board() -> void:
 	var lines := text.split("\n")
 	check_eq(lines.size(), mini(flights.size(), 4), "one line per upcoming flight (at most four)")
 	var columns := lines[0].split("   ")
-	var airline_codes := Airlines.CATALOG.types.map(func(t: AirlineType) -> String: return t.code)
-	check(airline_codes.has(columns[0].left(2)), "flight number with airline code: '%s'" % columns[0])
-	check(columns[1] == "Cargo" or columns[1].begins_with("Gate "), "gate: '%s'" % columns[1])
-	check(not columns[2].is_empty(), "route type: '%s'" % columns[2])
-	check(columns[3] in ["Scheduled", "Plane arriving", "At stand", "Boarding", "Delayed", "Departed"], "status: '%s'" % columns[3])
+	check(columns[0].begins_with(FlightSchedule.NUMBER_PREFIX + " "), "flight number: '%s'" % columns[0])
+	check(columns[1].begins_with("Gate "), "gate: '%s'" % columns[1])
+	check(columns[2] in ["Scheduled", "Plane arriving", "At stand", "Boarding", "Delayed", "Departed"], "status: '%s'" % columns[2])
 	var regex := RegEx.create_from_string("^\\d+:\\d\\d$")
-	check(regex.search(columns[4]) != null, "time to departure: '%s'" % columns[4])
+	check(regex.search(columns[3]) != null, "time to departure: '%s'" % columns[3])
 	await start_game()
 	await frames(2)
 	check_eq((ui("InfoPanel/DeparturesLabel") as Label).text.split("\n").size(), lines.size(), "board shown in the HUD")

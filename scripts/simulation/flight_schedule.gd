@@ -3,8 +3,6 @@ extends RefCounted
 ## Turns the timetable's slots into flights and runs them (design doc §8.5).
 ## Pure data. The brain owns it and drives it with tick().
 
-## The least time between two departures at the same gate (a turnaround).
-const INTERVAL: float = 180.0
 ## Slots are only planned this far ahead of now (just after their arrivals window opens), or
 ## further if the longest planned taxi needs it (see first_departure_delay).
 const FIRST_DEPARTURE_DELAY: float = 270.0
@@ -32,17 +30,14 @@ var world: AirportWorld
 ## A variable, so tests can make runways the bottleneck.
 var runway_margin: float = RUNWAY_CLEAR_MARGIN
 const RUNWAY_CLEAR_MARGIN: float = 10.0
-## Freight per cargo flight (unloaded and loaded), and how long a freighter waits for unfinished
-## loading (design doc §10.3).
-const CARGO_TONNES_MIN: float = 30.0
-const CARGO_TONNES_MAX: float = 50.0
-const CARGO_MAX_HOLD: float = 60.0
+## The letters before every flight number (one livery, no airlines).
+const NUMBER_PREFIX: String = "AI"
 ## A plane may land this many seconds late without delaying its departure (design doc §7.5a).
 const TURNAROUND_BUFFER: float = 20.0
 ## The last stretch before the doors close (the BOARDING phase).
 const BOARDING_OPENS: float = 90.0
 
-## A plane starts its final approach (the visuals may celebrate a new airline's first landing).
+## A plane starts its final approach.
 signal plane_arriving(flight: Flight)
 
 ## Every flight that hasn't departed yet. A gate can have two: the one at the stand and the
@@ -54,25 +49,17 @@ var _runway_free_at: Dictionary[Building, float] = {}
 ## Every runway booking (runway, start time, end time), for tests.
 var runway_bookings: Array = []
 
-# Departure time of the latest flight planned at each gate.
-var _last_planned: Dictionary[Building, float] = {}
 var _next_number: int = 101
+## Flights that have left the stand (counted for the status line).
+var departures: int = 0
 # True while a plane has waited long enough at the holding point to go before landings (set per tick).
 var _takeoff_priority: bool = false
-## Dice. Airport replaces them with its shared, seeded dice (tech_architecture.md §3).
-var rng: RandomNumberGenerator = RandomNumberGenerator.new()
-
-
-func _init() -> void:
-	rng.randomize()
-
 
 func tick(now: float, delta: float) -> void:
-	var usable := world.usable_gates() + world.usable_cargo_terminals()
+	var usable := world.usable_gates()
 	for flight in flights:
 		if not usable.has(flight.gate):
 			flight.phase = Flight.Phase.CANCELLED
-			_last_planned.erase(flight.gate)
 	flights = flights.filter(func(f: Flight) -> bool: return f.is_active())
 
 	# The timetable's slots become flights when their planes have to start arriving.
@@ -162,16 +149,12 @@ func departures_text(max_lines: int = 4) -> String:
 		Flight.Phase.DEPARTING: "Departed",
 	}
 	var lines: PackedStringArray = []
-	if flights.is_empty() and world.curfew_at():
-		lines.append("Night curfew: no flights until %02d:00" % int(Clock.CURFEW_END))
 	for flight in upcoming().slice(0, max_lines):
 		var seconds := maxi(ceili(flight.departs_at() - world.sim_time), 0)
 		var status: String = phase_names[flight.phase]
 		if flight.delay > 0.0 and flight.phase == Flight.Phase.BOARDING:
 			status = "Delayed"
-		var where := "Cargo" if flight.cargo else "Gate %d" % world.gate_number(flight.gate)
-		lines.append("%s   %s   %s   %s   %d:%02d" % [
-			flight.number, where, "Freighter" if flight.cargo else flight.route, status, seconds / 60, seconds % 60])
+		lines.append("%s   Gate %d   %s   %d:%02d" % [flight.number, world.gate_number(flight.gate), status, seconds / 60, seconds % 60])
 	return "\n".join(lines)
 
 
@@ -181,30 +164,23 @@ func save_state() -> Dictionary:
 	var saved: Array[Dictionary] = []
 	for flight in flights:
 		saved.append(_save_flight(flight))
-	var planned: Array = []
-	for gate in _last_planned:
-		planned.append([gate.id, _last_planned[gate]])
 	var runways: Array = []
 	for runway in _runway_free_at:
 		runways.append([runway.id, _runway_free_at[runway]])
-	return {"flights": saved, "next_number": _next_number, "last_planned": planned, "runway_free_at": runways}
+	return {"flights": saved, "next_number": _next_number, "departures": departures, "runway_free_at": runways}
 
 
-## Restores from save_state(). Flights whose gate is gone are left out. Entries of old saves that
-## were only kept for their passengers ("scheduled": false) are dropped.
+## Restores from save_state(). Flights whose gate is gone are left out.
 func load_state(data: Dictionary, by_id: Dictionary[int, Building]) -> void:
 	flights.clear()
-	_last_planned.clear()
 	_runway_free_at.clear()
 	_next_number = int(data.get("next_number", _next_number))
+	departures = int(data.get("departures", 0))
 	for entry: Dictionary in data.get("flights", []):
 		var gate: Building = by_id.get(int(entry.get("gate", 0)))
-		if gate == null or not bool(entry.get("scheduled", true)):
+		if gate == null:
 			continue
 		flights.append(_load_flight(entry, gate, by_id))
-	for pair: Array in data.get("last_planned", []):
-		if by_id.has(int(pair[0])):
-			_last_planned[by_id[int(pair[0])]] = float(pair[1])
 	for pair: Array in data.get("runway_free_at", []):
 		if by_id.has(int(pair[0])):
 			_runway_free_at[by_id[int(pair[0])]] = float(pair[1])
@@ -212,11 +188,8 @@ func load_state(data: Dictionary, by_id: Dictionary[int, Building]) -> void:
 
 func _save_flight(flight: Flight) -> Dictionary:
 	return {
-		"number": flight.number,
-		"airline": String(flight.airline.type.id) if flight.airline != null else "",
-		"wide_body": flight.wide_body, "cargo": flight.cargo,
-		"tonnes": flight.tonnes, "tonnes_handled": flight.tonnes_handled, "fee": flight.fee_per_passenger,
-		"route": flight.route, "gate": flight.gate.id, "stand": flight.stand.id if flight.stand != null else 0,
+		"number": flight.number, "class": int(flight.plane_class),
+		"gate": flight.gate.id, "stand": flight.stand.id if flight.stand != null else 0,
 		"departure_time": flight.departure_time, "delay": flight.delay, "arrival_delay": flight.arrival_delay,
 		"landing_booked": flight.landing_booked, "takeoff_booked": flight.takeoff_booked,
 		"takeoff_at": flight.takeoff_at, "phase": int(flight.phase),
@@ -226,16 +199,7 @@ func _save_flight(flight: Flight) -> Dictionary:
 func _load_flight(entry: Dictionary, gate: Building, by_id: Dictionary[int, Building]) -> Flight:
 	var flight := Flight.new()
 	flight.number = str(entry.get("number", ""))
-	var airline_id := StringName(entry.get("airline", ""))
-	for airline in world.airlines.signed:
-		if airline.type.id == airline_id:
-			flight.airline = airline
-	flight.wide_body = bool(entry.get("wide_body", false))
-	flight.cargo = bool(entry.get("cargo", false))
-	flight.tonnes = float(entry.get("tonnes", 0.0))
-	flight.tonnes_handled = float(entry.get("tonnes_handled", 0.0))
-	flight.fee_per_passenger = float(entry.get("fee", Economy.PASSENGER_FEE))
-	flight.route = str(entry.get("route", ""))
+	flight.plane_class = clampi(int(entry.get("class", 0)), 0, TimetableSlot.PlaneClass.WIDE) as TimetableSlot.PlaneClass
 	flight.gate = gate
 	flight.stand = by_id.get(int(entry.get("stand", 0)), world.stand_behind(gate))
 	flight.departure_time = float(entry.get("departure_time", 0.0))
@@ -243,107 +207,37 @@ func _load_flight(entry: Dictionary, gate: Building, by_id: Dictionary[int, Buil
 	flight.arrival_delay = float(entry.get("arrival_delay", 0.0))
 	flight.landing_booked = bool(entry.get("landing_booked", false))
 	flight.takeoff_booked = bool(entry.get("takeoff_booked", false))
-	# Saves from before real taxi times have no start: the run starts when the plane reaches the runway.
 	flight.takeoff_at = float(entry.get("takeoff_at", -1.0))
-	if flight.takeoff_booked and flight.takeoff_at < 0.0:
-		flight.takeoff_at = flight.departs_at() + taxi_out_of(route_of(flight))
 	flight.phase = clampi(int(entry.get("phase", 0)), 0, Flight.Phase.CANCELLED) as Flight.Phase
 	return flight
 
 
-# Turns a slot into a flight at a gate that fits it, or drops the slot (no gate, no airline).
+# Turns a slot into a flight, or drops it: its gate no longer works, the stand no longer takes its
+# plane class, or the plane could not touch down in time (a far stand built after the slot was
+# planned).
 func _fill_slot(slot: TimetableSlot, usable: Array[Building], now: float) -> void:
 	slot.state = TimetableSlot.State.DROPPED
-	# Night curfew (design doc §12.4): no landing or take-off in the quiet hours.
-	if world.timetable.in_curfew(slot.departure_time):
+	if not usable.has(slot.gate):
 		return
-	var gate := _gate_for(slot, usable, now)
-	if gate == null:
+	var stand := world.stand_behind(slot.gate)
+	if stand == null or not stand.type.fits(slot.plane_class):
 		return
-	# Signed deals fill their quotas first; without a deal the default airline flies the narrow-bodies.
-	var airline := world.airlines.claim_for_slot(slot.plane_class, slot.route)
-	var type: AirlineType = airline.type if airline != null else null
-	if type == null:
-		if slot.plane_class != TimetableSlot.PlaneClass.NARROW:
-			return
-		type = Timetable.default_airline()
+	var route := world.plane_network.route_to_stand(stand)
+	if route != null and slot.departure_time - now < lead_of(route) + APPROACH_TIME:
+		return
 	slot.state = TimetableSlot.State.FILLED
-	var flight := _schedule(gate, slot.departure_time, type, airline)
-	slot.airline_code = type.code
-	slot.flight_number = flight.number
+	slot.flight_number = _schedule(slot.gate, slot.departure_time, slot.plane_class).number
 
 
-# The gate that takes `slot`: free for a turnaround before it, and the one with the shortest planned
-# route (close stands are worth more), ties by id. Wide-body slots need a wide-body stand
-# (stand_behind decides what fits), so narrow-body slots keep off those gates while another one is free.
-# A stand whose plane would have to land before `now` (a far stand built mid-day while this slot
-# was already planned) is skipped: the plane could not touch down in time.
-func _gate_for(slot: TimetableSlot, usable: Array[Building], now: float = -INF) -> Building:
-	var best: Building = null
-	var best_wide := false
-	var best_time := INF
-	for gate in usable:
-		if (gate.type.role == BuildingType.Role.CARGO_TERMINAL) != (slot.plane_class == TimetableSlot.PlaneClass.CARGO):
-			continue
-		var stand := world.stand_behind(gate)
-		var wide_stand := stand != null and stand.type.wide_body
-		# The stand's class decides (BuildingType.fits): a wide stand takes narrow planes too, a
-		# narrow one never takes a wide-body plane.
-		if stand != null and not stand.type.fits(slot.plane_class):
-			continue
-		if stand == null and slot.plane_class == TimetableSlot.PlaneClass.WIDE:
-			continue
-		var last: float = _last_planned.get(gate, -INF)
-		if last + INTERVAL > slot.departure_time:
-			continue
-		if wide_stand and slot.plane_class == TimetableSlot.PlaneClass.NARROW and _wide_slot_near(slot):
-			continue  # a wide-body slot needs this gate right about now
-		var route := world.plane_network.route_to_stand(stand) if stand != null else null
-		if route != null and slot.departure_time - now < lead_of(route) + APPROACH_TIME:
-			continue
-		var planned := 2.0 * FALLBACK_TAXI_TIME if route == null else route.taxi_in_time + route.taxi_out_time
-		var better := best == null or (best_wide and not wide_stand) or (best_wide == wide_stand \
-				and (planned < best_time - 0.001 or (absf(planned - best_time) <= 0.001 and gate.id < best.id)))
-		if better:
-			best = gate
-			best_wide = wide_stand
-			best_time = planned
-	return best
-
-
-# Makes the flight (tests call it directly; no type means the default airline).
-# True if a wide-body slot still waits for its flight within a turnaround of `slot`.
-func _wide_slot_near(slot: TimetableSlot) -> bool:
-	for other in world.timetable.slots:
-		if other.plane_class == TimetableSlot.PlaneClass.WIDE and other.state == TimetableSlot.State.PENDING \
-				and absf(other.departure_time - slot.departure_time) < INTERVAL:
-			return true
-	return false
-
-
-func _schedule(gate: Building, departure_time: float, type: AirlineType = null, airline: Airline = null) -> Flight:
-	if type == null:
-		type = Timetable.default_airline()
+# Makes the flight (tests call it directly).
+func _schedule(gate: Building, departure_time: float, plane_class: TimetableSlot.PlaneClass = TimetableSlot.PlaneClass.NARROW) -> Flight:
 	var flight := Flight.new()
-	flight.airline = airline
-	flight.number = "%s %d" % [type.code, _next_number]
+	flight.number = "%s %d" % [NUMBER_PREFIX, _next_number]
 	_next_number += 1
+	flight.plane_class = plane_class
 	flight.gate = gate
 	flight.stand = world.stand_behind(gate)
-	# The airline's route type (it sets the season's demand, design doc §12.2).
-	flight.route = type.route
-	flight.wide_body = type.wide_body
 	flight.departure_time = departure_time
-	if type.cargo:
-		# A freighter (design doc §10.3): freight to unload and load.
-		flight.cargo = true
-		flight.tonnes = rng.randf_range(CARGO_TONNES_MIN, CARGO_TONNES_MAX)
-		flight.fee_per_passenger = airline.fee  # per tonne
-		_last_planned[gate] = departure_time
-		flights.append(flight)
-		return flight
-	flight.fee_per_passenger = airline.fee if airline != null else type.expected_fee
-	_last_planned[gate] = departure_time
 	flights.append(flight)
 	return flight
 
@@ -380,36 +274,14 @@ func _advance(flight: Flight, now: float, delta: float) -> void:
 	# A plane never goes back a phase (a changed route moves the times, not the story).
 	phase = maxi(phase, flight.phase) as Flight.Phase if flight.phase != Flight.Phase.CANCELLED else phase
 
-	if flight.cargo and (phase == Flight.Phase.AT_STAND or phase == Flight.Phase.BOARDING):
-		flight.tonnes_handled = minf(flight.tonnes_handled + _handling_rate(flight.gate) * delta, flight.tonnes)
-	if phase >= Flight.Phase.DEPARTING and flight.phase == Flight.Phase.BOARDING and flight.cargo \
-			and flight.tonnes_handled < flight.tonnes and flight.airport_delay() < CARGO_MAX_HOLD:
-		# The freight isn't loaded yet: the freighter waits (the airport's delay).
-		flight.delay += delta
-		phase = Flight.Phase.BOARDING
 	if phase >= Flight.Phase.DEPARTING and flight.phase < Flight.Phase.DEPARTING:
-		world.reputation.record_departure(flight.airport_delay())
-		if flight.cargo:
-			# Paid per tonne handled (design doc §10.3).
-			world.economy.earn(flight.tonnes_handled * flight.fee_per_passenger + Economy.FLIGHT_FEE, Economy.CARGO)
-		else:
-			# The airline pays per flight (design doc §11.5).
-			world.economy.earn(Economy.FLIGHT_FEE)
-		world.airlines.record_flight(flight.airline, flight.airport_delay() > Reputation.ON_TIME_LIMIT)
+		departures += 1
 	if phase == Flight.Phase.ARRIVING and flight.phase == Flight.Phase.SCHEDULED:
 		plane_arriving.emit(flight)
 	flight.phase = phase
 
 
 enum Hold { NONE, AIRPORT }
-
-## Tonnes per second a cargo terminal moves (design doc §10.3): four handler places at 0.25 t/s
-## each, as when every place was staffed (staff were removed 2026-11-14).
-const HANDLING_RATE: float = 1.0
-
-
-func _handling_rate(_terminal: Building) -> float:
-	return HANDLING_RATE
 
 
 # Books `runway` for a movement that starts at `start` and lasts `duration`. False if the runway is

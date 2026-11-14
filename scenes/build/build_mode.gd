@@ -132,7 +132,7 @@ func start_demolish() -> void:
 	_demolish_target = null
 	_paint_material.albedo_color = demolish_color
 	_update_highlight()
-	tool_changed.emit(Tool.DEMOLISH, false, "Tap a building to demolish it (50 % refund)")
+	tool_changed.emit(Tool.DEMOLISH, false, "Tap a building to demolish it")
 
 
 ## Demolishes the selected building; the tool stays open for the next one.
@@ -140,11 +140,10 @@ func confirm_demolish() -> void:
 	if _tool != Tool.DEMOLISH or _demolish_target == null:
 		return
 	var type_name := _demolish_target.type.display_name
-	var refund := Airport.demolish_refund(_demolish_target)
 	Airport.demolish(_demolish_target)
 	_demolish_target = null
 	_paint_preview.visible = false
-	tool_changed.emit(Tool.DEMOLISH, false, "%s demolished · %s refunded" % [type_name, Economy.format(refund)])
+	tool_changed.emit(Tool.DEMOLISH, false, "%s demolished" % type_name)
 
 
 func rotate_placement() -> void:
@@ -289,7 +288,6 @@ func _set_preview_origin(origin_cell: Vector2i) -> void:
 		# Unconnected is allowed (connect it later), but say what's missing.
 		var missing := Airport.connection_problem(_placing_type, _placing_origin, _placing_rotation)
 		hint = "Drag the building to move it" if missing.is_empty() else missing + " (can be added later)"
-		hint += "  ·  " + Economy.format(_placing_type.build_cost)
 	tool_changed.emit(Tool.PLACE, can_place, hint)
 
 
@@ -314,7 +312,7 @@ func _select_for_demolish(cell: Vector2i) -> void:
 	if grid.is_empty(cell):
 		_demolish_target = null
 		_paint_preview.visible = false
-		tool_changed.emit(Tool.DEMOLISH, false, "Tap a building to demolish it (50 % refund)")
+		tool_changed.emit(Tool.DEMOLISH, false, "Tap a building to demolish it")
 		return
 	_demolish_target = grid.get_content(cell) as Building
 	var size := Building.rotated_size(_demolish_target.type.footprint, _demolish_target.rotation_steps)
@@ -322,8 +320,7 @@ func _select_for_demolish(cell: Vector2i) -> void:
 	_paint_preview.position = grid.block_center(_demolish_target.origin_cell, size) + Vector3(0.0, _demolish_target.type.height + 0.1, 0.0)
 	_paint_preview.scale = Vector3(size.x * grid.cell_size, 1.0, size.y * grid.cell_size)
 	_paint_preview.visible = true
-	tool_changed.emit(Tool.DEMOLISH, true, "Demolish %s · refund %s" % [
-		_demolish_target.type.display_name, Economy.format(Airport.demolish_refund(_demolish_target))])
+	tool_changed.emit(Tool.DEMOLISH, true, "Demolish %s" % _demolish_target.type.display_name)
 
 
 # --- PAINT tool helpers ---
@@ -336,11 +333,6 @@ func _update_paint_rect(screen_position: Vector2) -> void:
 	if _brush_drag:
 		_paint_rect = _brush_rect(_paint_start_cell, end_cell, _lock_axis(end_cell))
 		_show_paint_rect()
-		var cost := Airport.taxiway_cost(_rect_cells(_paint_rect), _paint_kind == PaintKind.TAXIWAY)
-		if _paint_kind == PaintKind.TAXIWAY:
-			# Also with nothing new to pave (a stamp over pavement): never leave an old price on screen.
-			var note := "Taxiway: %s" % Economy.format(cost)
-			tool_changed.emit(Tool.PAINT, true, note if cost > 0.0 else note + " (already paved)")
 		return
 	var top_left := Vector2i(mini(_paint_start_cell.x, end_cell.x), mini(_paint_start_cell.y, end_cell.y))
 	var bottom_right := Vector2i(maxi(_paint_start_cell.x, end_cell.x), maxi(_paint_start_cell.y, end_cell.y))
@@ -415,8 +407,7 @@ func _apply_paint(cells: Array[Vector2i]) -> String:
 
 # Shows `problem` if there is one, otherwise how to use the current paint tool.
 func _emit_paint_hint(problem: String) -> void:
-	var actions: Array[String] = ["lay walkway (%s per cell)" % Economy.format(Economy.WALKWAY_COST_PER_CELL),
-		"remove walkway or taxiway", "lay taxiway from stands to the runway (%s per cell)" % Economy.format(Economy.TAXIWAY_COST_PER_CELL)]
+	var actions: Array[String] = ["lay walkway", "remove walkway or taxiway", "lay taxiway from stands to the runway"]
 	var hint := problem
 	if hint.is_empty():
 		hint = "Drag to %s. Two fingers: move and zoom." % actions[_paint_kind]

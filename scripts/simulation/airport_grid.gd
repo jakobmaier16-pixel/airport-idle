@@ -41,8 +41,7 @@ const CHUNK_MASK: int = CHUNK_SIZE - 1
 const ZONE_MASK: int = 0x07
 const WALKWAY_BIT: int = 0x08
 const TAXIWAY_BIT: int = 0x10
-## Reserved for "owned land" (later PRs); nothing sets it yet. The ground shades unowned land from
-## `Progression.owned_land` (a rectangle uniform) instead, so the chunks stay sparse.
+## Reserved (nothing sets it): the whole map is buildable since the strip to core, 2026-11-14.
 const OWNED_BIT: int = 0x20
 ## Ground surface under stands and runways (bits 6-7, a 2-bit value; 0 = none). These are buildings, not
 ## painted layers: the brain fills the footprint when one is placed and clears it when it is demolished,

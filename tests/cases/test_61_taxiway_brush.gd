@@ -35,7 +35,6 @@ func _taxiway_cells() -> int:
 
 
 func _start() -> void:
-	Airport.economy.balance = 1000000.0
 	await start_game()
 	await open_build_view()
 	await show_whole_map(0.0, Vector3.ZERO)
@@ -70,24 +69,6 @@ func test_short_drag_does_not_lock_and_tap_stamps() -> void:
 	check_eq(box.size, Vector2i(12, 12), "under 3 cells: a single stamp")
 
 
-func test_preview_cost_equals_actual_cost() -> void:
-	await _start()
-	await press(ui("BuildMenu/PaintButtons/TaxiwayButton"))
-	var before := Airport.economy.balance
-	var from := screen_of_cell(at(Vector2i(20, 70)))
-	var to := screen_of_cell(at(Vector2i(34, 70)))
-	touch(0, true, from)
-	for i in range(1, 11):
-		move(0, from.lerp(to, i / 10.0))
-	await frames(1)
-	var hint := (ui("ToolPanel/HintLabel") as Label).text
-	touch(0, false, to)
-	var paid := before - Airport.economy.balance
-	check(paid > 0.0, "something was paid")
-	check_eq(paid, 12.0 * 26.0 * Economy.TAXIWAY_COST_PER_CELL, "12 x 26 cells")
-	check_eq(hint, "Taxiway: %s" % Economy.format(paid), "preview showed the real cost")
-
-
 func test_remove_clears_a_12_wide_strip() -> void:
 	await _start()
 	await press(ui("BuildMenu/PaintButtons/TaxiwayButton"))
@@ -101,41 +82,15 @@ func test_remove_clears_a_12_wide_strip() -> void:
 	check_eq(Airport.grid.is_taxiway(at(Vector2i(20, 70))), true, "the ends stay")
 
 
-func test_tap_stamps_the_brush_and_charges_once() -> void:
+func test_tap_stamps_the_brush_once() -> void:
 	await _start()
 	await press(ui("BuildMenu/PaintButtons/TaxiwayButton"))
-	var before := Airport.economy.balance
 	var cell := at(Vector2i(30, 70))
 	tap(screen_of_cell(cell))
 	var box := _bbox_of_taxiway()
 	check_eq(box.size, Vector2i(12, 12), "a tap stamps one 12 x 12 brush")
 	check_eq(box.position, cell - Vector2i(6, 6), "centred on the tapped cell")
-	check_eq(before - Airport.economy.balance, 144.0 * Economy.TAXIWAY_COST_PER_CELL, "144 cells paid")
-	var paid := Airport.economy.balance
 	tap(screen_of_cell(cell))
-	check_eq(Airport.economy.balance, paid, "a second tap on the same pavement costs nothing")
 	check_eq(_taxiway_cells(), 144, "and adds no cells")
 	await frames(1)
 	check((ui("ToolPanel/HintLabel") as Label).text.begins_with("Drag to"), "the hint is the tool's usual one after a tap")
-
-
-func test_price_hint_is_not_stale_over_existing_pavement() -> void:
-	await _start()
-	await press(ui("BuildMenu/PaintButtons/TaxiwayButton"))
-	drag(screen_of_cell(at(Vector2i(20, 70))), screen_of_cell(at(Vector2i(50, 70))))
-	await press(ui("ToolPanel/ToolBar/DoneButton"))
-	await press(ui("BuildMenu/PaintButtons/TaxiwayButton"))
-	# A new drag that starts on the strip, leaves it (a price shows) and comes back (nothing new to pave).
-	var start := screen_of_cell(at(Vector2i(30, 70)))
-	touch(0, true, start)
-	for i in range(1, 11):
-		move(0, start.lerp(screen_of_cell(at(Vector2i(70, 70))), i / 10.0))
-	await frames(1)
-	var outside := (ui("ToolPanel/HintLabel") as Label).text
-	check(outside.begins_with("Taxiway: ") and not outside.contains("€0"), "over new ground the price shows: %s" % outside)
-	for i in range(1, 11):
-		move(0, screen_of_cell(at(Vector2i(70, 70))).lerp(screen_of_cell(at(Vector2i(40, 70))), i / 10.0))
-	await frames(1)
-	var inside := (ui("ToolPanel/HintLabel") as Label).text
-	touch(0, false, screen_of_cell(at(Vector2i(40, 70))))
-	check(inside.contains("€0"), "over existing pavement it says so, not the old price: %s" % inside)

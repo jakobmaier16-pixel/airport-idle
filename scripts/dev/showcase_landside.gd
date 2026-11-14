@@ -68,11 +68,11 @@ static func _cell(id: StringName, a: int, b: int, rot_deg: float = 0.0) -> void:
 
 static func _put(type: BuildingType, reference_origin: Vector2i, steps: int) -> void:
 	var origin := MapAnchor.cell(reference_origin, Airport.grid.size)
-	var problem := Airport.check_placement(type, origin, steps, false)
+	var problem := Airport.check_placement(type, origin, steps)
 	if not problem.is_empty():
 		failures.append("%s at %s: %s" % [type.id, reference_origin, problem])
 		return
-	if Airport.place_building(type, origin, steps, false) != null:
+	if Airport.place_building(type, origin, steps) != null:
 		placed += 1
 
 

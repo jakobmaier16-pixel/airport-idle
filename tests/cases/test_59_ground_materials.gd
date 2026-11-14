@@ -23,7 +23,7 @@ func test_stand_and_runway_set_and_clear_surface_bits() -> void:
 	check_eq(grid.get_surface(rect.position - Vector2i.ONE), 0, "outside it nothing")
 
 	var stand_type := type_of(&"aircraft_stand")
-	var stand := Airport.place_building(stand_type, TYPE_FREE_SPOT, 1, false)
+	var stand := Airport.place_building(stand_type, TYPE_FREE_SPOT, 1)
 	check(stand != null, "a stand can be placed")
 	var area := stand.get_rect()
 	check_eq(area.size, Vector2i(stand_type.footprint.y, stand_type.footprint.x), "rotation swaps the rectangle")
@@ -33,7 +33,7 @@ func test_stand_and_runway_set_and_clear_surface_bits() -> void:
 			if grid.get_surface(Vector2i(x, y)) == AirportGrid.SURFACE_CONCRETE:
 				concrete += 1
 	check_eq(concrete, area.size.x * area.size.y, "exactly the footprint is concrete")
-	var shop := Airport.place_building(type_of(&"check_in"), Vector2i(10, 10), 0, false)
+	var shop := Airport.place_building(type_of(&"check_in"), Vector2i(10, 10), 0)
 	check(shop != null and grid.get_surface(shop.origin_cell) == 0, "other buildings lay no surface")
 
 	await frames(1)
@@ -49,7 +49,7 @@ func test_stand_and_runway_set_and_clear_surface_bits() -> void:
 
 func test_surface_is_rebuilt_on_load_and_not_saved() -> void:
 	await start_game()
-	var stand := Airport.place_building(type_of(&"aircraft_stand"), TYPE_FREE_SPOT, 0, false)
+	var stand := Airport.place_building(type_of(&"aircraft_stand"), TYPE_FREE_SPOT, 0)
 	check(stand != null, "stand placed")
 	var state := Airport.save_state()
 	var again := Airport.load_state(state)

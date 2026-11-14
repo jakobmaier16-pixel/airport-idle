@@ -8,16 +8,12 @@ const LENGTH: float = 21.0
 const FUSELAGE_RADIUS: float = 1.4
 const WINGSPAN: float = 21.0
 const BODY_COLOR: Color = Color(0.95, 0.96, 0.97)
-## Freighters are grey (design doc §10.3).
-const CARGO_BODY_COLOR: Color = Color(0.68, 0.7, 0.72)
-## Tail color without an airline; with one, the airline's color (design doc §10.1).
+## The one livery every plane wears (there are no airlines).
 const TAIL_COLOR: Color = Color(0.1, 0.45, 0.65)
 const ENGINE_COLOR: Color = Color(0.55, 0.57, 0.6)
 
 ## Set before the plane enters the tree.
 var tail_color: Color = TAIL_COLOR
-## A freighter: grey body. Set before the plane enters the tree.
-var cargo: bool = false
 ## How much bigger than the base model the plane is (see size_for). Set before the plane enters the tree.
 var size_factor: float = 1.0
 ## Long-haul planes have four engines (design doc §10.2). Set before the plane enters the tree.
@@ -27,8 +23,7 @@ var _body: AnimatableBody3D
 
 # Shared by every plane, so many planes don't mean many materials.
 static var _body_material: StandardMaterial3D
-static var _cargo_body_material: StandardMaterial3D
-# One tail material per airline color.
+# One tail material per color.
 static var _tail_materials: Dictionary[Color, StandardMaterial3D] = {}
 static var _engine_material: StandardMaterial3D
 
@@ -36,9 +31,8 @@ static var _engine_material: StandardMaterial3D
 func _ready() -> void:
 	if _body_material == null:
 		_body_material = _material(BODY_COLOR)
-		_cargo_body_material = _material(CARGO_BODY_COLOR)
 		_engine_material = _material(ENGINE_COLOR)
-	var body_material := _cargo_body_material if cargo else _body_material
+	var body_material := _body_material
 	if not _tail_materials.has(tail_color):
 		_tail_materials[tail_color] = _material(tail_color)
 	# Every size is multiplied by k, so a wide-body plane is the same model, just bigger. (Scaling
@@ -100,8 +94,7 @@ func _ready() -> void:
 ## narrow-body, 65 m wide-body). The one place the plane size is decided, until the real models
 ## arrive (handoff #44).
 static func size_for(flight: Flight) -> float:
-	var plane_class := TimetableSlot.PlaneClass.WIDE if flight.wide_body else TimetableSlot.PlaneClass.NARROW
-	return TimetableSlot.WINGSPAN_M[plane_class] / WINGSPAN
+	return TimetableSlot.WINGSPAN_M[flight.plane_class] / WINGSPAN
 
 
 func _add(mesh: Mesh, material: Material, offset: Vector3, rotation_radians: Vector3) -> void:

@@ -109,3 +109,78 @@ prototype; the full rules stay in `docs/prototype_reference.md` (sections named 
 - `scripts/dev/benchmark.gd` filled the airport with up to `PASSENGER_LIMIT` passengers and measured
   frame time with figures drawn. It now measures planes plus the build view. The behaviour hash no
   longer covers passengers (re-baselined in PR 1).
+
+## Removed in PR 2 (money, airlines, demand, reputation, tiers, seasons, cargo, goals)
+
+**Last commit with all of it: `bec1f7c`** (main after PR 1; restore a file with `git show bec1f7c:<file>`).
+Save format 11 drops all their saved data; buildings of removed types are dropped on load without refund.
+
+### Money and economy
+- **What:** the airport's cash. Start EUR 50,000; every building, walkway cell (20) and taxiway cell cost
+  money to place, demolishing refunded part of it, buildings had a running cost per minute. Income: EUR 15 per
+  departing passenger, EUR 300 per departing flight, EUR 5 per arriving passenger, 30 % of shop and cafe
+  spending. "Profit per minute" was averaged over the last minute. A loan (borrow, repay, restructure when
+  over the limit) kept the player going; offline income paid 4 h of average profit after 36 h away.
+- **Files:** `scripts/simulation/economy.gd`, money checks in `airport_brain.gd` (`check_placement`,
+  `paint_walkway`, `paint_taxiway`, `demolish`), `build_cost` / `running_cost_per_minute` in `BuildingType`,
+  offline code in `save_game.gd`, HUD money and loan labels. Game design §11, prototype reference §11.
+- **Now:** everything is free; building is limited only by the rules (zones, overlap, map edge).
+
+### Building upgrades and levels
+- **What:** there was no separate upgrade system left after PR 1 (station upgrades went then). PR 2 removed
+  the remaining level and upgrade fields from buildings and the save (`level`, `upgrade*`, `closed`, `cost`).
+- **Files:** `Building` fields, building entries in `airport_brain.gd` save and load. Game design §3.2.
+
+### Airlines, offers and deals
+- **What:** fictional airlines with a catalog (`data/airlines/*.tres`, `AirlineType`, `AirlineCatalog`).
+  A starter deal (Velora, 20 flights); the first offer came after 120 s, then every 240-420 s, at most 3 open,
+  each lasting 600 s; the player accepted, negotiated or declined, and signed airlines supplied the flights
+  for free gate slots. Tail colours on planes came from the airline.
+- **Files:** `airlines.gd`, `airline.gd`, `airline_offer.gd`, `scenes/ui/airlines_panel.*`, `data/airlines/`.
+  Game design §10.
+- **Now:** one constant default livery and the flight number prefix `AI`.
+
+### Demand
+- **What:** one number, narrow-body flights per game hour (start 3.0), times an hour-of-day rush factor
+  (`Clock.DEMAND_BY_HOUR`); updated once per game day from stars and on-time rate; tier caps 6 / 9 / 12 / 16;
+  about 5 days to the cap when run well; falling was slower than growing.
+- **Files:** `demand.gd`, `Clock.demand_factor`, `Clock.DEMAND_BY_HOUR`. Tech architecture §6.
+
+### Stars and reputation
+- **What:** a 1-5 star rating from the smoothed on-time rate of departures (on time = at most 10 s delay,
+  start 0.9, smoothing 0.1, 1 star at 0.5, 5 stars at 0.95); stars scaled demand (0.6 at 1 star) and gated tiers.
+- **Files:** `reputation.gd`, `scenes/ui/star_rating.*`, HUD rating row. Game design §11.7.
+
+### Tiers, progression and land gating
+- **What:** Regional / National / International / Hub. Needs: 1,000 / 6,000 / 25,000 passengers, 3 / 3.5 / 4
+  stars, 600 transfers for Hub. Each tier unlocked building types (`unlocked_at`) and, for Regional, only the
+  1,200 x 400 cell starting rectangle was ownable; the ground shader dimmed unowned land. A milestone panel
+  announced each tier.
+- **Files:** `progression.gd`, `BuildingType.unlocked_at`, `owns_cell`, `land_changed`, `ground.gd` and
+  `ground_grid.gdshader` (`owned_rect`), milestone panel. Game design §13.
+- **Now:** the whole map is buildable and every type is available. The `OWNED_BIT` in the grid stays unused.
+
+### Seasons
+- **What:** four seasons of 2 game days each (Spring, Summer, Autumn, Winter) that shifted demand by route type.
+- **Files:** `seasons.gd`. Game design §12.2.
+
+### Night curfew
+- **What:** no flights from 00:00 to 05:00 until the Hub tier. Files: `Clock.CURFEW_START/END`,
+  `is_curfew_hour`, a check in `flight_schedule.gd`. Game design §12.4.
+
+### Cargo terminal and freighters
+- **What:** a cargo terminal building and cargo stands; freighter flights loaded tonnes at a fixed handling
+  rate (1.0 t/s) and paid a fee. `BuildingType.Role.CARGO_TERMINAL` stays in the enum (saved numbers are never
+  renumbered) but no type uses it.
+- **Files:** `data/buildings/cargo_terminal.tres`, cargo code in `flight_schedule.gd` and `flight.gd`,
+  `usable_cargo_terminals` in `airport_brain.gd`, grey freighter livery in `plane_visual.gd`.
+
+### Goals, milestone panel and stats panel
+- **What:** ten "Getting started" goals read from the airport state (hideable); the milestone panel; a stats
+  panel with tabs and a message log in the HUD.
+- **Files:** `goals.gd`, goal / milestone / stats nodes in `hud.tscn` and `hud.gd`. Game design §6.1.
+
+### Old timetable (rng based)
+- **What:** `FlightSchedule` planned flights every `INTERVAL` from the demand and rush factor, picked gates
+  and airlines with `Airport.rng`. Replaced by `Timetable`: one fixed turnaround per usable gate every
+  `TURNAROUND_MINUTES` (90) game minutes, staggered by gate id, no rng.

@@ -1,7 +1,6 @@
 extends TestCase
 ## Save format 10 (tech_architecture.md §13): the 6 m prototype's stands, runway and taxiway paint are
-## removed with a full refund, and the real-scale runway is laid. Rules, not pasted numbers: every
-## amount is worked out from the example save itself (see TestCase.legacy_refund_of).
+## removed, and the real-scale runway is laid. (Their refund went away with money, format 11.)
 
 const TEST_SAVE: String = "user://test_save_v10.json"
 const V9: String = "res://tests/saves/v9_showcase.json"
@@ -20,30 +19,25 @@ func _clean_up() -> void:
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(TEST_SAVE))
 
 
-func test_the_format_is_10_and_there_is_a_v10_example() -> void:
-	check_eq(SaveGame.FORMAT_VERSION, 10, "the newest format")
+func test_there_is_a_v10_example_and_a_converter_for_v9() -> void:
 	check_eq(int(_example(V10)["version"]), 10, "an example save of version 10")
 	check(SaveGame.migrations.has(9), "a converter for version 9")
 
 
-func test_v9_example_loses_its_old_airside_and_gets_money_back() -> void:
+func test_v9_example_loses_its_old_airside() -> void:
 	var saved := _example(V9)
-	var refund := legacy_refund_of(saved)
-	check(refund > 0.0, "the example has old stands, a runway and taxiways (%.0f)" % refund)
+	check(saved["buildings"].any(func(e: Dictionary) -> bool: return LEGACY_AIRSIDE_TYPES.has(str(e["type"]))), "the example has old stands or a runway")
+	SaveGame.format_version = 10  # stop after the v9 converter
 	var converted := SaveGame.migrate(_example(V9))
-	check_eq(SaveGame.legacy_refund, refund, "the converter reports what it paid back")
-	check_eq(converted["money"], float(saved["money"]) + refund, "the refund is added to the saved money")
+	SaveGame.format_version = SaveGame.FORMAT_VERSION
 	for entry: Dictionary in converted["buildings"]:
-		check(not LEGACY_AIRSIDE_PRICES.has(str(entry["type"])), "no %s left in the save" % entry["type"])
+		check(not LEGACY_AIRSIDE_TYPES.has(str(entry["type"])), "no %s left in the save" % entry["type"])
 	check_eq((converted["taxiways"] as Array).size(), 0, "no taxiway chunks left")
-	# Everything else stays: the saved buildings minus the removed ones.
-	var kept: int = saved["buildings"].filter(func(e: Dictionary) -> bool: return not LEGACY_AIRSIDE_PRICES.has(str(e["type"]))).size()
+	var kept: int = saved["buildings"].filter(func(e: Dictionary) -> bool: return not LEGACY_AIRSIDE_TYPES.has(str(e["type"]))).size()
 	check_eq((converted["buildings"] as Array).size(), kept, "the other buildings are untouched")
 
 
-func test_loading_v9_leaves_no_legacy_footprint_and_the_balance_adds_up() -> void:
-	var saved := _example(V9)
-	var refund := legacy_refund_of(saved)
+func test_loading_v9_leaves_no_legacy_footprint() -> void:
 	Airport.load_state(SaveGame.migrate(_example(V9)))
 	var runways := 0
 	for building in Airport.buildings:
@@ -53,24 +47,9 @@ func test_loading_v9_leaves_no_legacy_footprint_and_the_balance_adds_up() -> voi
 			check_eq(building.type.footprint, Vector2i(1000, 23), "the new runway")
 	check_eq(runways, 1, "exactly one runway is laid")
 	check_eq(Airport.grid.count_flag(AirportGrid.TAXIWAY_BIT), 0, "no old taxiway paint")
-	check_eq(Airport.economy.balance, float(saved["money"]) + refund + Airport.load_refund, "balance = saved money + refunds")
-	check_eq(Airport.load_refund, removed_refund_of(saved), "only the removed building types are refunded")
-	# The gates stay and wait for new stands.
 	check(Airport.buildings.any(func(b: Building) -> bool: return b.type.role == BuildingType.Role.GATE), "the gates are still there")
 	sim_seconds(1.0)
-	check_eq(Airport.schedule.flights.size(), 0, "flights of the removed stands are cancelled at the first step")
-
-
-func test_the_player_is_told_what_was_refunded() -> void:
-	var saved := _example(V9)
-	var file := FileAccess.open(TEST_SAVE, FileAccess.WRITE)
-	file.store_string(FileAccess.get_file_as_string(V9))
-	file.close()
-	SaveGame.save_path = TEST_SAVE
-	SaveGame.enabled = true
-	SaveGame.load_game()
-	check(SaveGame.load_problem.ends_with("Old stands and runway were removed: %s refunded." % Economy.format(legacy_refund_of(saved))), "the notice: %s" % SaveGame.load_problem)
-	_clean_up()
+	check_eq(Airport.schedule.flights.size(), 0, "no flights without stands")
 
 
 func test_converter_works_on_small_hand_made_saves() -> void:
@@ -78,30 +57,27 @@ func test_converter_works_on_small_hand_made_saves() -> void:
 	for x in 10:
 		grid.set_taxiway(Vector2i(70 + x, 70), true)
 	var data := {
-		"version": 9, "money": 100.0, "taxiways": GridSave.encode(grid, AirportGrid.TAXIWAY_BIT),
+		"version": 9, "taxiways": GridSave.encode(grid, AirportGrid.TAXIWAY_BIT),
 		"buildings": [
-			{"id": 1, "type": "aircraft_stand", "cell": [5, 5], "cost": 5500.0},
+			{"id": 1, "type": "aircraft_stand", "cell": [5, 5]},
 			{"id": 2, "type": "wide_body_stand", "cell": [30, 5]},
-			{"id": 3, "type": "gate", "cell": [5, 1], "cost": 4000.0},
+			{"id": 3, "type": "gate", "cell": [5, 1]},
 		],
 	}
+	SaveGame.format_version = 10
 	var converted := SaveGame.migrate(data)
-	var expected := 100.0 + 5500.0 + LEGACY_AIRSIDE_PRICES["wide_body_stand"] + 10 * LEGACY_TAXIWAY_PRICE
-	check_eq(converted["money"], expected, "the entry's own price, the old list price when it has none, and the taxiway cells")
+	SaveGame.format_version = SaveGame.FORMAT_VERSION
 	check_eq((converted["buildings"] as Array).size(), 1, "only the gate is kept")
-	var plain := SaveGame.migrate({"version": 9, "money": 100.0, "buildings": [], "taxiways": []})
-	check_eq(plain["money"], 100.0, "nothing to remove: the money stays")
-	check_eq(SaveGame.legacy_refund, 0.0, "and nothing is reported")
+	check_eq((converted["taxiways"] as Array).size(), 0, "the taxiway paint is gone")
 
 
-func test_v10_example_loads_completely_and_saves_the_same() -> void:
+func test_v10_example_loads_completely() -> void:
 	var saved := _example(V10)
-	check_eq(SaveGame.migrate(_example(V10)), saved, "a current save needs no conversion")
-	check_eq(SaveGame.legacy_refund, 0.0, "nothing is refunded")
-	check_eq(Airport.load_state(saved), REMOVED_TYPES.size(), "every building loads but the removed types")
-	check_eq(Airport.buildings.size(), SHOWCASE_BUILDINGS, "all of its other buildings")
-	check_eq(Airport.load_refund, removed_refund_of(saved), "only the removed types are refunded")
-	check(Airport.schedule.flights.size() > 0 or Airport.timetable.slots.size() > 0, "its flights and timetable are back")
+	var converted := SaveGame.migrate(_example(V10))
+	check_eq(converted["version"], SaveGame.FORMAT_VERSION, "converted to the newest format")
+	check_eq(Airport.load_state(converted), 0, "nothing fails to load")
+	check_eq(Airport.buildings.size(), EXAMPLE_SAVE_BUILDINGS, "all of its other buildings")
+	check_eq(Airport.load_skipped.size(), 0, "none was skipped")
 	var again := JSON.parse_string(JSON.stringify(Airport.save_state(), "", true, true)) as Dictionary
 	var types_before: Array = saved["buildings"].filter(func(e: Dictionary) -> bool: return not REMOVED_TYPES.has(str(e["type"]))).map(func(e: Dictionary) -> Array: return [e["type"], e["cell"], e["rotation"]])
 	var types_after: Array = again["buildings"].map(func(e: Dictionary) -> Array: return [e["type"], e["cell"], e["rotation"]])
@@ -114,7 +90,7 @@ func test_v10_example_loads_completely_and_saves_the_same() -> void:
 # new runway moves to the nearest free spot instead of silently not being laid.
 func _v9_with_a_building_in_the_runway_band() -> Dictionary:
 	var saved := _example(V9)
-	saved["buildings"].append({"id": 99, "type": "car_park", "cell": [30, 90], "rotation": 0, "level": 1, "cost": 3500.0, "upgrade_left": 0.0, "fast_track": false})
+	saved["buildings"].append({"id": 99, "type": "car_park", "cell": [30, 90], "rotation": 0})
 	return saved
 
 
@@ -127,17 +103,12 @@ func _runway() -> Building:
 
 func test_a_building_in_the_runway_band_moves_the_runway_and_flights_still_happen() -> void:
 	var saved := _v9_with_a_building_in_the_runway_band()
-	var refund := legacy_refund_of(saved)
-	var money := float(saved["money"])  # migrate() changes the dictionary in place
-	var removed := removed_refund_of(saved)
-	check_eq(Airport.load_state(SaveGame.migrate(saved)), REMOVED_TYPES.size(), "only the removed types are skipped")
+	check_eq(Airport.load_state(SaveGame.migrate(saved)), 0, "nobody had to leave")
 	var runway := _runway()
 	check(runway != null, "a runway was laid")
 	var shop: Building = Airport.buildings.filter(func(b: Building) -> bool: return b.type.id == &"car_park" and b.id == 99)[0]
-	check(not Rect2i(runway.origin_cell, runway.type.footprint).intersects(Rect2i(shop.origin_cell, shop.type.footprint)), "it does not touch the shop")
-	check(Airport.progression.owned_land(Airport.grid.size).encloses(Rect2i(runway.origin_cell, runway.type.footprint)), "it lies on owned land")
-	check_eq(Airport.load_refund, removed, "nobody else had to leave")
-	check_eq(Airport.economy.balance, money + refund + removed, "balance = saved money + refunds")
+	check(not Rect2i(runway.origin_cell, runway.type.footprint).intersects(Rect2i(shop.origin_cell, shop.type.footprint)), "it does not touch the car park")
+	check(Rect2i(Vector2i.ZERO, Airport.grid.size).encloses(Rect2i(runway.origin_cell, runway.type.footprint)), "it lies on the map")
 	# Give gate 1 a stand and a taxiway down to wherever the runway is: flights come.
 	var gate: Building = Airport.buildings.filter(func(b: Building) -> bool: return b.type.role == BuildingType.Role.GATE)[0]
 	var stand := Airport.place_building(type_of(&"aircraft_stand"), gate.origin_cell + Vector2i(-8, 5), 0)
@@ -149,10 +120,10 @@ func test_a_building_in_the_runway_band_moves_the_runway_and_flights_still_happe
 	check(first_flight(0, 3000.0) != null, "flights happen")
 
 
-func test_with_no_free_spot_the_buildings_in_the_way_are_removed_and_refunded() -> void:
+func test_with_no_free_spot_the_buildings_in_the_way_are_removed() -> void:
 	# A map just 46 cells high: only two runway rows fit, and a wide-body stand blocks both.
 	var brain := AirportWorld.new(Vector2i(1200, 46))
-	var stand := brain.place_building(AirportWorld.CATALOG.find(&"wide_body_stand"), Vector2i(500, 3), 0, false)
+	var stand := brain.place_building(AirportWorld.CATALOG.find(&"wide_body_stand"), Vector2i(500, 3), 0)
 	check(stand != null, "the blocking stand is placed")
 	var removed := brain.add_starting_runway()
 	check_eq(removed, [stand] as Array[Building], "the stand had to leave")

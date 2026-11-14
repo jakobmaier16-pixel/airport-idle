@@ -19,17 +19,16 @@ func test_gates_before_security_are_unused_until_connected() -> void:
 	Airport.demolish(security)
 	sim_seconds(600)
 	check_eq(Airport.usable_gates().size(), 0, "the gates are not usable without security")
-	for flight in Airport.schedule.flights:
-		check(flight.cargo, "only freighters still fly (the cargo terminal does not need security)")
-	var before := Airport.reputation.departures
+	check(Airport.schedule.flights.is_empty(), "no flights without security")
+	var before := Airport.schedule.departures
 	var rebuilt := Airport.place_building(type, origin, rotation)
 	check(rebuilt != null, "security built")
 	for i in 60:
 		sim_seconds(10)
-		if Airport.schedule.flights.any(func(f: Flight) -> bool: return not f.cargo):
+		if not Airport.schedule.flights.is_empty():
 			break
-	check(Airport.schedule.flights.any(func(f: Flight) -> bool: return not f.cargo), "passenger flights come back once security connects the gates")
-	check(Airport.reputation.departures >= before, "departures never go back")
+	check(not Airport.schedule.flights.is_empty(), "flights come back once security connects the gates")
+	check(Airport.schedule.departures >= before, "departures never go back")
 
 
 func test_demolishing_security_with_planes_on_the_apron() -> void:
@@ -48,6 +47,6 @@ func test_demolishing_security_with_planes_on_the_apron() -> void:
 	sim_seconds(2400)
 	var rebuilt := Airport.place_building(type, origin, rotation)
 	check(rebuilt != null, "security rebuilt")
-	var departed := Airport.reputation.departures
+	var departed := Airport.schedule.departures
 	sim_seconds(1200)
-	check(Airport.reputation.departures > departed, "flow is restored: %d -> %d departures" % [departed, Airport.reputation.departures])
+	check(Airport.schedule.departures > departed, "flow is restored: %d -> %d departures" % [departed, Airport.schedule.departures])

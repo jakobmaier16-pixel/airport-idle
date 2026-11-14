@@ -58,6 +58,8 @@ There is always a next bottleneck, so the player never has to wait. The idle par
 
 ### 3.2 Upgrades are real airport technology
 
+> **Removed in the strip to core (2026-11-14, PR 2): see docs/removed_features.md. Not in the game now.**
+
 > **Removed 2026-11-14, see [removed_features.md](removed_features.md).** The text below stays as the design for when it comes back.
 
 Instead of abstract multipliers, each station has an upgrade ladder made of things real airports use. Every step is visible in 3D. The exact steps per ladder are tuned during development.
@@ -275,6 +277,8 @@ Current prototype: three passenger types with their own speeds, timing and spend
 
 ## 10. Airlines, Flights & Deals
 
+> **Removed in the strip to core (2026-11-14, PR 2): see docs/removed_features.md. Not in the game now.**
+
 - The player attracts **fictional airlines** and their flights; the player does not own aircraft.
 - **Negotiations:** dialogue choices plus adjustable terms (fees, slots, gates), always linked to the airport's real performance (on-time rate, turnaround speed, satisfaction, capacity).
 - **Routes matter:** holiday routes (families, seasonal peaks), business routes (high spenders at peak hours), long-haul (bigger stands, gates, runways; more income), non-Schengen (passport control, duty free), hub routes (transfer flows).
@@ -283,6 +287,8 @@ Current prototype: three passenger types with their own speeds, timing and spend
 ---
 
 ## 11. Economy
+
+> **Removed in the strip to core (2026-11-14, PR 2): see docs/removed_features.md. Not in the game now.**
 
 - **Income:** airline fees (per passenger, landing, slot), shops and restaurants, duty free, parking, advertising, rented space (lounges, offices), premium services.
 - **Costs:** salaries, maintenance, services (power, water, fuel, waste), construction and demolition.
@@ -302,6 +308,8 @@ Current prototype: clock and demand by hour, seasons (demand only), night curfew
 ---
 
 ## 13. Progression & Milestones
+
+> **Removed in the strip to core (2026-11-14, PR 2): see docs/removed_features.md. Not in the game now.**
 
 ### 13.1 Airport tiers
 Four tiers, as built in the prototype. The thresholds are the current prototype's and will be balanced later.

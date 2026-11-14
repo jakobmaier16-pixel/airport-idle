@@ -217,7 +217,7 @@ func test_showcase_routes_follow_the_four_way_paths() -> void:
 		# The 4-way path starts at the runway's edge, the route on its middle line: add half a runway width.
 		var four_way := (cells.size() - 1) * CELL_SIZE + 23.0
 		check(route.length <= 1.3 * four_way, "route %.0f m <= 1.3 x the 4-way path %.0f m at %s" % [route.length, four_way, building.origin_cell])
-	check(stands >= 4, "the showcase has stands")
+	check(stands >= 3, "the showcase has stands")
 	print("INFO showcase centreline: rebuild %.1f ms (graph %.1f ms), %d axis nodes" % [network.last_rebuild_ms, network.last_centreline_ms, network.centreline().axis_count()])
 
 

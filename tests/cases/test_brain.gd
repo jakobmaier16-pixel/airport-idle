@@ -79,8 +79,8 @@ func test_reset_gives_a_fresh_brain_and_signals_fire_once() -> void:
 	Airport.place_building(type_of(&"check_in"), at(Vector2i(20, 20)), 0)
 	check_eq(placed[0], 1, "building_placed fires exactly once after resets")
 	var relayed: Array[int] = [0]
-	Airport.tier_reached.connect(func(_t: Progression.Tier) -> void: relayed[0] += 1)
-	Airport.brain.progression.tier_reached.emit(Progression.Tier.REGIONAL)
+	Airport.plane_arriving.connect(func(_f: Flight) -> void: relayed[0] += 1)
+	Airport.brain.schedule.plane_arriving.emit(Flight.new())
 	check_eq(relayed[0], 1, "signals of the brain's parts are re-sent once too")
 
 
@@ -91,6 +91,6 @@ func test_same_seed_gives_identical_games() -> void:
 		Airport.reseed(1234)  # the reset inside build() takes its new seed from these dice
 		ShowcaseAirport.build(0.0)
 		sim_seconds(600.0)
-		results.append([Airport.economy.balance, Airport.reputation.departures, Airport.schedule.flights.size(), Airport.timetable.slots.size()])
-	check(results[0][1] > 0, "the showcase airport had departures (%s)" % [results[0]])
+		results.append([Airport.schedule.departures, Airport.schedule.flights.size(), Airport.timetable.slots.size()])
+	check(results[0][0] > 0, "the showcase airport had departures (%s)" % [results[0]])
 	check_eq(results[0], results[1], "two fresh brains with the same seed end the same")

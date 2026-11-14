@@ -11,21 +11,14 @@ const TEST_SAVE: String = "user://test_migration.json"
 const SHOWCASE_V1: String = "res://tests/saves/v1_showcase.json"
 const EARLY_V1: String = "res://tests/saves/v1_early.json"
 ## What the showcase example save holds (written 2026-11-06, format version 1), without its
-## de-icing pad: that building type was removed on 2026-11-13 and is refunded on loading.
+## de-icing pad: that building type was removed on 2026-11-13 and is dropped on loading.
 ## (Loading today removes the old stands and runway: see counts_after_legacy_removal.)
 const EXAMPLE_BUILDINGS: Dictionary = {
 	"runway": 1, "entrance": 1, "check_in": 2, "security": 1, "gate": 3, "aircraft_stand": 3,
 	"wide_body_stand": 1, "cargo_terminal": 1, "baggage_claim": 1,
 	"transfer_security": 1, "shop": 1, "cafe": 1, "lounge": 1, "car_park": 1,
 }
-# The removed de-icing pad of the old example saves was paid back (half of its 7,000 saved price,
-# on top of the refunds for the other removed types), and the player is told.
-func _check_pad_refunded() -> void:
-	check(SaveGame.load_problem.contains("deicing_pad"), "the player is told about the pad: '%s'" % SaveGame.load_problem)
-	check(Airport.load_refund >= 3500.0, "half the pad's saved price is refunded (%s in all)" % Airport.load_refund)
-
-
-# What loading an example save leaves of `counts`: the removed types are skipped (and refunded).
+# What loading an example save leaves of `counts`: the removed types are dropped (silently).
 func _loadable(counts: Dictionary) -> Dictionary:
 	var result := counts.duplicate()
 	for type in REMOVED_TYPES:
@@ -33,10 +26,9 @@ func _loadable(counts: Dictionary) -> Dictionary:
 	return result
 
 
-# The removed types are named in the notice, and their refund is part of Airport.load_refund.
-func _check_removed_types_refunded() -> void:
-	for type in REMOVED_TYPES:
-		check(SaveGame.load_problem.contains(type), "the player is told about the removed %s: '%s'" % [type, SaveGame.load_problem])
+# Removed building types (and the old airside) leave without a notice.
+func _check_removed_types_silent() -> void:
+	check_eq(SaveGame.load_problem, "", "the player is not bothered about removed buildings: '%s'" % SaveGame.load_problem)
 
 
 # Puts `text` where SaveGame loads from, with saving switched on for this test only.
@@ -75,23 +67,14 @@ func _building_counts() -> Dictionary:
 
 
 func test_showcase_v1_loads_completely() -> void:
-	var saved := _example(SHOWCASE_V1)
 	_install_example(SHOWCASE_V1)
 	SaveGame.load_game()
-	_check_pad_refunded()
-	_check_removed_types_refunded()
+	_check_removed_types_silent()
 	check_eq(_building_counts(), _loadable(counts_after_legacy_removal(EXAMPLE_BUILDINGS)), "every other building is back, with the new runway")
-	check_eq(Airport.progression.tier, Progression.Tier.INTERNATIONAL, "the tier is back")
-	var airlines: Array[String] = []
-	for airline in Airport.airlines.signed:
-		airlines.append(String(airline.type.id))
-	check_eq(airlines, ["velora", "zippa", "norvane", "orynth", "paqet"] as Array[String], "the signed airlines are back")
 	check_eq(Airport.clock.game_seconds, 28800.0, "the clock is back (08:00)")
 	check_eq(Airport.game_seed, 4259094339, "the seed is back")
 	check(Airport.usable_gates().is_empty(), "the gates wait for new stands")
-	# Written long ago: the player gets the welcome-back income once (design doc §3.4).
-	check(SaveGame.away_seconds > 36 * 3600.0, "the save is old")
-	check_eq(Airport.economy.balance, float(saved["money"]) + SaveGame.welcome_back_bonus + Airport.load_refund + legacy_refund_of(saved), "money plus the welcome-back income and the refunds")
+	check_eq(Airport.schedule.flights.size(), 0, "flights of an old save are dropped")
 	_clean_up()
 
 
@@ -99,13 +82,10 @@ func test_early_v1_loads() -> void:
 	_install_example(EARLY_V1)
 	SaveGame.load_game()
 	var saved := _example(EARLY_V1)
-	var kept: Array = saved["buildings"].filter(func(e: Dictionary) -> bool: return not LEGACY_AIRSIDE_PRICES.has(str(e["type"])))
-	check(SaveGame.load_problem.begins_with("Old stands and runway were removed"), "only the removal notice: '%s'" % SaveGame.load_problem)
+	var kept: Array = saved["buildings"].filter(func(e: Dictionary) -> bool: return not LEGACY_AIRSIDE_TYPES.has(str(e["type"])))
+	_check_removed_types_silent()
 	check_eq(Airport.buildings.size(), kept.size() + 1, "its other buildings plus the starting runway")
-	check_eq(Airport.airlines.signed.size(), 1, "the starting airline")
-	check_eq(Airport.progression.tier, Progression.Tier.REGIONAL, "a Regional airport")
 	check_eq(Airport.clock.game_seconds, Clock.START_HOUR * 3600.0, "the clock starts at 06:00")
-	check(Airport.schedule.rng == Airport.rng, "it rolls the shared dice")
 	_clean_up()
 
 
@@ -123,17 +103,14 @@ func test_converters_run_in_order() -> void:
 
 
 func test_converted_save_loads() -> void:
-	var saved := _example(SHOWCASE_V1)
-	# A pretend version 2 whose converter adds 1 € to the money, so we can see it ran before loading.
-	SaveGame.format_version = 2
+	# A converter that marks the save, so we can see it ran before loading (the rest still run).
 	SaveGame.migrations[1] = func(data: Dictionary) -> Dictionary:
-		data["money"] = float(data["money"]) + 1.0
+		data["converted_by_test"] = true
 		return data
 	_install_example(SHOWCASE_V1)
 	SaveGame.load_game()
-	check(SaveGame.load_problem.contains("deicing_pad"), "an old save loads in a newer version (only its pad is refunded)")
-	check_eq(_building_counts(), _loadable(counts_after_legacy_removal(EXAMPLE_BUILDINGS)), "with every other building")
-	check_eq(Airport.economy.balance, float(saved["money"]) + 1.0 + SaveGame.welcome_back_bonus + Airport.load_refund, "after its converter ran (it stops at version 2: nothing is removed)")
+	_check_removed_types_silent()
+	check_eq(_building_counts(), _loadable(counts_after_legacy_removal(EXAMPLE_BUILDINGS)), "an old save loads in a newer version, with every other building")
 	_clean_up()
 
 
@@ -182,8 +159,7 @@ func _check_kept_aside(original: String, reason: String) -> void:
 	check_eq(FileAccess.get_file_as_string(SaveGame.backup_path), original, "saving the new airport doesn't touch the backup")
 
 
-## Saves store these lists as plain numbers (zones per cell, the building kinds in staff
-## experience, the tier). Reordering them, or inserting a value in the middle,
+## Saves store these lists as plain numbers (zones per cell, the building kinds). Reordering them, or inserting a value in the middle,
 ## silently changes what old saves mean. New values go at the end; anything else needs a
 ## converter (SaveGame.migrations) and a new FORMAT_VERSION.
 func test_saved_number_lists_unchanged() -> void:
@@ -191,7 +167,6 @@ func test_saved_number_lists_unchanged() -> void:
 	check_eq(AirportGrid.Zone.keys(), ["LANDSIDE", "AIRSIDE"], "AirportGrid.Zone" + fix)
 	check_eq(BuildingType.Role.keys(), ["NONE", "ENTRANCE", "CHECK_IN", "SECURITY", "GATE", "AIRCRAFT_STAND", "SHOP",
 		"BAGGAGE_CLAIM", "TRANSFER_SECURITY", "CAR_PARK", "LOUNGE", "RUNWAY", "CARGO_TERMINAL"], "BuildingType.Role" + fix)
-	check_eq(Progression.Tier.keys(), ["REGIONAL", "NATIONAL", "INTERNATIONAL", "HUB"], "Progression.Tier" + fix)
 
 
 const SHOWCASE_V2: String = "res://tests/saves/v2_showcase.json"
@@ -200,9 +175,10 @@ const SHOWCASE_V2: String = "res://tests/saves/v2_showcase.json"
 func test_showcase_v2_loads_completely() -> void:
 	_install_example(SHOWCASE_V2)
 	SaveGame.load_game()
-	_check_pad_refunded()
-	var legacy: int = _example(SHOWCASE_V2)["buildings"].filter(func(e: Dictionary) -> bool: return LEGACY_AIRSIDE_PRICES.has(str(e["type"]))).size()
-	check_eq(Airport.buildings.size(), 19 - REMOVED_TYPES.size() - legacy + 1, "every building but the pad, the removed types and the old airside is back (plus the new runway)")
+	_check_removed_types_silent()
+	var legacy: int = _example(SHOWCASE_V2)["buildings"].filter(func(e: Dictionary) -> bool: return LEGACY_AIRSIDE_TYPES.has(str(e["type"]))).size()
+	var gone: int = _example(SHOWCASE_V2)["buildings"].filter(func(e: Dictionary) -> bool: return REMOVED_TYPES.has(str(e["type"])) or str(e["type"]) == "deicing_pad").size()
+	check_eq(Airport.buildings.size(), _example(SHOWCASE_V2)["buildings"].size() - gone - legacy + 1, "every building but the pad, the removed types and the old airside is back (plus the new runway)")
 	_clean_up()
 
 
@@ -234,23 +210,22 @@ func test_ids_survive_save_and_load_after_reset() -> void:
 	Airport.load_state(state)
 	var again: Building = Airport.buildings.filter(func(b: Building) -> bool: return b.id == saved_id)[0]
 	check_eq(again.type.id, &"check_in", "same ID, same building")
-	var fresh := Airport.place_building(Airport.CATALOG.find(&"check_in"), at(Vector2i(2, 2)), 0, false)
+	var fresh := Airport.place_building(Airport.CATALOG.find(&"check_in"), at(Vector2i(2, 2)), 0)
 	check(fresh == null or fresh.id > saved_id or not Airport.buildings.any(func(b: Building) -> bool: return b != fresh and b.id == fresh.id), "a new building never reuses an ID")
 
 
-func test_vanished_building_type_is_refunded() -> void:
+func test_vanished_building_type_is_dropped_silently() -> void:
 	var state := {
-		"map_size": [64, 64], "money": 1000.0,
+		"map_size": [64, 64],
 		"buildings": [
 			{"id": 1, "type": "gone_for_good", "cell": [20, 20], "rotation": 0, "cost": 400.0},
 		],
 	}
-	check_eq(Airport.load_state(state), 1, "the building is skipped")
-	check_eq(Airport.load_refund, 200.0, "half its saved price is refunded")
-	check_eq(Airport.economy.balance, 1200.0, "the money is back")
+	check_eq(Airport.load_state(state), 0, "nothing is counted as a failure")
+	check_eq(Airport.buildings.size(), 1, "only the starting runway is there")
 	_install(JSON.stringify(state.merged({"version": 2})))
 	SaveGame.load_game()
-	check(SaveGame.load_problem.contains("gone_for_good"), "the player is told which building")
+	check_eq(SaveGame.load_problem, "", "and nobody is told")
 	_clean_up()
 
 
@@ -264,8 +239,7 @@ func test_showcase_v5_loads_completely() -> void:
 	check_eq(int(_example(SHOWCASE_V5)["version"]), 5, "an example save of version 5")
 	_install_example(SHOWCASE_V5)
 	SaveGame.load_game()
-	check(SaveGame.load_problem.contains("Old stands and runway were removed: %s refunded." % Economy.format(legacy_refund_of(_example(SHOWCASE_V5)))), "the removal notice")
-	_check_removed_types_refunded()
+	_check_removed_types_silent()
 	check_eq(_building_counts(), _loadable(counts_after_legacy_removal(EXAMPLE_BUILDINGS)), "every other building is back, with the new runway")
 	check(Airport.usable_gates().is_empty(), "the gates wait for new stands")
 	_clean_up()

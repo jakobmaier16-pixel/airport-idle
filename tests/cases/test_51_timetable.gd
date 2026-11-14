@@ -1,144 +1,148 @@
 extends TestCase
-## The daily timetable (tech_architecture.md §6): slots are planned once per game day from the
-## demand curve, and the planner turns them into flights. Everything is checked over a span
-## (a whole day), never at one random moment, so it holds for any seed.
+## The fixed timetable (tech_architecture.md §6): every usable gate with its stand gets one
+## turnaround every Timetable.TURNAROUND_MINUTES game minutes, staggered by the gate's ID, with no
+## dice. Everything is checked over a span, never at one moment.
 
 const SHOWCASE_V7: String = "res://tests/saves/v7_showcase.json"
 const SHOWCASE_V8: String = "res://tests/saves/v8_showcase.json"
-const PEAK_HOURS: Array[int] = [7, 8, 18]
-const NIGHT_HOURS: Array[int] = [21, 22, 23]
 
 
-# The game hour a real-seconds time falls in.
-func _hour_of(time: float) -> int:
-	return int(Airport.clock.hour_at(time - Airport.sim_time))
+# The slots of `gate`, in departure order.
+func _slots_of(gate: Building) -> Array[TimetableSlot]:
+	return Airport.timetable.slots.filter(func(s: TimetableSlot) -> bool: return s.gate == gate)
 
 
-# Plans tomorrow: the clock is at 23:00 of day 1, so day 2 is made whole. Returns day 2's slots.
-func _tomorrows_slots(tier: Progression.Tier) -> Array[TimetableSlot]:
-	Airport.progression.tier = tier
-	Airport.clock.game_seconds = 23.0 * 3600.0
-	Airport.step(Airport.SIM_STEP)
-	check(Airport.timetable.generated_days.has(2), "tomorrow is planned shortly before midnight")
-	var result: Array[TimetableSlot] = []
-	for slot in Airport.timetable.slots:
-		if slot.day == 2:
-			result.append(slot)
-	return result
+# A readable list of the whole pattern: gate ID, plane class and departure time of every slot.
+func _pattern() -> Array:
+	return Airport.timetable.slots.map(func(s: TimetableSlot) -> Array: return [s.gate.id, int(s.plane_class), snappedf(s.departure_time, 0.001)])
 
 
-func _per_hour(slots: Array[TimetableSlot]) -> Array[int]:
-	var counts: Array[int] = []
-	counts.resize(24)
-	counts.fill(0)
-	for slot in slots:
-		counts[_hour_of(slot.departure_time)] += 1
-	return counts
+func test_the_turnaround_is_one_number() -> void:
+	check_eq(Timetable.period_game(), Timetable.TURNAROUND_MINUTES * 60.0, "game seconds between two departures")
+	check_eq(Timetable.period_real(), Timetable.TURNAROUND_MINUTES * 60.0 / Clock.GAME_PER_REAL, "real seconds between two departures")
+	check(Timetable.period_real() > FlightSchedule.STAND_DWELL + FlightSchedule.BOARDING_OPENS, "long enough for a plane to stand there")
 
 
-func _sum(counts: Array[int], hours: Array[int]) -> int:
-	var total := 0
-	for hour in hours:
-		total += counts[hour]
-	return total
-
-
-func test_a_new_airport_plans_today() -> void:
-	Airport.step(Airport.SIM_STEP)
-	check(Airport.timetable.generated_days.has(1), "day 1 is planned on the first step")
-	var pending := Airport.timetable.pending()
-	check(pending.size() > 10, "slots for the rest of the day: %d" % pending.size())
-	var now := Airport.sim_time
-	check(pending.all(func(s: TimetableSlot) -> bool: return s.departure_time >= now + FlightSchedule.FIRST_DEPARTURE_DELAY - 0.2), "none of them has already begun")
-	for i in range(1, pending.size()):
-		check(pending[i - 1].departure_time <= pending[i].departure_time, "in departure order")
-		if pending[i - 1].departure_time > pending[i].departure_time:
-			break
-
-
-func test_a_day_follows_the_demand_curve() -> void:
-	var slots := _tomorrows_slots(Progression.Tier.HUB)  # no curfew: all 24 hours
-	var counts := _per_hour(slots)
-	var total := slots.size()
-	# About 3 narrow flights an hour on average, plus a few wide-bodies and freighters.
-	check(total > 50 and total < 120, "a day of slots: %d" % total)
-	check(_sum(counts, PEAK_HOURS) > _sum(counts, NIGHT_HOURS), "rush hours have more flights than the late evening: %s vs %s" % [_sum(counts, PEAK_HOURS), _sum(counts, NIGHT_HOURS)])
-	var rush_average := float(_sum(counts, [6, 7, 8, 9, 17, 18, 19])) / 7.0
-	var night_average := float(_sum(counts, [0, 1, 2, 3, 4])) / 5.0
-	check(rush_average > night_average * 1.5, "and far more than the night: %.1f vs %.1f an hour %s" % [rush_average, night_average, counts])
-	check(_sum(counts, [0, 1, 2, 3, 4]) > 0, "a hub plans night flights too: %s" % [counts])
-	for slot in slots:
-		check(slot.state == TimetableSlot.State.PENDING, "planned, not yet flown")
-
-
-func test_no_slots_in_curfew_hours() -> void:
-	var slots := _tomorrows_slots(Progression.Tier.NATIONAL)
-	check(slots.size() > 40, "a day of slots: %d" % slots.size())
-	for slot in slots:
-		var hour := _hour_of(slot.departure_time)
-		check(hour >= int(Clock.CURFEW_END), "no slot at hour %d" % hour)
-		check(not Airport.timetable.in_curfew(slot.departure_time), "the plane neither lands nor leaves in the curfew")
-
-
-func test_seasons_change_the_slots_per_route() -> void:
-	# Holiday demand: x1.35 in summer, x0.75 in winter (design doc §12.2). Averaged over several
-	# days so a few slots more or less don't matter.
-	var count_days := func(first_day: int) -> int:
-		var total := 0
-		Airport.progression.tier = Progression.Tier.HUB
-		for day in range(first_day, first_day + 2):
-			Airport.timetable.generate_day(day)
-		for slot in Airport.timetable.slots:
-			if slot.plane_class == TimetableSlot.PlaneClass.NARROW and slot.day >= first_day and slot.day < first_day + 2:
-				total += 1
-		return total
-	Airport.step(Airport.SIM_STEP)
-	Airport.timetable.slots.clear()
-	var summer: int = count_days.call(3)   # days 3-4 are summer
-	Airport.timetable.slots.clear()
-	var winter: int = count_days.call(7)   # days 7-8 are winter
-	check(summer > winter * 1.25, "more holiday flights in summer than in winter: %d vs %d" % [summer, winter])
-
-
-func test_a_full_day_of_flights() -> void:
+func test_each_usable_gate_gets_a_turnaround_every_period() -> void:
 	ShowcaseAirport.build(0.0)
-	Airport.progression.tier = Progression.Tier.INTERNATIONAL
+	sim_seconds(5.0 * Timetable.period_real())
+	var gates := Airport.usable_gates()
+	check_eq(gates.size(), 3, "the showcase has three usable gates")
+	for gate in gates:
+		var slots := _slots_of(gate)
+		check(slots.size() >= 5, "gate %d has slots for several turnarounds: %d" % [gate.id, slots.size()])
+		for i in range(1, slots.size()):
+			check(absf(slots[i].departure_time - slots[i - 1].departure_time - Timetable.period_real()) < 0.01,
+				"gate %d: exactly one turnaround between departures (%s)" % [gate.id, slots.map(func(s: TimetableSlot) -> float: return s.departure_time)])
+		# On the pattern: the game time of every departure is the gate's phase plus whole turnarounds.
+		var phase := fmod(gate.id * Timetable.STAGGER_MINUTES, Timetable.TURNAROUND_MINUTES) * 60.0
+		for slot in slots:
+			var game_time := Airport.clock.game_seconds + (slot.departure_time - Airport.sim_time) * Clock.GAME_PER_REAL
+			var steps := (game_time - phase) / Timetable.period_game()
+			check(absf(steps - roundf(steps)) < 0.0001, "gate %d: departure on its own grid (%.4f)" % [gate.id, steps])
+
+
+func test_gates_are_staggered_by_their_id() -> void:
+	var phases := {}
+	for gate_id in range(1, 4):
+		phases[Timetable.next_departure_at_or_after(gate_id, 0.0)] = true
+	check_eq(phases.size(), 3, "three neighbouring gate IDs start at three different times")
+	var base := Timetable.next_departure_at_or_after(5, 100000.0)
+	check_eq(Timetable.next_departure_at_or_after(5, base), base, "a departure on the grid is its own next one")
+	check_eq(Timetable.next_departure_at_or_after(5, base + 1.0), base + Timetable.period_game(), "just after it: the next turnaround")
+
+
+func test_the_plane_class_fits_the_stand() -> void:
+	ShowcaseAirport.build(0.0)
+	sim_seconds(3.0 * Timetable.period_real())
+	var wide := 0
+	var narrow := 0
+	for slot in Airport.timetable.slots:
+		var stand := Airport.stand_behind(slot.gate)
+		check(stand.type.fits(slot.plane_class), "the stand takes the plane of its slot")
+		if stand.type.wide_body:
+			check_eq(slot.plane_class, TimetableSlot.PlaneClass.WIDE, "a wide stand gets wide planes")
+			wide += 1
+		else:
+			check_eq(slot.plane_class, TimetableSlot.PlaneClass.NARROW, "a narrow stand gets narrow planes")
+			narrow += 1
+	check(wide > 0 and narrow > 0, "both kinds are planned (%d wide, %d narrow)" % [wide, narrow])
+	sim_seconds(600.0)
+	for flight in Airport.schedule.flights:
+		check_eq(flight.plane_class == TimetableSlot.PlaneClass.WIDE, flight.stand.type.wide_body, "flights fly the class of their stand")
+
+
+func test_the_timetable_is_deterministic_and_rolls_no_dice() -> void:
+	Airport.reseed(1)
+	ShowcaseAirport.build(0.0)
+	var dice_before := Airport.rng.state
+	sim_seconds(1200.0)
+	check_eq(Airport.rng.state, dice_before, "no dice were rolled")
+	var first := _pattern()
+	Airport.reseed(99999)
+	ShowcaseAirport.build(0.0)
+	sim_seconds(1200.0)
+	check(not first.is_empty(), "there is a pattern")
+	check_eq(_pattern(), first, "another seed gives exactly the same timetable")
+
+
+func test_a_full_day_has_flights_all_day_and_night() -> void:
+	ShowcaseAirport.build(0.0)
+	var by_gate: Dictionary[Building, int] = {}
 	var by_hour: Array[int] = []
 	by_hour.resize(24)
 	by_hour.fill(0)
 	var seen: Dictionary[Flight, bool] = {}
-	var all: Array[Flight] = []
 	for i in int(5760.0 / Airport.SIM_STEP):  # one game day
 		Airport.step(Airport.SIM_STEP)
 		for flight in Airport.schedule.flights:
 			if not seen.has(flight):
 				seen[flight] = true
-				all.append(flight)
-				by_hour[_hour_of(flight.departure_time)] += 1
-	check(all.size() > 25, "flights over a full day: %d" % all.size())
-	# The showcase's three gates are full at the rush (their turnaround caps a single hour), so only
-	# "not fewer" can hold here; the slots themselves follow the curve (test_a_day_follows_the_demand_curve).
-	var rush: Array[int] = [6, 7, 8, 9, 17, 18, 19]
-	var evening: Array[int] = [20, 21, 22, 23]
-	var rush_average := float(_sum(by_hour, rush)) / rush.size()
-	var evening_average := float(_sum(by_hour, evening)) / evening.size()
-	check(rush_average >= evening_average, "an average rush hour is at least as busy as an evening hour: %.1f vs %.1f" % [rush_average, evening_average])
-	for hour in 5:
-		check_eq(by_hour[hour], 0, "no flight departs in curfew hour %d" % hour)
-	for flight in all:
-		check(not Airport.timetable.in_curfew(flight.departure_time), "%s is outside the curfew" % flight.number)
-	var slots := Airport.timetable.slots
-	var filled := slots.filter(func(s: TimetableSlot) -> bool: return s.state == TimetableSlot.State.FILLED).size()
-	check(filled > 25, "filled slots: %d" % filled)
+				by_gate[flight.gate] = by_gate.get(flight.gate, 0) + 1
+				by_hour[int(Airport.clock.hour_at(flight.departure_time - Airport.sim_time))] += 1
+	var expected := int(5760.0 / Timetable.period_real())
+	for gate in Airport.usable_gates():
+		check(by_gate.get(gate, 0) >= expected - 3, "gate %d flew about %d times a day: %d" % [gate.id, expected, by_gate.get(gate, 0)])
+	for hour in 24:
+		check(by_hour[hour] > 0, "a departure in hour %d (no curfew, no rush): %s" % [hour, by_hour])
 
 
-func test_a_dropped_slot_is_not_flown() -> void:
-	# No gate at all: every slot that comes up is dropped, and no flight appears.
-	Airport.progression.tier = Progression.Tier.HUB
+func test_no_gate_no_slots() -> void:
 	sim_seconds(900.0)
+	check(Airport.timetable.slots.is_empty(), "nothing is planned without a usable gate")
 	check(Airport.schedule.flights.is_empty(), "nothing flies without a gate")
-	var dropped := Airport.timetable.slots.filter(func(s: TimetableSlot) -> bool: return s.state == TimetableSlot.State.DROPPED)
-	check(dropped.size() > 3, "the slots that came up were dropped: %d" % dropped.size())
+
+
+func test_a_gate_that_stops_working_loses_its_slots() -> void:
+	ShowcaseAirport.build(0.0)
+	sim_seconds(60.0)
+	var gate := Airport.usable_gates()[0]
+	check(not _slots_of(gate).is_empty(), "it has slots")
+	Airport.demolish(Airport.stand_behind(gate))
+	sim_seconds(1.0)
+	check(_slots_of(gate).filter(func(s: TimetableSlot) -> bool: return s.state == TimetableSlot.State.PENDING).is_empty(), "its pending slots are gone")
+
+
+func test_a_rebuilt_gate_starts_on_its_own_grid() -> void:
+	ShowcaseAirport.build(0.0)
+	sim_seconds(60.0)
+	var old := Airport.usable_gates()[0]
+	var type := old.type
+	var origin := old.origin_cell
+	Airport.demolish(old)
+	sim_seconds(1.0)
+	check_eq(Airport.usable_gates().size(), 2, "one gate less")
+	var gate := Airport.place_building(type, origin, 0)
+	check(gate != null and gate.id != old.id, "a new gate with a new ID")
+	sim_seconds(5.0)
+	check_eq(Airport.usable_gates().size(), 3, "it works again")
+	var slots := _slots_of(gate)
+	check(not slots.is_empty(), "it got its own slots")
+	var phase := fmod(gate.id * Timetable.STAGGER_MINUTES, Timetable.TURNAROUND_MINUTES) * 60.0
+	for slot in slots:
+		var game_time := Airport.clock.game_seconds + (slot.departure_time - Airport.sim_time) * Clock.GAME_PER_REAL
+		var steps := (game_time - phase) / Timetable.period_game()
+		check(absf(steps - roundf(steps)) < 0.0001, "on the grid of its new ID")
 
 
 func test_slots_are_saved_and_not_planned_twice() -> void:
@@ -150,46 +154,39 @@ func test_slots_are_saved_and_not_planned_twice() -> void:
 	var loaded := AirportWorld.new()
 	loaded.load_state(saved)
 	check_eq(loaded.timetable.slots.size(), slots.size(), "all slots are back")
-	check_eq(loaded.timetable.generated_days, Airport.timetable.generated_days, "and the days that are planned")
 	var states_a: Array[int] = []
 	var states_b: Array[int] = []
 	for i in slots.size():
 		states_a.append(int(slots[i].state))
 		states_b.append(int(loaded.timetable.slots[i].state))
 		check(is_equal_approx(loaded.timetable.slots[i].departure_time, slots[i].departure_time), "same departure time")
+		check_eq(loaded.timetable.slots[i].gate.id, slots[i].gate.id, "same gate")
 	check_eq(states_b, states_a, "same states")
 	loaded.step(AirportWorld.SIM_STEP)
-	check_eq(loaded.timetable.slots.size(), slots.size(), "loading does not plan the day again")
+	check_eq(loaded.timetable.slots.size(), slots.size(), "loading does not plan the same turnarounds again")
 	loaded.dispose()
 
 
-func test_v7_converter_builds_slots_from_the_saved_flights() -> void:
+func test_v7_converter_drops_the_old_timetable() -> void:
 	var saved: Dictionary = JSON.parse_string(FileAccess.get_file_as_string(SHOWCASE_V7))
 	var flights: Array = saved["flow"]["schedule"]["flights"].filter(func(f: Dictionary) -> bool: return bool(f["scheduled"]))
 	check(flights.size() > 0, "the example has flights on their way (%d)" % flights.size())
-	var converted := SaveGame.migrate(saved)
-	check_eq(converted["version"], SaveGame.FORMAT_VERSION, "up to the current version")
+	SaveGame.format_version = 8  # stop after the v7 converter, which builds the old slots
+	var converted := SaveGame.migrate(JSON.parse_string(FileAccess.get_file_as_string(SHOWCASE_V7)))
+	SaveGame.format_version = SaveGame.FORMAT_VERSION
 	var slots: Array = converted["timetable"]["slots"]
 	check_eq(slots.size(), flights.size(), "one filled slot per planned flight")
-	for i in slots.size():
-		check_eq(int(slots[i]["state"]), int(TimetableSlot.State.FILLED), "already flown or on its way")
-		check_eq(slots[i]["number"], flights[i]["number"], "same flight number")
-	var loaded := AirportWorld.new()
-	loaded.load_state(converted)
-	for i in int(60.0 / AirportWorld.SIM_STEP):
-		loaded.step(AirportWorld.SIM_STEP)
-	check(loaded.timetable.pending().size() > 5, "the rest of the day is planned on the first step: %d" % loaded.timetable.pending().size())
-	loaded.dispose()
+	check_eq(SaveGame.migrate(saved)["version"], SaveGame.FORMAT_VERSION, "and all the way up to the current version")
+	check(not saved.has("flow") and not saved.has("timetable"), "the old timetable and flights are dropped")
 
 
-func test_example_v8_loads() -> void:
+func test_example_v8_loads_and_keeps_running() -> void:
 	var saved: Dictionary = JSON.parse_string(FileAccess.get_file_as_string(SHOWCASE_V8))
 	check_eq(int(saved["version"]), 8, "an example save of version 8")
-	check_eq(SaveGame.migrate(saved)["version"], SaveGame.FORMAT_VERSION, "converted to the newest version")
-	check((saved["timetable"]["slots"] as Array).size() > 10, "it has slots")
+	var converted := SaveGame.migrate(saved)
+	check_eq(converted["version"], SaveGame.FORMAT_VERSION, "converted to the newest version")
 	var loaded := AirportWorld.new()
-	loaded.load_state(saved)
-	check_eq(loaded.timetable.slots.size(), (saved["timetable"]["slots"] as Array).size(), "its slots are back")
+	loaded.load_state(converted)
 	for i in int(60.0 / AirportWorld.SIM_STEP):
 		loaded.step(AirportWorld.SIM_STEP)
 	check(loaded.sim_time > 0.0, "it keeps running")
@@ -197,13 +194,13 @@ func test_example_v8_loads() -> void:
 
 
 func test_jumping_the_time_of_day_replans_the_pending_slots() -> void:
-	Airport.step(Airport.SIM_STEP)
+	ShowcaseAirport.build(0.0)
+	sim_seconds(1.0)
 	var before := Airport.timetable.pending().size()
 	check(before > 0, "slots are planned")
-	Airport.progression.tier = Progression.Tier.HUB
 	Airport.clock.game_seconds = 2.0 * 3600.0
-	Airport.step(Airport.SIM_STEP)
+	sim_seconds(1.0)
 	var pending := Airport.timetable.pending()
-	check(pending.size() > 0 and pending.all(func(s: TimetableSlot) -> bool: return s.day == 1), "slots for the new time of day")
-	# Slots are spread over the 22 hours ahead, starting at 02:00.
-	check(_hour_of(pending[0].departure_time) in [2, 3, 4], "the first one is in the next hours: %d" % _hour_of(pending[0].departure_time))
+	check(pending.size() > 0, "slots for the new time of day")
+	var hour := int(Airport.clock.hour_at(pending[0].departure_time - Airport.sim_time))
+	check(hour in [2, 3, 4, 5], "the first one is in the next hours: %d" % hour)

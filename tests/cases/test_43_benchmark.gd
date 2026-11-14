@@ -6,7 +6,7 @@ extends TestCase
 func test_benchmark_airport_has_planes_on_the_move() -> void:
 	Benchmark.prepare_airport()
 	check(not SaveGame.enabled, "saving is off while the benchmark runs")
-	check(Airport.schedule.flights.size() >= 4, "flights are planned")
+	check(Airport.schedule.flights.size() >= 2, "flights are planned")
 	sim_seconds(120.0)
 	check(Benchmark.planes_active() >= 1, "planes are on the move (%d)" % Benchmark.planes_active())
 	var started := Time.get_ticks_usec()

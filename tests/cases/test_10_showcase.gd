@@ -29,7 +29,6 @@ func test_showcase_uses_every_building_type() -> void:
 func test_showcase_is_complete_and_busy() -> void:
 	ShowcaseAirport.build()
 	check_eq(Airport.usable_gates().size(), 3, "all three gates can have flights")
-	check_eq(Airport.usable_cargo_terminals().size(), 1, "the cargo terminal can have flights")
 	var plane_near_stand := Airport.schedule.flights.any(func(f: Flight) -> bool:
 		return f.phase in [Flight.Phase.ARRIVING, Flight.Phase.AT_STAND, Flight.Phase.BOARDING])
 	check(plane_near_stand, "a plane is at or arriving at a stand right away")

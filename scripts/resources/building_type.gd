@@ -20,8 +20,8 @@ enum Access {
 }
 
 ## What the building is for. New roles go at the end: .tres files store the number.
-## SHOP, BAGGAGE_CLAIM, TRANSFER_SECURITY and LOUNGE are unused since 2026-11-14 (docs/removed_features.md);
-## their numbers stay so the others never move.
+## SHOP, BAGGAGE_CLAIM, TRANSFER_SECURITY, LOUNGE and CARGO_TERMINAL are unused since 2026-11-14
+## (docs/removed_features.md); their numbers stay so the others never move.
 enum Role { NONE, ENTRANCE, CHECK_IN, SECURITY, GATE, AIRCRAFT_STAND, SHOP, BAGGAGE_CLAIM, TRANSFER_SECURITY, CAR_PARK, LOUNGE, RUNWAY, CARGO_TERMINAL }
 
 ## How big a plane a stand takes, by wingspan (TimetableSlot.WINGSPAN_M).
@@ -47,14 +47,6 @@ enum StandClass { NARROW, WIDE }
 ## Stands: the biggest plane class that fits (design doc §10.2). A stand takes its own class and
 ## every smaller one (see `fits`). Numbers are stored in .tres files: new classes go at the end.
 @export var stand_class: StandClass = StandClass.NARROW
-## The airport tier that unlocks it (Progression.Tier, design doc §14.1); 0 = from the start.
-@export_range(0, 3) var unlocked_at: int = 0
-
-@export_group("Economy")
-## One-off construction cost in euros (design doc §11.5).
-@export var build_cost: float = 0.0
-## Staff, maintenance and utilities in euros per minute.
-@export var running_cost_per_minute: float = 0.0
 
 @export_group("Landside piece visuals")
 ## The 3D model of a landside piece (.glb with `<piece>`, `<piece>_markings` and `<piece>_lodfar`).
