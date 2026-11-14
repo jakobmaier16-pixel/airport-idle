@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="BuildingType" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/building_type.gd" id="1_type"]
+[ext_resource type="PackedScene" path="res://assets/models/landside/carpark_walkway_end.glb" id="2_model"]
+
+[resource]
+script = ExtResource("1_type")
+id = &"carpark_walkway_end"
+display_name = "Car park walkway end"
+category = "Landside"
+sub_category = "Car park"
+footprint = Vector2i(2, 8)
+zone_rule = 0
+is_solid = false
+front_access = 0
+back_access = 0
+role = 0
+build_cost = 800.0
+running_cost_per_minute = 0.0
+model = ExtResource("2_model")
+paved_base = false
+color = Color(0.62, 0.62, 0.6, 1)
+height = 0.15

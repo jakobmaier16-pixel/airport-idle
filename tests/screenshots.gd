@@ -17,6 +17,10 @@ func _ready() -> void:
 	manager().global_position = Airport.grid.cell_to_world(at(Vector2i(31, 25)))
 	manager_camera().face(Airport.grid.cell_to_world(at(Vector2i(22, 23))) + Vector3.UP * 1.5)
 	await _shot("manager_view_hall")
+	await _landside_shots()
+	if "--landside-only" in OS.get_cmdline_user_args():
+		get_tree().quit()
+		return
 	# Night and evening light (design doc §12.1); back to the morning afterwards.
 	var morning := Airport.clock.game_seconds
 	Airport.clock.game_seconds = 23.0 * 3600.0
@@ -117,3 +121,24 @@ func _shot(file_name: String) -> void:
 	var path := ProjectSettings.globalize_path(OUT_DIR + file_name + ".png")
 	get_viewport().get_texture().get_image().save_png(path)
 	print("Saved " + path)
+
+
+## The landside start layout (art/landside/landside_preview.py) from the build view and at eye level.
+## The layout is turned by 180 degrees against the preview (ShowcaseLandside): preview (x, y) metres
+## is the reference cell (54 - x / 2, -18 + y / 2).
+func _landside_shots() -> void:
+	var layout := func(x: float, y: float) -> Vector2i:
+		return at(Vector2i(roundi(ShowcaseLandside.ORIGIN_X - x / 2.0), roundi(ShowcaseLandside.ORIGIN_Z + y / 2.0)))
+	# Eye level on the terminal sidewalk, looking east along the curb (bollards, zebra, bus bay).
+	manager().global_position = Airport.grid.cell_to_world(layout.call(30.0, 70.0))
+	manager_camera().face(Airport.grid.cell_to_world(layout.call(100.0, 66.0)) + Vector3.UP * 1.5)
+	await _shot("landside_curb")
+	# At the car park gate, looking into the car park.
+	manager().global_position = Airport.grid.cell_to_world(layout.call(3.0, 46.0))
+	manager_camera().face(Airport.grid.cell_to_world(layout.call(60.0, 36.0)) + Vector3.UP * 1.0)
+	await _shot("landside_carpark")
+	await open_build_view()
+	build_camera().view_height = 200.0
+	build_camera().center_on(Airport.grid.cell_to_world(layout.call(72.0, 40.0)))
+	await _shot("landside_build_view")
+	await close_build_view()

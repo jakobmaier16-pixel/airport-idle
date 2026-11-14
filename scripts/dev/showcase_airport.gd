@@ -13,7 +13,9 @@ extends RefCounted
 ## first, so it's already busy when the player looks at it: after the default 3 minutes the first
 ## plane is at its stand and boarding opens, the second plane is about to taxi in.
 ## `map_size` (tests only) builds it on a map of another size; zero is the game's map.
-static func build(warm_up_seconds: float = 180.0, map_size: Vector2i = Vector2i.ZERO) -> void:
+## `with_landside` false leaves out the landside pieces (scripts/dev/showcase_landside.gd): the behaviour
+## hash and the device benchmark measure the simulation and keep their airport.
+static func build(warm_up_seconds: float = 180.0, map_size: Vector2i = Vector2i.ZERO, with_landside: bool = true) -> void:
 	Airport.reset(true, -1, map_size)
 	var catalog := Airport.CATALOG
 	# Build on an unlimited test budget, so nothing in the showcase fails for lack of money.
@@ -70,6 +72,10 @@ static func build(warm_up_seconds: float = 180.0, map_size: Vector2i = Vector2i.
 	# a fast track at security (design doc §11.8).
 	Airport.place_building(catalog.find(&"lounge"), _at(Vector2i(37, 34)), 0)
 	Airport.place_building(catalog.find(&"car_park"), _at(Vector2i(46, 21)), 3)
+
+	# Landside pieces (design doc §4): roads, curb, car park, sidewalks and props. Decorative only.
+	if with_landside:
+		ShowcaseLandside.build()
 
 	Airport.end_batch()
 

@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="BuildingType" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/building_type.gd" id="1_type"]
+[ext_resource type="PackedScene" path="res://assets/models/landside/tree_deciduous.glb" id="2_model"]
+
+[resource]
+script = ExtResource("1_type")
+id = &"tree_deciduous"
+display_name = "Tree"
+category = "Landside"
+sub_category = "Props"
+footprint = Vector2i(1, 1)
+zone_rule = 0
+is_solid = true
+front_access = 0
+back_access = 0
+role = 0
+build_cost = 80.0
+running_cost_per_minute = 0.0
+model = ExtResource("2_model")
+paved_base = false
+color = Color(0.3, 0.45, 0.25, 1)
+height = 8.0

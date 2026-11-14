@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="BuildingType" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/building_type.gd" id="1_type"]
+[ext_resource type="PackedScene" path="res://assets/models/landside/pay_station.glb" id="2_model"]
+
+[resource]
+script = ExtResource("1_type")
+id = &"pay_station"
+display_name = "Pay station"
+category = "Landside"
+sub_category = "Props"
+footprint = Vector2i(1, 1)
+zone_rule = 0
+is_solid = true
+front_access = 0
+back_access = 0
+role = 0
+build_cost = 1800.0
+running_cost_per_minute = 0.0
+model = ExtResource("2_model")
+paved_base = true
+color = Color(0.55, 0.57, 0.6, 1)
+height = 1.8

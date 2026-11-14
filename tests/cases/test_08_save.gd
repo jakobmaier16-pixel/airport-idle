@@ -29,7 +29,7 @@ func test_file_save_and_load() -> void:
 	check(FileAccess.file_exists(TEST_SAVE), "save file written")
 	Airport.reset()
 	SaveGame.load_game()
-	check_eq(Airport.buildings.size(), SHOWCASE_BUILDINGS, "loaded from file")
+	check_eq(Airport.buildings.size(), SHOWCASE_WITH_LANDSIDE_BUILDINGS, "loaded from file")
 	SaveGame.reset_game()
 	check(not FileAccess.file_exists(TEST_SAVE), "reset deletes the save")
 	SaveGame.enabled = false
@@ -41,7 +41,7 @@ func test_old_save_without_walkways_loads() -> void:
 	var state := Airport.save_state()
 	state.erase("walkways")
 	Airport.load_state(state)
-	check_eq(Airport.buildings.size(), SHOWCASE_BUILDINGS, "buildings load from an older save")
+	check_eq(Airport.buildings.size(), SHOWCASE_WITH_LANDSIDE_BUILDINGS, "buildings load from an older save")
 
 
 func test_outdated_building_is_skipped() -> void:

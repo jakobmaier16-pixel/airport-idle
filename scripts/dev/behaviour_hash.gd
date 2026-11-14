@@ -22,7 +22,7 @@ const HASH_AREA: Vector2i = Vector2i(256, 256)
 static func compute(map_size: Vector2i = Vector2i.ZERO) -> String:
 	var previous_seed: int = Airport.game_seed
 	Airport.reseed(SEED)
-	ShowcaseAirport.build(180.0, map_size)
+	ShowcaseAirport.build(180.0, map_size, false)
 	Airport.passenger_flow.max_passengers = Benchmark.PASSENGER_LIMIT
 	for i in STEPS:
 		Airport.step(Airport.SIM_STEP)

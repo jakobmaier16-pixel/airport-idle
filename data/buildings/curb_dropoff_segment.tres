@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="BuildingType" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/building_type.gd" id="1_type"]
+[ext_resource type="PackedScene" path="res://assets/models/landside/curb_dropoff_segment.glb" id="2_model"]
+
+[resource]
+script = ExtResource("1_type")
+id = &"curb_dropoff_segment"
+display_name = "Drop-off curb"
+category = "Landside"
+sub_category = "Curb"
+footprint = Vector2i(12, 9)
+zone_rule = 0
+is_solid = false
+front_access = 0
+back_access = 0
+role = 0
+build_cost = 6000.0
+running_cost_per_minute = 0.0
+model = ExtResource("2_model")
+paved_base = false
+color = Color(0.22, 0.23, 0.25, 1)
+height = 0.15

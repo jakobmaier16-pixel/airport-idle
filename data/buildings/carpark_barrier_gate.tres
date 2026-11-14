@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="BuildingType" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/building_type.gd" id="1_type"]
+[ext_resource type="PackedScene" path="res://assets/models/landside/carpark_barrier_gate.glb" id="2_model"]
+
+[resource]
+script = ExtResource("1_type")
+id = &"carpark_barrier_gate"
+display_name = "Car park barrier gate"
+category = "Landside"
+sub_category = "Car park"
+footprint = Vector2i(4, 8)
+zone_rule = 0
+is_solid = false
+front_access = 0
+back_access = 0
+role = 0
+build_cost = 4500.0
+running_cost_per_minute = 0.0
+model = ExtResource("2_model")
+paved_base = false
+color = Color(0.22, 0.23, 0.25, 1)
+height = 1.2

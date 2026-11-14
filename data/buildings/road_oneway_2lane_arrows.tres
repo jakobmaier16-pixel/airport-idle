@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="BuildingType" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/building_type.gd" id="1_type"]
+[ext_resource type="PackedScene" path="res://assets/models/landside/road_oneway_2lane_arrows.glb" id="2_model"]
+
+[resource]
+script = ExtResource("1_type")
+id = &"road_oneway_2lane_arrows"
+display_name = "One-way road (arrows)"
+category = "Landside"
+sub_category = "Roads"
+footprint = Vector2i(4, 4)
+zone_rule = 0
+is_solid = false
+front_access = 0
+back_access = 0
+role = 0
+build_cost = 420.0
+running_cost_per_minute = 0.0
+model = ExtResource("2_model")
+paved_base = false
+color = Color(0.22, 0.23, 0.25, 1)
+height = 0.05

@@ -8,8 +8,11 @@ extends Node
 var failures: Array[String] = []
 ## Set by the runner before each test.
 var current_test: String = ""
-## Number of buildings in the showcase airport (scripts/dev/showcase_airport.gd).
+## Number of buildings in the showcase airport without landside pieces: what the example saves in
+## tests/saves/ hold (scripts/dev/showcase_airport.gd).
 const SHOWCASE_BUILDINGS: int = 19
+## ... and in the showcase as built today, with the landside layout (scripts/dev/showcase_landside.gd).
+const SHOWCASE_WITH_LANDSIDE_BUILDINGS: int = 524
 
 ## Building types of the 6 m prototype that save format 10 removes (full refund) when it converts an
 ## older save; the new runway is laid on loading. Prices are what format 9 saved when an entry has none.
@@ -247,10 +250,12 @@ func pick_building(display_name: String) -> bool:
 		return false
 	var row := ui("BuildMenu/BuildingButtons")
 	if _menu_button(row, display_name) == null:
-		var back := _menu_button(row, "‹")
-		if back != null:
-			await press(back)
+		# Back to the list of categories (one "‹" per menu level), then down to the building.
+		while _menu_button(row, type.category + " ›") == null and _menu_button(row, "‹") != null:
+			await press(_menu_button(row, "‹"))
 		await press(_menu_button(row, type.category + " ›"))
+		if not type.sub_category.is_empty():
+			await press(_menu_button(row, type.sub_category + " ›"))
 	var button := _menu_button(row, display_name)
 	if button == null:
 		check(false, "no build menu button '%s'" % display_name)

@@ -106,7 +106,7 @@ func test_money_saved_and_loading_does_not_charge() -> void:
 	Airport.reset()
 	Airport.load_state(state)
 	check_eq(Airport.economy.balance, 12345.0, "balance restored, buildings not paid again")
-	check_eq(Airport.buildings.size(), SHOWCASE_BUILDINGS, "all buildings loaded")
+	check_eq(Airport.buildings.size(), SHOWCASE_WITH_LANDSIDE_BUILDINGS, "all buildings loaded")
 	state.erase("money")
 	Airport.load_state(state)
 	check_eq(Airport.economy.balance, Economy.STARTING_MONEY, "old save without money starts with the starting money")
