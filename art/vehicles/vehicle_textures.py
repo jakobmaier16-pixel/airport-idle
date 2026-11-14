@@ -194,6 +194,17 @@ def headlight(name: str, style: str) -> None:
     gx, gy = grid(name)
     _, _, w, h = A.RECTS[name]
     fill(name, *PAINT)
+    if style == "c":                                                                    # rounded lamp (small car)
+        shape = ellipse(gx, gy, w / 2, h / 2 + 1, w / 2 - 2, h / 2 - 3) | \
+            (ellipse(gx, gy, w * 0.62, h / 2, w * 0.36, h / 2 - 2))
+        put(name, shape, "#202224", 0, 0.05, 0.2)
+        inner = ellipse(gx, gy, w / 2, h / 2 + 1, w / 2 - 5, h / 2 - 6)
+        put(name, inner, "#5E6368", 0, 0.08, 1.0)
+        ring = ellipse(gx, gy, w * 0.40, h * 0.54, 15, 15) & ~ellipse(gx, gy, w * 0.40, h * 0.54, 12, 12)
+        put(name, ring, "#F4F6F8", 0, 0.05, 0.0, 1.0)                                    # LED ring (DRL)
+        put(name, ellipse(gx, gy, w * 0.40, h * 0.54, 9, 9), "#E8ECEF", 0, 0.05, 0.2, 1.0)
+        put(name, inner & (gx > w * 0.76), "#D8822A", 0, 0.1)                           # amber indicator
+        return
     if style == "van":
         outline = [(2, 4), (w - 2, 2), (w - 2, h - 2), (4, h - 2)]
     elif style == "b":
@@ -332,6 +343,7 @@ def main() -> None:
     headlight("head_a", "a")
     headlight("head_b", "b")
     headlight("head_van", "van")
+    headlight("head_c", "c")
     taillight("tail_a", "a")
     taillight("tail_b", "b")
     taillight("tail_van", "van")

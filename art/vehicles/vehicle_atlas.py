@@ -24,6 +24,7 @@ RECTS = {
     "tail_a": (128, 176, 128, 48),            # small car / SUV
     "tail_b": (256, 176, 128, 48),            # estate / taxi: wide, two-part
     "tail_van": (384, 176, 48, 80),           # van: vertical stack (red / amber / white / red)
+    "head_c": (432, 176, 80, 48),             # small car: rounder lamp, one projector
     "taxi_sign": (128, 224, 128, 32),         # yellow roof sign with black TAXI
     "door_number": (256, 224, 32, 32),        # taxi number decal (black on paint)
     "fuel_flap": (288, 224, 32, 32),          # paint with a fine shut line
