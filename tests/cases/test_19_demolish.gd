@@ -1,5 +1,5 @@
 extends TestCase
-## Demolishing (design doc §7.6): 50 % refund, any time, also during operation.
+## Demolishing (design doc §7.6): free, any time, also during operation.
 
 
 func _building(role: BuildingType.Role, index: int = 0) -> Building:
@@ -7,21 +7,18 @@ func _building(role: BuildingType.Role, index: int = 0) -> Building:
 	return found[index] if index < found.size() else null
 
 
-func test_refund_and_removal() -> void:
+func test_removal_frees_the_cells() -> void:
 	var check_in := Airport.place_building(type_of(&"check_in"), at(Vector2i(10, 10)), 0)
-	var balance := Airport.economy.balance
-	check_eq(Airport.demolish_refund(check_in), 1500.0, "half of €3,000")
 	check(Airport.demolish(check_in), "demolished")
-	check_eq(Airport.economy.balance, balance + 1500.0, "€1,500 refunded")
 	check(not Airport.buildings.has(check_in), "gone from the list")
 	check(Airport.grid.is_empty(at(Vector2i(11, 11))), "its cells are free")
-	check_eq(Airport.running_cost_per_minute(), 0.0, "no running costs left")
 	check(Airport.can_place(type_of(&"check_in"), at(Vector2i(10, 10)), 0), "the spot can be built on again")
+	check(not Airport.demolish(check_in), "a second demolish does nothing")
 
 
 func test_demolished_gate_cancels_flights() -> void:
 	ShowcaseAirport.build(0.0)
-	sim_seconds(200)
+	sim_seconds(400)
 	var gate := _building(BuildingType.Role.GATE, 0)
 	var flights := Airport.schedule.flights.filter(func(f: Flight) -> bool: return f.gate == gate)
 	check(not flights.is_empty(), "the gate had flights")
@@ -30,7 +27,7 @@ func test_demolished_gate_cancels_flights() -> void:
 	check(flights.all(func(f: Flight) -> bool: return f.phase == Flight.Phase.CANCELLED), "its flights are cancelled")
 	sim_seconds(300)
 	check(Airport.schedule.flights.all(func(f: Flight) -> bool: return f.gate != gate), "no new flights at the demolished gate")
-	check(Airport.reputation.departures > 0, "the other gate keeps flying")
+	check(Airport.schedule.departures > 0, "the other gates keep flying")
 
 
 func test_demolished_stand_stops_its_gate() -> void:
@@ -57,7 +54,6 @@ func test_demolish_by_touch() -> void:
 	await open_build_view()
 	await show_whole_map()
 	var check_in := _building(BuildingType.Role.CHECK_IN, 0)
-	var balance := Airport.economy.balance
 	var drawn := (main.get_node("Buildings") as BuildingLayer).visual_count()
 	await press(ui("BuildMenu/PaintButtons/DemolishToolButton"))
 	var demolish := ui("ToolPanel/ToolBar/DemolishButton") as Button
@@ -65,12 +61,11 @@ func test_demolish_by_touch() -> void:
 	tap(screen_of_cell(check_in.origin_cell + Vector2i(1, 1)))
 	await frames(1)
 	var hint := (ui("ToolPanel/HintLabel") as Label).text
-	check_eq(hint, "Demolish Check-in · refund €1,500", "hint names building and refund")
+	check_eq(hint, "Demolish Check-in", "hint names the building")
 	check(build_mode()._paint_preview.visible, "the building is marked in red")
 	await press(demolish)
 	await frames(1)
 	check(not Airport.buildings.has(check_in), "check-in demolished")
-	check_eq(Airport.economy.balance, balance + 1500.0, "refund paid")
 	check_eq((main.get_node("Buildings") as BuildingLayer).visual_count(), drawn - 1, "its 3D box is gone")
 	check(build_mode()._tool == BuildMode.Tool.DEMOLISH, "tool stays open for the next building")
 	await press(ui("ToolPanel/ToolBar/DoneButton"))

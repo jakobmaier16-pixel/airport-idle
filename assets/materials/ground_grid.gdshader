@@ -48,13 +48,10 @@ uniform vec2 grid_origin = vec2(0.0);
 uniform vec2 map_size = vec2(128.0);
 // R8, one texel per cell: the cell's flag byte of AirportGrid.
 //   bits 0-2 (0x07): zone, 0 = landside, 1 = airside     bit 3 (0x08): walkway
-//   bit 4 (0x10): taxiway                                bit 5 (0x20): owned (not filled yet)
+//   bit 4 (0x10): taxiway                                bit 5 (0x20): owned (unused)
 //   bits 6-7 (0xC0): surface under a building, 1 = concrete (stand), 2 = runway asphalt
 // Keep these in step with AirportGrid.ZONE_MASK / WALKWAY_BIT / TAXIWAY_BIT / OWNED_BIT / SURFACE_MASK.
 uniform sampler2D flag_map : filter_nearest, repeat_disable;
-// Land the airport owns (world XZ: min x, min z, max x, max z). Outside it is shaded darker.
-uniform vec4 owned_rect = vec4(-1.0e6, -1.0e6, 1.0e6, 1.0e6);
-uniform float not_owned_brightness = 0.6;
 
 varying vec3 world_position;
 
@@ -160,14 +157,6 @@ void fragment() {
 		color = mix(color, grid_line_color.rgb, line * grid_line_strength);
 	}
 
-	// Unowned land. HOOK: once the owned bit (0x20) is filled in the grid, read it from `flags` here
-	// instead of the rectangle.
-	bool owned = world.x >= owned_rect.x && world.y >= owned_rect.y
-		&& world.x <= owned_rect.z && world.y <= owned_rect.w;
-	if (!owned) {
-		float gray = dot(color, vec3(0.3, 0.59, 0.11));
-		color = mix(color, vec3(gray), 0.5) * not_owned_brightness;
-	}
 	ALBEDO = color;
 	ROUGHNESS = 1.0;
 }

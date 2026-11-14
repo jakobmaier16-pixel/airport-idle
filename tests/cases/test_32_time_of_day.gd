@@ -1,5 +1,5 @@
 extends TestCase
-## Time of day: clock, demand by hour, day and night light (design doc §12.1).
+## Time of day: clock, day and night light (design doc §12.1).
 
 
 func test_clock_runs_fifteen_times_faster() -> void:
@@ -11,16 +11,6 @@ func test_clock_runs_fifteen_times_faster() -> void:
 	sim_seconds(240)
 	check_eq(clock.text(), "Day 2 · 00:30", "a new day")
 	check(is_equal_approx(clock.hour_at(120.0), 1.0), "two real minutes ahead is 01:00")
-
-
-func test_demand_follows_the_day() -> void:
-	check(Clock.demand_factor(3.0) < 0.5, "quiet at night")
-	check(Clock.demand_factor(7.5) > 1.2, "morning rush")
-	check(Clock.demand_factor(18.0) > 1.2, "evening rush")
-	var total := 0.0
-	for hour in 24:
-		total += Clock.demand_factor(hour)
-	check(absf(total / 24.0 - 0.9) < 0.1, "about the usual number over a day: %.2f" % (total / 24.0))
 
 
 func test_clock_is_saved() -> void:
@@ -46,4 +36,4 @@ func test_day_and_night_light() -> void:
 	Airport.clock.game_seconds = 7.0 * 3600.0
 	await frames(1)
 	check(-sun.rotation.x < noon_elevation, "the morning sun is lower than at noon")
-	check((ui("TopButtons/ClockLabel") as Label).text == "Day 1 · 07:00 · Spring", "clock and season in the HUD")
+	check((ui("TopButtons/ClockLabel") as Label).text == "Day 1 · 07:00", "clock in the HUD")

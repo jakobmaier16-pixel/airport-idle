@@ -10,24 +10,14 @@ extends RefCounted
 ## by exactly one gate, with a parallel taxiway between the stands and the runway.
 
 ## Builds the showcase into an empty airport. `warm_up_seconds` lets the airport run for a while
-## first, so it's already busy when the player looks at it: after the default 3 minutes the first
-## plane is at its stand and boarding opens, the second plane is about to taxi in.
+## first, so it's already busy when the player looks at it: the first flight is on its way and
+## after the default 3 minutes its plane is at the stand, the next one is not far behind.
 ## `map_size` (tests only) builds it on a map of another size; zero is the game's map.
 ## `with_landside` false leaves out the landside pieces (scripts/dev/showcase_landside.gd): the behaviour
 ## hash and the device benchmark measure the simulation and keep their airport.
 static func build(warm_up_seconds: float = 180.0, map_size: Vector2i = Vector2i.ZERO, with_landside: bool = true) -> void:
 	Airport.reset(true, -1, map_size)
 	var catalog := Airport.CATALOG
-	# Build on an unlimited test budget, so nothing in the showcase fails for lack of money.
-	# The player gets the normal starting money at the end.
-	Airport.economy.balance = 1.0e9
-	# An International airport (design doc §14.1): the whole map and long-haul flights are
-	# unlocked, and it is on its way to Hub.
-	Airport.progression.tier = Progression.Tier.INTERNATIONAL
-	Airport.progression.passengers = 15000
-	Airport.progression.transfers = 400
-	Airport.land_changed.emit()
-
 	# One layout update for the whole layout instead of one per building (the real-scale runway
 	# makes each update expensive).
 	Airport.begin_batch()
@@ -44,12 +34,9 @@ static func build(warm_up_seconds: float = 180.0, map_size: Vector2i = Vector2i.
 	Airport.place_building(catalog.find(&"gate"), _at(Vector2i(64, 34)), 0)
 	Airport.place_building(catalog.find(&"aircraft_stand"), _at(Vector2i(6, 39)), 0)
 	Airport.place_building(catalog.find(&"aircraft_stand"), _at(Vector2i(62, 39)), 0)
-	# Long-haul (§10.2): gate 3 in the middle with a wide-body stand behind it.
+	# Long-haul (§10.2): gate 3 in the middle with a wide-body stand behind it (wide planes).
 	Airport.place_building(catalog.find(&"gate"), _at(Vector2i(27, 34)), 0)
 	Airport.place_building(catalog.find(&"wide_body_stand"), _at(Vector2i(26, 39)), 0)
-	# Cargo (§10.3): a cargo terminal with its own stand in the east.
-	Airport.place_building(catalog.find(&"cargo_terminal"), _at(Vector2i(88, 38)), 0)
-	Airport.place_building(catalog.find(&"aircraft_stand"), _at(Vector2i(84, 43)), 0)
 	# Taxiways (§7.5a): a parallel taxiway along the runway (the wide-body stand touches it), and
 	# links up to the narrow stands.
 	Airport.paint_taxiway(_cells(Vector2i(6, 79), Vector2i(100, 2)), true)
@@ -66,22 +53,7 @@ static func build(warm_up_seconds: float = 180.0, map_size: Vector2i = Vector2i.
 
 	Airport.end_batch()
 
-	# Airlines (§10.1): the starter deal, two more and a long-haul airline, together as many
-	# flights as the three gates can take (60 per hour), and an open offer to negotiate.
-	var airlines := Airport.airlines
-	airlines.sign_deal(Airlines.CATALOG.find(&"zippa"), 16, 9.0)
-	airlines.sign_deal(Airlines.CATALOG.find(&"norvane"), 14, 20.0)
-	airlines.sign_deal(Airlines.CATALOG.find(&"orynth"), 10, 32.0)
-	airlines.sign_deal(Airlines.CATALOG.find(&"paqet"), 10, 20.0)
-	# Contracts that run out at different times (Zippa asks to renew in about 5 minutes, §10.4).
-	for airline in airlines.signed:
-		airline.contract_left = Airlines.CONTRACT_SECONDS * (0.4 + 0.1 * airlines.signed.find(airline))
-	airlines.signed[1].contract_left = Airlines.RENEWAL_NOTICE + 300.0
-	airlines.offers.append(AirlineOffer.new(Airlines.CATALOG.find(&"sunkiss"), 10, 13.0))
-
-	# The showcase is a test fixture: start with fresh money, as if it had been there all along.
-	Airport.economy = Economy.new()
-	# The morning rush has just started when the player looks (after the warm-up: about 08:00).
+	# Morning when the player looks (after the warm-up: about 08:00).
 	Airport.clock.game_seconds = 7.25 * 3600.0
 	if warm_up_seconds > 0.0:
 		# The timetable's first slot opens its flight a little after the start: wait for it, so
@@ -92,8 +64,6 @@ static func build(warm_up_seconds: float = 180.0, map_size: Vector2i = Vector2i.
 			Airport.step(Airport.SIM_STEP)
 	for i in int(warm_up_seconds / Airport.SIM_STEP):
 		Airport.step(Airport.SIM_STEP)
-
-	Airport.economy.balance = Economy.STARTING_MONEY
 
 
 ## A cell of the reference map (see MapAnchor) on the current map.

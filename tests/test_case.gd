@@ -9,16 +9,18 @@ var failures: Array[String] = []
 ## Set by the runner before each test.
 var current_test: String = ""
 ## Number of buildings in the showcase airport without landside pieces (scripts/dev/showcase_airport.gd).
-## The example saves in tests/saves/ hold 19: their shop, cafe, lounge, baggage claim and transfer
-## security no longer exist (removed 2026-11-14) and are skipped, with a refund, when they load.
-const SHOWCASE_BUILDINGS: int = 14
+## The example saves in tests/saves/ hold 19: their cargo terminal, shop, cafe, lounge, baggage claim
+## and transfer security no longer exist (removed 2026-11-14) and are dropped silently when they load.
+const SHOWCASE_BUILDINGS: int = 12
 ## ... and in the showcase as built today, with the landside layout (scripts/dev/showcase_landside.gd).
-const SHOWCASE_WITH_LANDSIDE_BUILDINGS: int = 519
+const SHOWCASE_WITH_LANDSIDE_BUILDINGS: int = 517
+## ... and what the example saves of format 10 hold once their removed types are dropped (the old
+## showcase had a cargo terminal and its stand: the stand stays, the terminal is gone).
+const EXAMPLE_SAVE_BUILDINGS: int = 13
 
-## Building types of the 6 m prototype that save format 10 removes (full refund) when it converts an
-## older save; the new runway is laid on loading. Prices are what format 9 saved when an entry has none.
-const LEGACY_AIRSIDE_PRICES: Dictionary = {"aircraft_stand": 6000.0, "wide_body_stand": 15000.0, "runway": 40000.0}
-const LEGACY_TAXIWAY_PRICE: float = 30.0
+## Building types of the 6 m prototype that save format 10 removes when it converts an older save;
+## the new runway is laid on loading.
+const LEGACY_AIRSIDE_TYPES: Array[String] = ["aircraft_stand", "wide_body_stand", "runway"]
 
 ## A small map that still holds the 2 km runway (the old 64 x 64 reference map no longer does).
 const SMALL_MAP: Vector2i = Vector2i(1200, 400)
@@ -111,7 +113,7 @@ func sim_seconds(seconds: float) -> void:
 
 
 ## Runs the simulation until the timetable has turned a slot into a flight (every flight starts
-## as a slot whose arrivals window opens, so the first one appears within a few game hours at most),
+## as a slot whose arrivals window opens, so the first one appears within a turnaround or so),
 ## then returns the next departure. With `gate_number` > 0 it waits for a flight at that gate.
 ## Returns null if there is none within `max_seconds`.
 func first_flight(gate_number: int = 0, max_seconds: float = 1500.0) -> Flight:
@@ -295,9 +297,8 @@ func type_of(id: StringName) -> BuildingType:
 
 
 ## A minimal terminal: landside hall with an entrance, security on the border, and an airside
-## walkway behind it (gates can go along that walkway). No money or tier needed.
+## walkway behind it (gates can go along that walkway).
 func build_basic_terminal() -> void:
-	Airport.economy.balance = 1.0e9
 	Airport.paint_walkway(cells(at(Vector2i(18, 21)), Vector2i(28, 7)), true)
 	Airport.paint_walkway(cells(at(Vector2i(10, 31)), Vector2i(44, 3)), true)
 	Airport.place_building(type_of(&"entrance"), at(Vector2i(30, 19)), 0)
@@ -309,45 +310,16 @@ func build_reference_airport() -> void:
 	ShowcaseAirport.build(0.0)
 
 
-## Types of the example saves that no longer exist (removed 2026-11-14): they are skipped, with
-## half their saved price refunded, when a save loads.
-const REMOVED_TYPES: Array[String] = ["baggage_claim", "transfer_security", "shop", "cafe", "lounge"]
-
-
-## What loading an example save refunds for its removed types (half the saved price each).
-func removed_refund_of(saved: Dictionary) -> float:
-	var total := 0.0
-	for entry: Dictionary in saved.get("buildings", []):
-		if REMOVED_TYPES.has(str(entry.get("type", ""))):
-			total += float(entry.get("cost", 0.0)) * 0.5
-	return total
-
-
-# --- Loading saves from before format 10 (the real-scale airside) ---
-
-## Money an example save gets back for its removed stands, runway and taxiway paint: worked out
-## from the file itself, not from SaveGame.
-func legacy_refund_of(saved: Dictionary) -> float:
-	var total := 0.0
-	for entry: Dictionary in saved.get("buildings", []):
-		var type := str(entry.get("type", ""))
-		if LEGACY_AIRSIDE_PRICES.has(type):
-			total += float(entry.get("cost", LEGACY_AIRSIDE_PRICES[type]))
-	var taxiways: Variant = saved.get("taxiways")
-	var cells := 0
-	if taxiways is String:
-		for byte in Marshalls.base64_to_raw(taxiways):
-			cells += 1 if byte != 0 else 0
-	elif taxiways is Array:
-		cells = GridSave.cells_of(taxiways).size()
-	return total + cells * LEGACY_TAXIWAY_PRICE
+## Types of the example saves that no longer exist (removed 2026-11-14): they are dropped silently
+## when a save loads.
+const REMOVED_TYPES: Array[String] = ["cargo_terminal", "baggage_claim", "transfer_security", "shop", "cafe", "lounge"]
 
 
 ## The building counts of an example save as they are after loading it today: its stands and old
 ## runway are gone and one (new) runway is there; everything else is as saved.
 func counts_after_legacy_removal(counts: Dictionary) -> Dictionary:
 	var result := counts.duplicate()
-	for type in LEGACY_AIRSIDE_PRICES:
+	for type in LEGACY_AIRSIDE_TYPES:
 		result.erase(type)
 	result["runway"] = 1
 	return result

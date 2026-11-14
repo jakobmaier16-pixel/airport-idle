@@ -1,28 +1,18 @@
 class_name Clock
 extends RefCounted
 ## Time of day at the airport (design doc §12.1). Pure data.
-## Compressed like the rest of the game: a 3-minute gate turnaround stands for about 45 minutes,
-## so one real second is 15 game seconds and a day lasts 96 real minutes.
+## Compressed like the rest of the game: one real second is 15 game seconds, so a game minute is 4
+## real seconds and a day lasts 96 real minutes.
 
 const GAME_SECONDS_PER_SECOND: float = 15.0
 ## A new airport opens at this hour of its first day.
 const START_HOUR: float = 6.0
-## Night curfew (design doc §12.4): no flights from CURFEW_START to CURFEW_END (hours) until Hub.
-const CURFEW_START: float = 0.0
-const CURFEW_END: float = 5.0
-## Passengers per flight compared to the daily average, for every hour 0..23 (morning and evening
-## peaks, a quiet night). Between two hours the value is interpolated.
-const DEMAND_BY_HOUR: Array[float] = [
-	0.4, 0.4, 0.4, 0.4, 0.5, 0.8, 1.2, 1.3, 1.3, 1.1, 1.0, 1.0,
-	1.0, 1.0, 1.0, 1.0, 1.1, 1.25, 1.3, 1.2, 1.0, 0.8, 0.6, 0.45,
-]
-
 ## Game seconds since midnight of day 1.
 ## Game seconds per real second, under the name the schedule code uses to convert.
 const GAME_PER_REAL: float = GAME_SECONDS_PER_SECOND
 
 ## The one clock (tech_architecture.md §3): real seconds since the airport opened, only ever
-## running forward. Flights, queues and income windows are timed against it, and the time of day
+## running forward. Flights and the timetable are timed against it, and the time of day
 ## is derived from it. (Kept in real seconds so those timings stay exactly as they were.)
 var real_elapsed: float = 0.0
 
@@ -60,16 +50,6 @@ func day() -> int:
 func text() -> String:
 	var minutes := int(hour() * 60.0)
 	return "Day %d · %02d:%02d" % [day(), minutes / 60, minutes % 60]
-
-
-## Passengers per flight compared to the average, at `at_hour` (design doc §12.1).
-static func demand_factor(at_hour: float) -> float:
-	var index := int(at_hour) % 24
-	return lerpf(DEMAND_BY_HOUR[index], DEMAND_BY_HOUR[(index + 1) % 24], at_hour - floorf(at_hour))
-
-
-static func is_curfew_hour(at_hour: float) -> bool:
-	return at_hour >= CURFEW_START and at_hour < CURFEW_END
 
 
 ## 1 at noon, 0 at night, smooth in between (for the lighting).

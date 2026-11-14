@@ -5,16 +5,10 @@ extends Node
 ## method and signal, so scenes and tests keep writing `Airport.x`. All rules live in the brain.
 
 signal building_placed(building: Building)
-signal restructured(sold: PackedStringArray)
-signal land_changed
 signal building_removed(building: Building)
 signal zones_changed
 signal walkways_changed
 signal layout_changed
-signal tier_reached(tier: Progression.Tier)
-signal offer_arrived(offer: AirlineOffer)
-signal airline_unhappy(airline: Airline)
-signal airline_left(airline: Airline)
 signal plane_arriving(flight: Flight)
 
 ## Most steps caught up in one frame, so a slow frame can't snowball.
@@ -68,10 +62,8 @@ func _notification(what: int) -> void:
 # when the brain is replaced. Called again for every new brain: it first disconnects the old one,
 # so nothing is ever connected twice.
 const SIGNALS: Array[StringName] = [
-	&"building_placed",
-	&"restructured", &"land_changed", &"building_removed", &"zones_changed",
-	&"walkways_changed", &"layout_changed", &"tier_reached", &"offer_arrived",
-	&"airline_unhappy", &"airline_left", &"plane_arriving",
+	&"building_placed", &"building_removed", &"zones_changed",
+	&"walkways_changed", &"layout_changed", &"plane_arriving",
 ]
 var _bound: AirportWorld = null
 
@@ -112,18 +104,6 @@ var plane_network: PlaneNetwork:
 	set(value):
 		brain.plane_network = value
 
-var economy: Economy:
-	get:
-		return brain.economy
-	set(value):
-		brain.economy = value
-
-var airlines: Airlines:
-	get:
-		return brain.airlines
-	set(value):
-		brain.airlines = value
-
 var clock: Clock:
 	get:
 		return brain.clock
@@ -135,29 +115,6 @@ var timetable: Timetable:
 		return brain.timetable
 	set(value):
 		brain.timetable = value
-
-var goals: Goals:
-	get:
-		return brain.goals
-	set(value):
-		brain.goals = value
-
-var progression: Progression:
-	get:
-		return brain.progression
-	set(value):
-		brain.progression = value
-
-var demand: Demand:
-	get:
-		return brain.demand
-	set(value):
-		brain.demand = value
-var reputation: Reputation:
-	get:
-		return brain.reputation
-	set(value):
-		brain.reputation = value
 
 var manager_position: Vector3:
 	get:
@@ -177,14 +134,10 @@ var saved_manager: Dictionary:
 	set(value):
 		brain.saved_manager = value
 
-## What the last load_state() refunded for buildings it could not restore, and their names.
-var load_refund: float:
+## The names of the buildings the last load_state() could not restore.
+var load_skipped: PackedStringArray:
 	get:
-		return brain.load_refund
-
-var load_refunded: PackedStringArray:
-	get:
-		return brain.load_refunded
+		return brain.load_skipped
 
 var rng: RandomNumberGenerator:
 	get:
@@ -218,48 +171,8 @@ func areas() -> Array:
 	return brain.areas()
 
 
-func owns_cell(cell: Vector2i) -> bool:
-	return brain.owns_cell(cell)
-
-
-func propose_airline_deal(offer: AirlineOffer, fee: float, flights: int, tone: AirlineType.Tone) -> Airlines.Answer:
-	return brain.propose_airline_deal(offer, fee, flights, tone)
-
-
-func accept_airline_counter(offer: AirlineOffer) -> Airline:
-	return brain.accept_airline_counter(offer)
-
-
-func decline_airline_offer(offer: AirlineOffer) -> void:
-	brain.decline_airline_offer(offer)
-
-
-func end_airline_deal(airline: Airline) -> void:
-	brain.end_airline_deal(airline)
-
-
-func airport_value() -> float:
-	return brain.airport_value()
-
-
-func credit_limit() -> float:
-	return brain.credit_limit()
-
-
-func restructure_in() -> float:
-	return brain.restructure_in()
-
-
-func restructure() -> PackedStringArray:
-	return brain.restructure()
-
-
 func usable_gates() -> Array[Building]:
 	return brain.usable_gates()
-
-
-func usable_cargo_terminals() -> Array[Building]:
-	return brain.usable_cargo_terminals()
 
 
 func gate_number(gate: Building) -> int:
@@ -270,40 +183,16 @@ func status_text() -> String:
 	return brain.status_text()
 
 
-func curfew_at(real_seconds_ahead: float = 0.0) -> bool:
-	return brain.curfew_at(real_seconds_ahead)
+func check_placement(type: BuildingType, origin_cell: Vector2i, rotation_steps: int) -> String:
+	return brain.check_placement(type, origin_cell, rotation_steps)
 
 
-func season() -> Seasons.Season:
-	return brain.season()
+func can_place(type: BuildingType, origin_cell: Vector2i, rotation_steps: int) -> bool:
+	return brain.can_place(type, origin_cell, rotation_steps)
 
 
-func has_cargo_terminal() -> bool:
-	return brain.has_cargo_terminal()
-
-
-func stars() -> float:
-	return brain.stars()
-
-
-func running_cost_per_minute() -> float:
-	return brain.running_cost_per_minute()
-
-
-func check_placement(type: BuildingType, origin_cell: Vector2i, rotation_steps: int, check_money: bool = true) -> String:
-	return brain.check_placement(type, origin_cell, rotation_steps, check_money)
-
-
-func can_place(type: BuildingType, origin_cell: Vector2i, rotation_steps: int, check_money: bool = true) -> bool:
-	return brain.can_place(type, origin_cell, rotation_steps, check_money)
-
-
-func place_building(type: BuildingType, origin_cell: Vector2i, rotation_steps: int, pay: bool = true) -> Building:
-	return brain.place_building(type, origin_cell, rotation_steps, pay)
-
-
-func demolish_refund(building: Building) -> float:
-	return brain.demolish_refund(building)
+func place_building(type: BuildingType, origin_cell: Vector2i, rotation_steps: int) -> Building:
+	return brain.place_building(type, origin_cell, rotation_steps)
 
 
 func demolish(building: Building) -> bool:
@@ -316,10 +205,6 @@ func paint_walkway(cells: Array[Vector2i], walkway: bool) -> String:
 
 func paint_taxiway(cells: Array[Vector2i], taxiway: bool) -> String:
 	return brain.paint_taxiway(cells, taxiway)
-
-
-func taxiway_cost(cells: Array[Vector2i], taxiway: bool) -> float:
-	return brain.taxiway_cost(cells, taxiway)
 
 
 func connection_problem(type: BuildingType, origin_cell: Vector2i, rotation_steps: int) -> String:

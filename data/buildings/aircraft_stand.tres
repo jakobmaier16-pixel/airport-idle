@@ -14,7 +14,5 @@ front_access = 0
 back_access = 0
 role = 5
 stand_class = 0
-build_cost = 18000.0
-running_cost_per_minute = 30.0
 color = Color(0.3, 0.31, 0.34, 1)
 height = 0.05

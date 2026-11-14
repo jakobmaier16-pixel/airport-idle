@@ -21,14 +21,6 @@ signal showcase_confirmed
 ## The player confirmed starting the device benchmark (test builds only, scripts/dev/benchmark.gd).
 signal benchmark_confirmed
 
-const MONEY_COLOR: Color = Color(1.0, 1.0, 1.0)
-const DEBT_COLOR: Color = Color(1.0, 0.4, 0.35)
-
-const STATS_FONT_SIZE: int = 20
-const PROFIT_COLOR: Color = Color(1.0, 0.7, 0.3)
-## How often the statistics panel refreshes, in seconds.
-const STATS_REFRESH: float = 0.5
-
 ## How long a notice stays on screen, in seconds.
 const NOTICE_SECONDS: float = 10.0
 
@@ -41,34 +33,16 @@ var _build_view_open: bool = false
 # Build menu: every building type, and the category whose buildings are shown ("" = categories).
 var _building_types: Array[BuildingType] = []
 var _open_category: String = ""
-var _stats_refresh_in: float = 0.0
-## Statistics tabs (design doc §13.2).
-enum StatsTab { MONEY, AIRLINES, MESSAGES }
-## The last notices, newest first: [clock text, message] (design doc §13.2).
-const MESSAGE_LOG_SIZE: int = 30
-var messages: Array = []
-var stats_tab: StatsTab = StatsTab.MONEY
 ## The building shown in the station panel, or null.
 var shown_station: Building = null
 # Area name of the shown station: looked up on opening and when the layout changes, not per frame.
 var _station_area: String = ""
 var _tool: BuildMode.Tool = BuildMode.Tool.NONE
 var _notice_left: float = 0.0
-var _goal_refresh_in: float = 0.0
 
 @onready var joystick: TouchJoystick = $SafeArea/TouchJoystick
 @onready var _view_button: Button = $SafeArea/TopButtons/ViewButton
-@onready var _stats_button: Button = $SafeArea/TopButtons/StatsButton
-@onready var _airlines_button: Button = $SafeArea/TopButtons/AirlinesButton
 @onready var _clock_label: Label = $SafeArea/TopButtons/ClockLabel
-@onready var airlines_panel: AirlinesPanel = $SafeArea/AirlinesPanel
-@onready var _stats_panel: Control = $SafeArea/StatsPanel
-@onready var _stats_table: GridContainer = $SafeArea/StatsPanel/Content/TableScroll/Table
-@onready var _punctuality_label: Label = $SafeArea/StatsPanel/Content/PunctualityLabel
-@onready var _progress_label: Label = $SafeArea/StatsPanel/Content/ProgressLabel
-@onready var _milestone_panel: Control = $SafeArea/MilestonePanel
-@onready var _goal_panel: Control = $SafeArea/GoalPanel
-@onready var _goal_label: Label = $SafeArea/GoalPanel/Row/GoalLabel
 @onready var _build_menu: Control = $SafeArea/BuildMenu
 @onready var _building_buttons: HBoxContainer = $SafeArea/BuildMenu/BuildingButtons
 @onready var _tool_panel: Control = $SafeArea/ToolPanel
@@ -79,13 +53,9 @@ var _goal_refresh_in: float = 0.0
 @onready var _done_button: Button = $SafeArea/ToolPanel/ToolBar/DoneButton
 @onready var _demolish_button: Button = $SafeArea/ToolPanel/ToolBar/DemolishButton
 @onready var _build_label: Label = $SafeArea/BuildLabel
-@onready var _money_label: Label = $SafeArea/InfoPanel/MoneyLabel
-@onready var _loan_label: Label = $SafeArea/InfoPanel/LoanLabel
 @onready var _notice_panel: Control = $SafeArea/NoticeBox/NoticePanel
 @onready var _notice_label: Label = $SafeArea/NoticeBox/NoticePanel/NoticeLabel
 @onready var _status_label: Label = $SafeArea/InfoPanel/StatusLabel
-@onready var _stars: StarRating = $SafeArea/InfoPanel/RatingRow/Stars
-@onready var _rating_label: Label = $SafeArea/InfoPanel/RatingRow/RatingLabel
 @onready var _departures_label: Label = $SafeArea/InfoPanel/DeparturesLabel
 @onready var _reset_button: Button = $SafeArea/BuildMenu/PaintButtons/ResetButton
 @onready var _demo_button: Button = $SafeArea/BuildMenu/PaintButtons/DemoButton
@@ -120,85 +90,18 @@ func _ready() -> void:
 	_demo_button.pressed.connect(_on_confirm_button_pressed.bind(_demo_button, "Demo", showcase_confirmed))
 	_bench_button.pressed.connect(_on_confirm_button_pressed.bind(_bench_button, "Bench", benchmark_confirmed))
 	$SafeArea/StationPanel/Content/CloseButton.pressed.connect(hide_station)
-	_stats_button.pressed.connect(func() -> void: hide_stats() if _stats_panel.visible else show_stats())
-	$SafeArea/StatsPanel/Content/CloseButton.pressed.connect(hide_stats)
-	for tab: StatsTab in [StatsTab.MONEY, StatsTab.AIRLINES, StatsTab.MESSAGES]:
-		_tab_button(tab).pressed.connect(show_stats_tab.bind(tab))
-	$SafeArea/MilestonePanel/Content/OkButton.pressed.connect(func() -> void: _milestone_panel.visible = false)
-	$SafeArea/GoalPanel/Row/HideButton.pressed.connect(func() -> void: Airport.goals.hidden = true)
-	_airlines_button.pressed.connect(func() -> void: hide_airlines() if airlines_panel.visible else show_airlines())
 	_update_visibility()
 	_show_build_info()
 
 
 func _process(delta: float) -> void:
-	_goal_refresh_in -= delta
-	if _goal_refresh_in <= 0.0:
-		_goal_refresh_in = STATS_REFRESH
-		_goal_label.text = Airport.goals.text()
-	_goal_panel.visible = not _goal_label.text.is_empty() and not Airport.goals.hidden and not _station_panel.visible \
-		and not airlines_panel.visible and not _stats_panel.visible and not _milestone_panel.visible
-	_clock_label.text = "%s · %s" % [Airport.clock.text(), Seasons.text(Airport.season())]
-	if Airport.curfew_at():
-		_clock_label.text += " · Curfew"
-	var offer_count := Airport.airlines.offers.size()
-	_airlines_button.text = "Airlines (%d)" % offer_count if offer_count > 0 else "Airlines"
+	_clock_label.text = Airport.clock.text()
 	if _notice_left > 0.0:
 		_notice_left -= delta
 		if _notice_left <= 0.0:
 			_notice_panel.visible = false
 	if shown_station != null:
 		_update_station_panel()
-	if _stats_panel.visible:
-		_stats_refresh_in -= delta
-		if _stats_refresh_in <= 0.0:
-			_stats_refresh_in = STATS_REFRESH
-			_update_stats_panel()
-
-
-## The next "getting started" goal (design doc §6.1) shown under the top buttons; hidden while
-## a panel on the right is open, so they never overlap.
-func goal_text() -> String:
-	return _goal_label.text if _goal_panel.visible else ""
-
-
-## Opens the airlines panel (design doc §10.1).
-func show_airlines() -> void:
-	hide_station()
-	hide_stats()
-	airlines_panel.open()
-
-
-func hide_airlines() -> void:
-	airlines_panel.close()
-
-
-## Opens the statistics panel (manager view, design doc §13.1).
-func show_stats() -> void:
-	hide_station()
-	hide_airlines()
-	_stats_panel.visible = true
-	_update_stats_panel()
-
-
-## Switches the statistics panel to `tab`.
-func show_stats_tab(tab: StatsTab) -> void:
-	stats_tab = tab
-	for other: StatsTab in [StatsTab.MONEY, StatsTab.AIRLINES, StatsTab.MESSAGES]:
-		_tab_button(other).button_pressed = other == tab
-	_update_stats_panel()
-
-
-func _tab_button(tab: StatsTab) -> Button:
-	return get_node("SafeArea/StatsPanel/Content/Tabs/" + ["MoneyTab", "AirlinesTab", "MessagesTab"][tab]) as Button
-
-
-func hide_stats() -> void:
-	_stats_panel.visible = false
-
-
-func is_stats_open() -> bool:
-	return _stats_panel.visible
 
 
 ## Test builds: shows what a tap did at the bottom of the screen (see TapFeedback).
@@ -210,8 +113,6 @@ func report_tap(text: String) -> void:
 
 ## Opens the panel for `building` (manager view): its name, its area and a close button.
 func show_station(building: Building) -> void:
-	hide_stats()
-	hide_airlines()
 	shown_station = building
 	_refresh_station_area()
 	_station_panel.visible = true
@@ -255,11 +156,7 @@ func show_build_category(category: String, sub_category: String = "") -> void:
 			_add_menu_button(sub_name + " ›", show_build_category.bind(category, sub_name))
 	for type in _building_types:
 		if type.category == category and type.sub_category == sub_category:
-			var label := type.display_name
-			if type.unlocked_at > Airport.progression.tier:
-				# Still pickable: the preview explains when it unlocks.
-				label += " (%s)" % Airport.progression.name_of(type.unlocked_at as Progression.Tier)
-			_add_menu_button(label, building_type_selected.emit.bind(type))
+			_add_menu_button(type.display_name, building_type_selected.emit.bind(type))
 
 
 func _add_menu_button(text: String, action: Callable) -> void:
@@ -271,31 +168,8 @@ func _add_menu_button(text: String, action: Callable) -> void:
 	_building_buttons.add_child(button)
 
 
-## Balance and profit over the last minute, top left. Red while the balance is negative.
-func set_money(balance: float, profit_per_minute: float) -> void:
-	var plus := "+" if roundi(profit_per_minute) >= 0 else ""
-	_money_label.text = "%s   %s%s/min" % [Economy.format(balance), plus, Economy.format(profit_per_minute)]
-	_money_label.modulate = DEBT_COLOR if balance < 0.0 else MONEY_COLOR
-
-
-## Bank loan line under the money (design doc §11.6); hidden while there is no debt.
-## `restructure_in` is the countdown while over the credit limit, or -1.
-func set_loan(debt: float, interest_per_minute: float, limit: float, restructure_in: float) -> void:
-	_loan_label.visible = debt > 0.0
-	if debt <= 0.0:
-		return
-	var text := "Bank loan %s of %s · interest %s/min" % [Economy.format(debt), Economy.format(limit), Economy.format(interest_per_minute)]
-	if restructure_in >= 0.0:
-		var seconds := ceili(restructure_in)
-		text = "Over the credit limit! The bank restructures in %d:%02d" % [seconds / 60, seconds % 60]
-	_loan_label.text = text
-
-
-## Shows a message at the top of the screen for a few seconds, and keeps it in the log.
+## Shows a message at the top of the screen for a few seconds.
 func notify(text: String) -> void:
-	messages.push_front([Airport.clock.text(), text])
-	if messages.size() > MESSAGE_LOG_SIZE:
-		messages.pop_back()
 	_notice_label.text = text
 	_notice_panel.visible = true
 	_notice_left = NOTICE_SECONDS
@@ -303,27 +177,6 @@ func notify(text: String) -> void:
 
 func notice_text() -> String:
 	return _notice_label.text if _notice_panel.visible else ""
-
-
-## The milestone moment (design doc §14.1): a big panel naming the new tier and its rewards.
-func show_milestone(title: String, rewards: String) -> void:
-	hide_station()
-	hide_stats()
-	hide_airlines()
-	$SafeArea/MilestonePanel/Content/TitleLabel.text = title
-	$SafeArea/MilestonePanel/Content/RewardsLabel.text = rewards
-	_milestone_panel.visible = true
-
-
-func is_milestone_open() -> bool:
-	return _milestone_panel.visible
-
-
-## Star rating and what it is made of, under the money (design doc §11.7).
-## Short, so it never runs under the top buttons on an iPad; punctuality is in the statistics panel.
-func set_rating(stars: float, tier_name: String) -> void:
-	_stars.value = stars
-	_rating_label.text = "%.1f   ·   %s airport" % [Reputation.shown_stars(stars), tier_name]
 
 
 ## Status line in the top left (both views).
@@ -342,10 +195,7 @@ func set_view_button_text(text: String) -> void:
 
 func set_build_view_open(open: bool) -> void:
 	_build_view_open = open
-	if open:
-		hide_stats()
-		hide_airlines()
-	elif not _open_category.is_empty():
+	if not open and not _open_category.is_empty():
 		show_build_category("")
 	_update_visibility()
 
@@ -369,100 +219,6 @@ func _update_visibility() -> void:
 	_place_button.visible = placing
 	_done_button.visible = painting
 	_demolish_button.visible = demolishing
-	_stats_button.visible = not _build_view_open
-	_airlines_button.visible = not _build_view_open
-
-
-func _update_stats_panel() -> void:
-	for child in _stats_table.get_children():
-		_stats_table.remove_child(child)
-		child.queue_free()
-	match stats_tab:
-		StatsTab.AIRLINES:
-			_fill_airlines_table()
-		StatsTab.MESSAGES:
-			_fill_messages_table()
-		_:
-			_fill_money_table()
-	_punctuality_label.text = "On time: %d %%" % roundi(Airport.reputation.on_time_rate * 100.0) \
-		+ "     " + demand_text(Airport.demand)
-	_progress_label.text = Airport.progression.progress_text(Airport.stars())
-
-
-# Income and costs by source over the last five minutes (design doc §13.2).
-func _fill_money_table() -> void:
-	_stats_table.columns = 3
-	var heading := Color(0.75, 0.78, 0.82)
-	var economy := Airport.economy
-	for text in ["Income", "Last 5 min", "Per minute"]:
-		_add_stats_cell(text, heading)
-	var income := 0.0
-	for source in Economy.INCOME_SOURCES:
-		var amount := economy.source_total(source)
-		income += amount
-		_add_money_row(source, amount, Color.WHITE)
-	_add_money_row("Total income", income, Color(0.6, 1.0, 0.65))
-	for text in ["Costs", "", ""]:
-		_add_stats_cell(text, heading)
-	var costs := 0.0
-	for source in Economy.COST_SOURCES:
-		var amount := economy.source_total(source)
-		costs += amount
-		_add_money_row(source, -amount, Color.WHITE)
-	_add_money_row("Total costs", -costs, DEBT_COLOR)
-	_add_money_row("Profit", income - costs, PROFIT_COLOR)
-
-
-func _add_money_row(label: String, amount: float, color: Color) -> void:
-	_add_stats_cell(label, color)
-	_add_stats_cell(Economy.format(amount), color)
-	_add_stats_cell(Economy.format(amount / (Economy.SOURCE_WINDOW_SECONDS / 60.0)), color)
-
-
-# The last notices, newest first.
-func _fill_messages_table() -> void:
-	_stats_table.columns = 2
-	if messages.is_empty():
-		_add_stats_cell("No messages yet.", Color(0.75, 0.78, 0.82))
-		_add_stats_cell("", Color.WHITE)
-	for entry: Array in messages:
-		_add_stats_cell(entry[0], Color(0.75, 0.78, 0.82))
-		var cell := Label.new()
-		cell.text = entry[1]
-		cell.custom_minimum_size = Vector2(620, 0)
-		cell.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		cell.add_theme_font_size_override(&"font_size", STATS_FONT_SIZE)
-		_stats_table.add_child(cell)
-
-
-# On-time performance and happiness per airline (design doc §13.2).
-func _fill_airlines_table() -> void:
-	_stats_table.columns = 6
-	for heading in ["Airline", "Flights/h", "Flown", "On time", "Happy", "Fee"]:
-		_add_stats_cell(heading, Color(0.75, 0.78, 0.82))
-	for airline in Airport.airlines.signed:
-		var color := DEBT_COLOR if airline.happiness < Airlines.COMPLAIN_BELOW else Color.WHITE
-		_add_stats_cell(airline.type.display_name, color)
-		_add_stats_cell(str(airline.flights_per_hour), color)
-		_add_stats_cell(str(airline.flown), color)
-		var on_time := "–" if airline.flown == 0 else "%d %%" % roundi(100.0 * (airline.flown - airline.late) / airline.flown)
-		_add_stats_cell(on_time, color)
-		_add_stats_cell("%d %%" % roundi(airline.happiness), color)
-		_add_stats_cell(Economy.format(airline.fee), color)
-
-
-## "Demand: 54 flights/day, rising" (words, not arrows: the font has no arrow glyphs).
-static func demand_text(demand: Demand) -> String:
-	var trend := {"up": "rising", "down": "falling", "steady": "steady"}[demand.trend()] as String
-	return "Demand: %d flights/day, %s" % [roundi(demand.flights_per_day()), trend]
-
-
-func _add_stats_cell(text: String, color: Color) -> void:
-	var cell := Label.new()
-	cell.text = text
-	cell.add_theme_font_size_override(&"font_size", STATS_FONT_SIZE)
-	cell.add_theme_color_override(&"font_color", color)
-	_stats_table.add_child(cell)
 
 
 func _refresh_station_area() -> void:

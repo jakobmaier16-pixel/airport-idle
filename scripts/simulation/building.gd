@@ -18,10 +18,6 @@ func _init(building_type: BuildingType, origin: Vector2i, rotation: int) -> void
 	rotation_steps = posmod(rotation, 4)
 
 
-func running_cost_per_minute() -> float:
-	return type.running_cost_per_minute
-
-
 ## The grid cells this building covers.
 func get_cells() -> Array[Vector2i]:
 	return footprint_cells(type.footprint, origin_cell, rotation_steps)

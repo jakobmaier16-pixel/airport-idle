@@ -19,30 +19,24 @@ func test_pieces_follow_the_landside_rules() -> void:
 		check(not ids.has(type.id), "%s: one type per id" % type.id)
 		ids[type.id] = true
 		check_eq(type.zone_rule, BuildingType.ZoneRule.LANDSIDE, "%s: landside only" % type.id)
-		# Decorative: no role, no passenger access, no staff, no running cost (design doc §4, nothing defined yet).
+		# Decorative: no role, no passenger access (design doc §4, nothing defined yet).
 		check_eq(type.role, BuildingType.Role.NONE, "%s: no simulation role" % type.id)
 		check_eq(type.front_access, BuildingType.Access.NONE, "%s: no front access" % type.id)
 		check_eq(type.back_access, BuildingType.Access.NONE, "%s: no back access" % type.id)
-		check_eq(type.running_cost_per_minute, 0.0, "%s: no running cost" % type.id)
-		check(type.build_cost > 0.0, "%s: has a (placeholder) price" % type.id)
-		check_eq(type.unlocked_at, 0, "%s: part of the start kit" % type.id)
 		check(type.footprint.x >= 1 and type.footprint.y >= 1, "%s: has a footprint" % type.id)
 	for sub in ["Roads", "Curb", "Sidewalk", "Car park", "Props"]:
 		check(pieces.any(func(t: BuildingType) -> bool: return t.sub_category == sub), "sub-category %s exists" % sub)
 
 
 func test_every_piece_places_rotates_and_demolishes() -> void:
-	Airport.economy.balance = 1.0e6
 	var origin := at(Vector2i(20, 20))
 	for type in _landside_pieces():
 		for steps in 4:
-			var before := Airport.economy.balance
 			var building := Airport.place_building(type, origin, steps)
 			check(building != null, "%s placed, rotation %d" % [type.id, steps])
 			if building == null:
 				continue
 			check_eq(building.get_rect().size, Building.rotated_size(type.footprint, steps), "%s: rotated footprint" % type.id)
-			check_eq(before - Airport.economy.balance, type.build_cost, "%s: costs its price" % type.id)
 			check_eq(Airport.place_building(type, origin, steps), null, "%s: the cells are taken now" % type.id)
 			check(Airport.demolish(building), "%s demolished" % type.id)
 			check(Airport.can_place(type, origin, steps), "%s: cells free again" % type.id)
@@ -234,7 +228,6 @@ func test_fence_mesh_is_alpha_scissor_with_alpha_to_coverage() -> void:
 func test_removing_a_piece_removes_its_drawing() -> void:
 	await start_game()
 	var layer := _landside_layer()
-	Airport.economy.balance = 1.0e6
 	var tree := Airport.place_building(type_of(&"tree_deciduous"), at(Vector2i(20, 12)), 0)
 	layer.flush()
 	var drawn := layer.multimesh_nodes().filter(func(n: MultiMeshInstance3D) -> bool: return n.visible).size()

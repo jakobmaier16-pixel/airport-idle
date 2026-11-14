@@ -1,6 +1,6 @@
 extends TestCase
 ## Old example saves (versions 5 and 6, written while passengers existed) still load: they are
-## converted up to the current version, the removed building types are skipped with a refund,
+## converted up to the current version, the removed building types are dropped,
 ## and the airport keeps running. The passenger data in them is ignored.
 
 const SHOWCASE_V5: String = "res://tests/saves/v5_showcase.json"

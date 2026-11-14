@@ -7,15 +7,11 @@ extends Node
 
 ## Bump when the save format changes in a way older code can't read, and add a converter to
 ## `migrations` for the old version (tech_architecture.md §13). Keep every old converter.
-const FORMAT_VERSION: int = 10
+const FORMAT_VERSION: int = 11
 ## Wait this long after a change before saving, so a burst of changes is saved once.
 const SAVE_DELAY: float = 1.0
-## Money and the running airport are also saved this often while playing (seconds).
+## The running airport is also saved this often while playing (seconds).
 const AUTOSAVE_INTERVAL: float = 30.0
-## Offline income (design doc §5): nothing for shorter breaks; after this many hours away the
-## player gets OFFLINE_BONUS_HOURS of the airport's average profit once.
-const OFFLINE_MIN_HOURS: float = 36.0
-const OFFLINE_BONUS_HOURS: float = 4.0
 ## Command-line flag (after "--") that turns saving and loading off, for automated tests:
 ## Godot --headless --path . res://test.tscn -- --no-save
 const NO_SAVE_FLAG: String = "--no-save"
@@ -25,11 +21,6 @@ var enabled: bool = true
 var save_path: String = "user://savegame.json"
 ## The running export (see BuildStamp), stored in the save to detect the first start after an update.
 var build_stamp: String = BuildStamp.DEV
-
-## Set when loading after a long break: the bonus paid and how long the player was away
-## (main.gd shows a welcome-back notice).
-var welcome_back_bonus: float = 0.0
-var away_seconds: float = 0.0
 
 ## Converters for old saves: migrations[n] takes a version-n save (a Dictionary) and returns it as
 ## version n + 1. Loading runs them one after another, so a save is never thrown away for being old.
@@ -41,9 +32,6 @@ var format_version: int = FORMAT_VERSION
 var load_problem: String = ""
 ## Where a save that couldn't be loaded was put aside ("" if none). It is never overwritten.
 var backup_path: String = ""
-
-## Money paid back by the last `migrate()` for the removed old stands, runway and taxiways (0 if none).
-var legacy_refund: float = 0.0
 
 # Stamp of the export that wrote the loaded save.
 var _saved_build: String = ""
@@ -78,7 +66,7 @@ func _notification(what: int) -> void:
 	# iOS can close a backgrounded app at any time without warning, so save when we get the chance.
 	match what:
 		NOTIFICATION_APPLICATION_PAUSED, NOTIFICATION_APPLICATION_FOCUS_OUT, NOTIFICATION_WM_CLOSE_REQUEST:
-			# Always: the time of leaving counts for offline income, and money changes constantly.
+			# Always: the airport keeps running, so the state changes constantly.
 			save_now()
 
 
@@ -96,7 +84,7 @@ func save_now() -> void:
 	if file == null:
 		push_error("Could not write save game: %s" % error_string(FileAccess.get_open_error()))
 		return
-	# Full precision: the default writes ~14 digits, which would nudge times and money at every load.
+	# Full precision: the default writes ~14 digits, which would nudge times at every load.
 	file.store_string(JSON.stringify(data, "", true, true))
 	file.close()
 	DirAccess.rename_absolute(ProjectSettings.globalize_path(temp_path), ProjectSettings.globalize_path(save_path))
@@ -118,7 +106,6 @@ func load_game() -> void:
 		_put_aside("newer", "Your saved airport is from a newer version of the game. It was kept as a backup, and a new airport starts.")
 		return
 	var data := migrate(parsed)
-	var removed_refund := legacy_refund
 	if data.is_empty():
 		_put_aside("unconvertible", "Your saved airport couldn't be converted to this version. It was kept as a backup, and a new airport starts.")
 		return
@@ -128,20 +115,13 @@ func load_game() -> void:
 	_loading = false
 	if skipped > 0:
 		push_warning("%d saved buildings no longer fit and were skipped." % skipped)
-		# Nothing is lost silently: tell the player what was paid back.
-		load_problem = "%d building(s) could not be restored (%s). %s was refunded." % [
-			skipped, ", ".join(Airport.load_refunded), Economy.format(Airport.load_refund)]
-	if removed_refund > 0.0:
-		var notice := "Old stands and runway were removed: %s refunded." % Economy.format(removed_refund)
-		load_problem = notice if load_problem.is_empty() else load_problem + " " + notice
-	if data.has("saved_at"):
-		apply_offline_time(Time.get_unix_time_from_system() - float(data["saved_at"]))
+		# Nothing is lost silently: tell the player. (Removed building types are dropped without a notice.)
+		load_problem = "%d building(s) could not be restored (%s)." % [skipped, ", ".join(Airport.load_skipped)]
 
 
 ## Converts `data` from its version to `format_version`, one step at a time (tech_architecture.md
 ## §13). Returns the converted save, or an empty Dictionary if a converter is missing.
 func migrate(data: Dictionary) -> Dictionary:
-	legacy_refund = 0.0
 	var version := int(data.get("version", 0))
 	while version < format_version:
 		if not migrations.has(version):
@@ -155,7 +135,7 @@ func migrate(data: Dictionary) -> Dictionary:
 
 ## The converters this build ships (tests put them back after swapping in their own).
 func default_migrations() -> Dictionary[int, Callable]:
-	return {1: _v1_to_v2, 2: _v2_to_v3, 3: _v3_to_v4, 4: _v4_to_v5, 5: _v5_to_v6, 6: _v6_to_v7, 7: _v7_to_v8, 8: _v8_to_v9, 9: _v9_to_v10}
+	return {1: _v1_to_v2, 2: _v2_to_v3, 3: _v3_to_v4, 4: _v4_to_v5, 5: _v5_to_v6, 6: _v6_to_v7, 7: _v7_to_v8, 8: _v8_to_v9, 9: _v9_to_v10, 10: _v10_to_v11}
 
 
 ## Version 1 -> 2: buildings get permanent IDs (their old list position + 1) and staff point to
@@ -182,9 +162,8 @@ func _v3_to_v4(data: Dictionary) -> Dictionary:
 
 ## Version 4 -> 5: weather, security incidents, VIP visits and the first-landing cutscene were
 ## removed (2026-11-13), so their fields are dropped. A saved de-icing pad is not touched here: its
-## building type is gone, so loading refunds it through the normal "type vanished" path (half the
-## saved price, with a notice). Very old saves didn't store the price: the pad's last price is filled in.
-const DEICING_PAD_PRICE: float = 7000.0
+## building type is gone, so loading drops it silently.
+## The pad's price that used to be filled in here is gone with money (strip to core, format 11).
 
 
 func _v4_to_v5(data: Dictionary) -> Dictionary:
@@ -192,8 +171,6 @@ func _v4_to_v5(data: Dictionary) -> Dictionary:
 		data.erase(key)
 	for entry: Dictionary in data.get("buildings", []):
 		entry.erase("closed")
-		if entry.get("type") == "deicing_pad" and not entry.has("cost"):
-			entry["cost"] = DEICING_PAD_PRICE
 	var flow: Dictionary = data.get("flow", {})
 	for entry: Dictionary in flow.get("schedule", {}).get("flights", []):
 		for key in ["vip_pending", "weather_delay", "deiced"]:
@@ -226,6 +203,7 @@ func _v6_to_v7(data: Dictionary) -> Dictionary:
 ## Version 7 -> 8: the daily timetable (tech_architecture.md §6). Its slots are built from the
 ## saved state: every flight that is already planned becomes a filled slot, and no day counts as
 ## planned, so the first step plans the rest of today (and tomorrow) with the saved dice.
+## (Plain numbers: those enums changed with format 11, which drops this timetable anyway.)
 func _v7_to_v8(data: Dictionary) -> Dictionary:
 	var day := int(float(data.get("clock", Clock.START_HOUR * 3600.0)) / 86400.0) + 1
 	var slots: Array = []
@@ -237,9 +215,9 @@ func _v7_to_v8(data: Dictionary) -> Dictionary:
 		var number := str(entry.get("number", ""))
 		slots.append({
 			"time": float(entry.get("departure_time", 0.0)), "day": day,
-			"class": int(TimetableSlot.PlaneClass.CARGO) if cargo else (int(TimetableSlot.PlaneClass.WIDE) if wide else int(TimetableSlot.PlaneClass.NARROW)),
+			"class": 2 if cargo else (1 if wide else 0),
 			"route": str(entry.get("route", "Holiday")),
-			"state": int(TimetableSlot.State.FILLED), "airline": number.get_slice(" ", 0), "number": number,
+			"state": 1, "airline": number.get_slice(" ", 0), "number": number,
 		})
 	data["timetable"] = {"generated_days": [], "slots": slots}
 	return data
@@ -258,32 +236,50 @@ func _v8_to_v9(data: Dictionary) -> Dictionary:
 
 ## Version 9 -> 10: real-scale airside (game_design §16). Stands, the runway and the taxiway paint
 ## of the 6-metre prototype are removed; the new ones are 1 cell = 2 m (stands 20 x 23 and 35 x 40,
-## runway 1,000 x 23). Their saved prices (taxiway paint: its price per cell) are paid back in full,
-## added to the saved money, and the runway is laid again on load (a save without one gets the new
-## one). Gates and the rest of the airport stay; flights with a removed stand are cancelled by the
-## schedule's first tick. `legacy_refund` tells the player how much came back.
+## runway 1,000 x 23). The runway is laid again on load (a save without one gets the new one).
+## Gates and the rest of the airport stay; flights with a removed stand are cancelled by the
+## schedule's first tick. (Their prices were refunded when money existed; since format 11 nothing is.)
 const LEGACY_AIRSIDE_TYPES: Array[String] = ["aircraft_stand", "wide_body_stand", "runway"]
-## What a legacy building cost when its save entry has no price (the prices of format 9).
-const LEGACY_AIRSIDE_PRICES: Dictionary[String, float] = {"aircraft_stand": 6000.0, "wide_body_stand": 15000.0, "runway": 40000.0}
-const V9_TAXIWAY_PRICE_PER_CELL: float = 30.0
 
 
 func _v9_to_v10(data: Dictionary) -> Dictionary:
-	var refund := 0.0
 	var kept: Array = []
 	for entry: Dictionary in data.get("buildings", []):
-		var type := str(entry.get("type", ""))
-		if type in LEGACY_AIRSIDE_TYPES:
-			refund += float(entry.get("cost", LEGACY_AIRSIDE_PRICES[type]))
-		else:
+		if not str(entry.get("type", "")) in LEGACY_AIRSIDE_TYPES:
 			kept.append(entry)
 	data["buildings"] = kept
 	if data.get("taxiways") is Array:
-		refund += GridSave.cells_of(data["taxiways"]).size() * V9_TAXIWAY_PRICE_PER_CELL
 		data["taxiways"] = []
-	if refund > 0.0:
-		data["money"] = float(data.get("money", Economy.STARTING_MONEY)) + refund
-	legacy_refund += refund
+	return data
+
+
+## Version 10 -> 11: the strip to the core (docs/removed_features.md). Money, the loan, the
+## average profit, satisfaction, reputation, airlines, progression (tiers and land), goals, demand,
+## staff and the passenger flow are dropped, and so are the prices and levels stored in buildings.
+## Buildings of removed types (the cargo terminal, shops, ...) leave without a refund. The old
+## schedule and timetable are dropped too: flights on their way vanish and the new fixed timetable
+## plans itself from the first step. Enum numbers stored in saves are never renumbered.
+const V11_DROPPED_KEYS: Array[String] = [
+	"money", "over_limit", "average_profit", "satisfaction", "reputation", "airlines", "progression",
+	"goals_hidden", "demand", "staff", "flow", "schedule", "timetable",
+]
+const V11_REMOVED_TYPES: Array[String] = [
+	"cargo_terminal", "shop", "cafe", "lounge", "baggage_claim", "transfer_security", "deicing_pad",
+]
+const V11_DROPPED_BUILDING_KEYS: Array[String] = ["cost", "level", "upgrade", "upgrades", "upgrade_level", "closed"]
+
+
+func _v10_to_v11(data: Dictionary) -> Dictionary:
+	for key in V11_DROPPED_KEYS:
+		data.erase(key)
+	var kept: Array = []
+	for entry: Dictionary in data.get("buildings", []):
+		if str(entry.get("type", "")) in V11_REMOVED_TYPES:
+			continue
+		for key in V11_DROPPED_BUILDING_KEYS:
+			entry.erase(key)
+		kept.append(entry)
+	data["buildings"] = kept
 	return data
 
 
@@ -299,18 +295,6 @@ func _put_aside(reason: String, message: String) -> void:
 	DirAccess.rename_absolute(ProjectSettings.globalize_path(save_path), ProjectSettings.globalize_path(backup_path))
 	load_problem = message
 	push_warning("Save game put aside as %s: %s" % [backup_path, message])
-
-
-## Pays the welcome-back bonus if the player was away long enough (design doc §5).
-## Returns the bonus (0 for shorter breaks).
-func apply_offline_time(seconds_away: float) -> float:
-	away_seconds = seconds_away
-	welcome_back_bonus = 0.0
-	if seconds_away < OFFLINE_MIN_HOURS * 3600.0:
-		return 0.0
-	welcome_back_bonus = maxf(Airport.economy.average_profit_per_minute, 0.0) * OFFLINE_BONUS_HOURS * 60.0
-	Airport.economy.bonus(welcome_back_bonus)
-	return welcome_back_bonus
 
 
 ## On the first start of a new export (test builds only), replaces the map with the showcase

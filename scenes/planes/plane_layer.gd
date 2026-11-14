@@ -22,11 +22,8 @@ func _process(_delta: float) -> void:
 			continue
 		if not _planes.has(flight):
 			var plane := PlaneVisual.new()
-			if flight.airline != null:
-				plane.tail_color = flight.airline.type.color
 			plane.size_factor = PlaneVisual.size_for(flight)
-			plane.wide_body = flight.wide_body
-			plane.cargo = flight.cargo
+			plane.wide_body = flight.plane_class == TimetableSlot.PlaneClass.WIDE
 			add_child(plane)
 			_planes[flight] = plane
 		_planes[flight].transform = pose

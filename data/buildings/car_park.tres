@@ -13,7 +13,5 @@ is_solid = true
 front_access = 1
 back_access = 0
 role = 9
-build_cost = 8000.0
-running_cost_per_minute = 8.0
 color = Color(0.55, 0.57, 0.6, 1)
 height = 1.2

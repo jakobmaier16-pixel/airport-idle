@@ -49,20 +49,6 @@ func _ready() -> void:
 	await _shot("station_panel")
 	hud().hide_station()
 
-	hud().show_stats()
-	await _shot("stats_panel")
-	hud().show_stats_tab(Hud.StatsTab.MONEY)
-	await _shot("stats_money")
-	hud().show_stats_tab(Hud.StatsTab.AIRLINES)
-	await _shot("stats_airlines")
-	hud().hide_stats()
-
-	hud().show_airlines()
-	await _shot("airlines_panel")
-	hud().airlines_panel.negotiate(Airport.airlines.offers[0])
-	await _shot("airlines_negotiation")
-	hud().hide_airlines()
-
 	await open_build_view()
 	build_camera().center_on(Airport.grid.cell_to_world(at(Vector2i(32, 30))))
 	await _shot("build_view")
@@ -93,16 +79,6 @@ func _ready() -> void:
 		Airport.step(Airport.SIM_STEP)
 	build_camera().center_on(Airport.grid.cell_to_world(at(Vector2i(32, 52))))
 	await _shot("plane_taking_off")
-	# A regional airport only owns the middle of the map (design doc §14.1).
-	Airport.progression.tier = Progression.Tier.REGIONAL
-	Airport.land_changed.emit()
-	await _shot("build_view_regional_land")
-	Airport.progression.tier = Progression.Tier.NATIONAL
-	Airport.land_changed.emit()
-	hud().show_milestone("National airport!", Progression.REWARDS[Progression.Tier.NATIONAL])
-	await _shot("milestone")
-	hud().get_node("SafeArea/MilestonePanel").visible = false
-
 	build_camera().center_on(Airport.grid.cell_to_world(at(Vector2i(32, 30))))
 	await pick_building("Security")  # Security, in an invalid spot
 	build_mode()._set_preview_origin(at(Vector2i(44, 24)))

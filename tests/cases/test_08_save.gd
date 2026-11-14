@@ -53,7 +53,7 @@ func test_outdated_building_is_skipped() -> void:
 			{"type": "check_in", "cell": [11, 11], "rotation": 0},
 		],
 	}
-	check_eq(Airport.load_state(state), 2, "unknown type and overlapping building skipped")
+	check_eq(Airport.load_state(state), 1, "the overlapping building is skipped (the unknown type is dropped silently)")
 	check_eq(Airport.buildings.size(), 2, "the valid building loads (and the old save gets a runway)")
 
 

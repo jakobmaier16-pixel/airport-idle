@@ -15,19 +15,15 @@ func test_new_game_has_a_runway() -> void:
 	check_eq(runways.size(), 1, "one runway")
 	var runway: Building = runways[0]
 	var size := Building.rotated_size(runway.type.footprint, runway.rotation_steps)
-	for corner in [runway.origin_cell, runway.origin_cell + size - Vector2i.ONE]:
-		check(Airport.owns_cell(corner), "the whole runway lies on the airport's own land (%s)" % corner)
-	check_eq(Airport.economy.balance, Economy.STARTING_MONEY, "and it was free")
+	check(Rect2i(Vector2i.ZERO, Airport.grid.size).encloses(Rect2i(runway.origin_cell, size)), "the whole runway lies on the map")
 
 
 func test_taxiway_rules() -> void:
 	Airport.reset()
 	Airport.paint_walkway(cells(at(Vector2i(20, 40)), Vector2i(2, 1)), true)
-	var money := Airport.economy.balance
 	Airport.paint_taxiway(cells(at(Vector2i(20, 40)), Vector2i(4, 1)), true)
 	check(not Airport.grid.is_taxiway(at(Vector2i(20, 40))), "never on a walkway")
 	check(Airport.grid.is_taxiway(at(Vector2i(23, 40))), "on airside")
-	check_eq(Airport.economy.balance, money - 2 * Economy.TAXIWAY_COST_PER_CELL, "€30 per cell")
 	check_eq(Airport.grid.get_zone(at(Vector2i(23, 40))), AirportGrid.Zone.AIRSIDE, "taxiways are airside")
 	var data := JSON.parse_string(JSON.stringify(Airport.save_state())) as Dictionary
 	Airport.load_state(data)
@@ -60,8 +56,7 @@ func test_one_movement_at_a_time() -> void:
 		if bookings[i][1] < bookings[i - 1][2] - 0.01:
 			overlaps += 1
 	check_eq(overlaps, 0, "never two planes on the runway")
-	check(Airport.schedule.flights.any(func(f: Flight) -> bool: return f.airport_delay() > 0.0) \
-		or Airport.reputation.late_departures > 0, "landings wait for the runway: a delay")
+	check(Airport.schedule.flights.any(func(f: Flight) -> bool: return f.delay > 0.0 or f.arrival_delay > 0.0), "landings wait for the runway: a delay")
 
 
 func test_plane_follows_the_taxiway() -> void:

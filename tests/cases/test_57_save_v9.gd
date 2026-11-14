@@ -168,25 +168,13 @@ func test_loading_into_a_bigger_map_centres_everything() -> void:
 	for i in small_areas.size():
 		check_eq(big_areas[i]["name"], small_areas[i]["name"], "area %d has the same name" % i)
 		check_eq((big_areas[i]["cells"] as Array).size(), (small_areas[i]["cells"] as Array).size(), "area %d has the same size" % i)
-	# Owned land moves too: a regional airport owns the same part of the airport, not of the map.
-	small.progression.tier = Progression.Tier.REGIONAL
-	big.progression.tier = Progression.Tier.REGIONAL
-	var land := big.progression.owned_land(big.grid.size)
-	check_eq(land, Progression.STARTING_LAND, "the big map's regional land is the starting land")
-	var owned_wrong := 0
-	for building in small.buildings:
-		if not land.encloses(Rect2i(building.origin_cell + shift, Building.rotated_size(building.type.footprint, building.rotation_steps))) \
-				or not small.owns_cell(building.origin_cell):
-			owned_wrong += 1
-	check_eq(owned_wrong, 0, "every building of the loaded airport stands on the regional land")
-	# Flights and money survive, and the airport runs on.
+	# Flights survive, and the airport runs on.
 	check_eq(big.schedule.flights.size(), small.schedule.flights.size(), "the same flights")
-	check_eq(big.economy.balance, small.economy.balance, "the same money")
 	for i in int(30.0 / AirportWorld.SIM_STEP):
 		small.step(AirportWorld.SIM_STEP)
 		big.step(AirportWorld.SIM_STEP)
 	check(big.sim_time > 0.0, "the big airport keeps running")
-	check_eq(big.reputation.departures, small.reputation.departures, "30 s later: the same departures")
+	check_eq(big.schedule.departures, small.schedule.departures, "30 s later: the same departures")
 	small.dispose()
 	big.dispose()
 

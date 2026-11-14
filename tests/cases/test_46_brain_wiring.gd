@@ -6,7 +6,7 @@ extends TestCase
 func test_simulation_objects_know_their_airport() -> void:
 	Airport.reset()
 	check(Airport.schedule.world == Airport.brain, "flight schedule knows the airport")
-	check(Airport.goals.world == Airport.brain, "goals know the airport")
+	check(Airport.timetable.world == Airport.brain, "timetable knows the airport")
 	Airport.reset(false)
-	check(Airport.goals.world == Airport.brain, "goals still wired after a second reset")
+	check(Airport.timetable.world == Airport.brain, "timetable still wired after a second reset")
 	check(Airport.schedule.world == Airport.brain, "schedule still wired after a second reset")

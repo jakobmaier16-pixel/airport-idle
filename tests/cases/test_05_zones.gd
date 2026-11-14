@@ -66,7 +66,6 @@ func test_removing_and_readding_security() -> void:
 
 func test_airside_building_before_security_is_not_connected() -> void:
 	await start_game()
-	Airport.economy.balance = 1.0e9
 	Airport.paint_walkway(cells(at(Vector2i(18, 21)), Vector2i(28, 7)), true)
 	Airport.paint_walkway(cells(at(Vector2i(10, 31)), Vector2i(44, 3)), true)
 	Airport.place_building(type_of(&"entrance"), at(Vector2i(30, 19)), 0)
@@ -81,7 +80,6 @@ func test_airside_building_before_security_is_not_connected() -> void:
 
 func test_security_needs_a_free_row_on_both_sides() -> void:
 	await start_game()
-	Airport.economy.balance = 1.0e9
 	var security := type_of(&"security")
 	check_eq(Airport.check_placement(security, at(Vector2i(30, 28)), 0), "", "free rows: fine, nothing painted needed")
 	check(Airport.place_building(type_of(&"check_in"), at(Vector2i(30, 25)), 0) != null, "something stands in the front row")
