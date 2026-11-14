@@ -19,6 +19,8 @@ const HINT_HEIGHT: float = 1.5
 # One material per building type, shared by all buildings of that type (fewer draw-state changes).
 var _materials: Dictionary[BuildingType, StandardMaterial3D] = {}
 var _front_material: StandardMaterial3D
+## Draws the landside pieces (roads, sidewalks, props, ...); set in the main scene.
+@export var landside: LandsideLayer
 var _hints: Dictionary[Building, Label3D] = {}
 var _visuals: Dictionary[Building, BuildingVisual] = {}
 # Connection problem per building, recalculated when the layout changes.
@@ -38,6 +40,9 @@ func _ready() -> void:
 
 func _add_visual(building: Building) -> void:
 	var cell_size := Airport.grid.cell_size
+	if building.type.model != null:
+		_add_piece(building)
+		return
 	var visual := BuildingVisual.new()
 	visual.setup(building.type, cell_size, _material_for(building.type), _front_material,
 			true, Building.ground_surface_of(building.type) == 0)
@@ -64,7 +69,21 @@ func _add_visual(building: Building) -> void:
 	_hints[building] = hint
 
 
+# A landside piece is drawn by the LandsideLayer. Only solid ones (fence, hedge, tree, shelter) get
+# an empty node with the collision box, so the manager cannot walk through them.
+func _add_piece(building: Building) -> void:
+	landside.add_building(building)
+	if building.type.is_solid:
+		var holder := BuildingVisual.new()
+		holder.place_on_grid(Airport.grid, building.type.footprint, building.origin_cell, building.rotation_steps)
+		holder.add_collision(building.type, Airport.grid.cell_size).set_meta(BUILDING_META, building)
+		add_child(holder)
+		_visuals[building] = holder
+
+
 func _remove_visual(building: Building) -> void:
+	if building.type.model != null:
+		landside.remove_building(building)
 	if _visuals.has(building):
 		_visuals[building].queue_free()
 		_visuals.erase(building)

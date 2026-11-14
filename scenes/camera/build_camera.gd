@@ -32,6 +32,8 @@ var pan_enabled: bool = true
 
 func _ready() -> void:
 	projection = PROJECTION_ORTHOGONAL
+	# Landside pieces draw their simple stand-ins for this camera (LandsideLayer), not the full models.
+	set_cull_mask_value(LandsideLayer.NEAR_LAYER, false)
 	rotation = Vector3(-PI / 2.0, 0.0, 0.0)
 	position.y = HEIGHT_ABOVE_GROUND
 	far = HEIGHT_ABOVE_GROUND + 50.0

@@ -77,6 +77,13 @@ enum StandClass { NARROW, WIDE }
 ## Upgrade levels in order (design doc §7.8). Empty = the station can't be upgraded.
 @export var upgrades: Array[StationUpgrade] = []
 
+@export_group("Landside piece visuals")
+## The 3D model of a landside piece (.glb with `<piece>`, `<piece>_markings` and `<piece>_lodfar`).
+## Drawn by LandsideLayer as MultiMeshes; empty = the placeholder box.
+@export var model: PackedScene
+## Stands on a sidewalk: a paved tile is drawn under every cell (bollards, masts, signs, shelter).
+@export var paved_base: bool = false
+
 @export_group("Placeholder visuals")
 @export var color: Color = Color(0.7, 0.7, 0.75)
 ## Box height in meters.

@@ -28,6 +28,8 @@ func _ready() -> void:
 	physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF
 	# Don't see the inside of your own head: the manager's body is on layer 2.
 	set_cull_mask_value(2, false)
+	# Landside stand-ins are for the build view (LandsideLayer); the manager sees the full models.
+	set_cull_mask_value(LandsideLayer.FAR_LAYER, false)
 	TouchGestures.finger_drag_started.connect(_on_finger_drag_started)
 	TouchGestures.finger_dragged.connect(_on_finger_dragged)
 	TouchGestures.finger_drag_ended.connect(_on_finger_drag_ended)
