@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="BuildingType" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/building_type.gd" id="1_type"]
+
+[resource]
+script = ExtResource("1_type")
+id = &"curb_taxi_rank_4"
+display_name = "Taxi rank (4)"
+category = "Landside"
+sub_category = "Curb"
+footprint = Vector2i(12, 6)
+zone_rule = 0
+is_solid = false
+front_access = 0
+back_access = 0
+role = 0
+build_cost = 4000.0
+running_cost_per_minute = 0.0
+color = Color(0.8, 0.7, 0.2, 1)
+height = 0.15

@@ -48,15 +48,15 @@ func test_new_export_replaces_map_with_showcase() -> void:
 	SaveGame.load_game()
 	check_eq(Airport.buildings.size(), 2, "own save loads first (plus the runway old saves get)")
 	check(SaveGame.load_showcase_if_new_build(), "new export loads the showcase")
-	check_eq(Airport.buildings.size(), SHOWCASE_BUILDINGS, "showcase replaced the map")
+	check_eq(Airport.buildings.size(), SHOWCASE_WITH_LANDSIDE_BUILDINGS, "showcase replaced the map")
 
 	# Next start of the same export: keep what the player built since.
-	Airport.place_building(type_of(&"check_in"), at(Vector2i(12, 12)), 0)
+	Airport.place_building(type_of(&"check_in"), at(Vector2i(60, 24)), 0)
 	SaveGame.save_now()
 	Airport.reset()
 	SaveGame.load_game()
 	check(not SaveGame.load_showcase_if_new_build(), "same export keeps the save")
-	check_eq(Airport.buildings.size(), SHOWCASE_BUILDINGS + 1, "player's additions kept")
+	check_eq(Airport.buildings.size(), SHOWCASE_WITH_LANDSIDE_BUILDINGS + 1, "player's additions kept")
 	_restore_save_settings()
 
 

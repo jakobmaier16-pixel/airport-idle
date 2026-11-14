@@ -251,8 +251,9 @@ func setup_build_menu(types: Array[BuildingType]) -> void:
 	show_build_category("")
 
 
-## Shows the buildings of `category`, or the category buttons for "".
-func show_build_category(category: String) -> void:
+## Shows the buildings of `category`, or the category buttons for "". A category with sub-categories
+## (landside pieces: Roads, Curb, ...) shows them first; `sub_category` then lists one of them.
+func show_build_category(category: String, sub_category: String = "") -> void:
 	_open_category = category
 	for child in _building_buttons.get_children():
 		_building_buttons.remove_child(child)
@@ -265,9 +266,17 @@ func show_build_category(category: String) -> void:
 		for category_name in categories:
 			_add_menu_button(category_name + " ›", show_build_category.bind(category_name))
 		return
-	_add_menu_button("‹", show_build_category.bind(""))
+	# One step back: from a sub-category to its category, from a category to the list of categories.
+	_add_menu_button("‹", show_build_category.bind(category if not sub_category.is_empty() else ""))
+	var subs: PackedStringArray = []
 	for type in _building_types:
-		if type.category == category:
+		if type.category == category and not type.sub_category.is_empty() and not subs.has(type.sub_category):
+			subs.append(type.sub_category)
+	if sub_category.is_empty():
+		for sub_name in subs:
+			_add_menu_button(sub_name + " ›", show_build_category.bind(category, sub_name))
+	for type in _building_types:
+		if type.category == category and type.sub_category == sub_category:
 			var label := type.display_name
 			if type.unlocked_at > Airport.progression.tier:
 				# Still pickable: the preview explains when it unlocks.

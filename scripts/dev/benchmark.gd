@@ -54,7 +54,7 @@ static func prepare_airport() -> void:
 	SaveGame.save_now()
 	SaveGame.enabled = false
 	Airport.reseed(SEED)
-	ShowcaseAirport.build()
+	ShowcaseAirport.build(180.0, Vector2i.ZERO, false)
 	Airport.passenger_flow.max_passengers = PASSENGER_LIMIT
 	# The timetable opens its first flights a little after the start: wait until there are enough
 	# upcoming departures to fill the airport with.

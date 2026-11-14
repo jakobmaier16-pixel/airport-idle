@@ -32,6 +32,8 @@ enum StandClass { NARROW, WIDE }
 @export var display_name: String
 ## Build menu category, e.g. "Terminal", "Airside", "Shops".
 @export var category: String = "Terminal"
+## Second menu level inside a category (landside pieces: "Roads", "Curb", ...); "" = directly in the category.
+@export var sub_category: String = ""
 ## Size in grid cells before rotation: x = width along the front side, y = depth.
 ## The front side faces -Z ("up" on screen) when the building is not rotated.
 @export var footprint: Vector2i = Vector2i.ONE
