@@ -384,6 +384,10 @@ func paint_taxiway(cells: Array[Vector2i], taxiway: bool) -> String:
 	return brain.paint_taxiway(cells, taxiway)
 
 
+func taxiway_cost(cells: Array[Vector2i], taxiway: bool) -> float:
+	return brain.taxiway_cost(cells, taxiway)
+
+
 func connection_problem(type: BuildingType, origin_cell: Vector2i, rotation_steps: int) -> String:
 	return brain.connection_problem(type, origin_cell, rotation_steps)
 

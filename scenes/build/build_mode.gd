@@ -56,6 +56,12 @@ var _paint_kind: PaintKind = PaintKind.WALKWAY
 var _painting_drag: bool = false
 var _paint_start_cell: Vector2i = Vector2i.ZERO
 var _paint_rect: Rect2i = Rect2i()
+# Taxiway brush: a BRUSH_CELLS square stamp (1 cell = 2 m, so 24 m) that locks to one axis once
+# the drag has moved AXIS_LOCK_CELLS, then slides along it. Remove uses it when the drag starts on taxiway.
+const BRUSH_CELLS: int = 12
+const AXIS_LOCK_CELLS: int = 3
+var _brush_drag: bool = false
+var _brush_axis: int = -1  # -1 not locked yet, 0 = x, 1 = y
 var _paint_preview: MeshInstance3D
 var _paint_material: StandardMaterial3D
 
@@ -185,8 +191,11 @@ func _on_tapped(screen_position: Vector2) -> void:
 			if not _footprint_contains(cell, 0):
 				_center_preview_on(cell)
 		Tool.PAINT:
-			var single: Array[Vector2i] = [cell]
-			_emit_paint_hint(_apply_paint(single))
+			if _uses_brush(cell):
+				_emit_paint_hint(_apply_paint(_rect_cells(_brush_rect(cell, cell, -1))))
+			else:
+				var single: Array[Vector2i] = [cell]
+				_emit_paint_hint(_apply_paint(single))
 		Tool.DEMOLISH:
 			_select_for_demolish(cell)
 
@@ -205,6 +214,8 @@ func _on_drag_started(start_position: Vector2, touch_position: Vector2) -> void:
 			# One finger paints; two fingers still move the camera.
 			camera.pan_enabled = false
 			_paint_start_cell = _clamp_to_map(Airport.grid.world_to_cell(start_point))
+			_brush_drag = _uses_brush(_paint_start_cell)
+			_brush_axis = -1
 			_update_paint_rect(touch_position)
 			_paint_preview.visible = true
 
@@ -219,10 +230,7 @@ func _on_dragged(touch_position: Vector2, _relative: Vector2) -> void:
 func _on_drag_ended(_touch_position: Vector2) -> void:
 	_stop_dragging_preview()
 	if _painting_drag:
-		var cells: Array[Vector2i] = []
-		for y in range(_paint_rect.position.y, _paint_rect.end.y):
-			for x in range(_paint_rect.position.x, _paint_rect.end.x):
-				cells.append(Vector2i(x, y))
+		var cells := _rect_cells(_paint_rect)
 		_stop_painting_drag()
 		_emit_paint_hint(_apply_paint(cells))
 
@@ -325,17 +333,66 @@ func _update_paint_rect(screen_position: Vector2) -> void:
 	if point == null:
 		return
 	var end_cell := _clamp_to_map(Airport.grid.world_to_cell(point))
+	if _brush_drag:
+		_paint_rect = _brush_rect(_paint_start_cell, end_cell, _lock_axis(end_cell))
+		_show_paint_rect()
+		var cost := Airport.taxiway_cost(_rect_cells(_paint_rect), _paint_kind == PaintKind.TAXIWAY)
+		if cost > 0.0:
+			tool_changed.emit(Tool.PAINT, true, "Taxiway: %s" % Economy.format(cost))
+		return
 	var top_left := Vector2i(mini(_paint_start_cell.x, end_cell.x), mini(_paint_start_cell.y, end_cell.y))
 	var bottom_right := Vector2i(maxi(_paint_start_cell.x, end_cell.x), maxi(_paint_start_cell.y, end_cell.y))
 	_paint_rect = Rect2i(top_left, bottom_right - top_left + Vector2i.ONE)
+	_show_paint_rect()
+
+
+func _show_paint_rect() -> void:
 	var grid := Airport.grid
 	_paint_preview.position = grid.block_center(_paint_rect.position, _paint_rect.size) + Vector3(0.0, 0.03, 0.0)
 	_paint_preview.scale = Vector3(_paint_rect.size.x * grid.cell_size, 1.0, _paint_rect.size.y * grid.cell_size)
 
 
+func _uses_brush(cell: Vector2i) -> bool:
+	return _paint_kind == PaintKind.TAXIWAY or (_paint_kind == PaintKind.REMOVE_WALKWAY and Airport.grid.is_taxiway(cell))
+
+
+# Locks to the axis of the bigger movement once the drag is AXIS_LOCK_CELLS away from the start.
+func _lock_axis(end_cell: Vector2i) -> int:
+	if _brush_axis < 0:
+		var delta := (end_cell - _paint_start_cell).abs()
+		if maxi(delta.x, delta.y) >= AXIS_LOCK_CELLS:
+			_brush_axis = 0 if delta.x >= delta.y else 1
+	return _brush_axis
+
+
+# The cells covered by a stamp centred on `start` that slid to `end` along `axis` (-1: not moved).
+func _brush_rect(start: Vector2i, end: Vector2i, axis: int) -> Rect2i:
+	var low := Vector2i(start.x - BRUSH_CELLS / 2, start.y - BRUSH_CELLS / 2)
+	var high := low + Vector2i(BRUSH_CELLS, BRUSH_CELLS)
+	if axis == 0:
+		low.x = mini(low.x, end.x - BRUSH_CELLS / 2)
+		high.x = maxi(high.x, end.x - BRUSH_CELLS / 2 + BRUSH_CELLS)
+	elif axis == 1:
+		low.y = mini(low.y, end.y - BRUSH_CELLS / 2)
+		high.y = maxi(high.y, end.y - BRUSH_CELLS / 2 + BRUSH_CELLS)
+	var size := Airport.grid.size
+	low = low.clamp(Vector2i.ZERO, size)
+	high = high.clamp(Vector2i.ZERO, size)
+	return Rect2i(low, high - low)
+
+
+func _rect_cells(rect: Rect2i) -> Array[Vector2i]:
+	var cells: Array[Vector2i] = []
+	for y in range(rect.position.y, rect.end.y):
+		for x in range(rect.position.x, rect.end.x):
+			cells.append(Vector2i(x, y))
+	return cells
+
+
 func _stop_painting_drag() -> void:
 	if _painting_drag:
 		_painting_drag = false
+		_brush_drag = false
 		_paint_preview.visible = false
 		camera.pan_enabled = true
 
