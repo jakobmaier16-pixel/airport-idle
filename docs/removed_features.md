@@ -193,3 +193,21 @@ Save format 11 drops all their saved data; buildings of removed types are droppe
 - **What:** `FlightSchedule` planned flights every `INTERVAL` from the demand and rush factor, picked gates
   and airlines with `Airport.rng`. Replaced by `Timetable`: one fixed turnaround per usable gate every
   `TURNAROUND_MINUTES` (90) game minutes, staggered by gate id, no rng.
+
+## Removed in the clock PR (2026-11-14, evening)
+
+### Clock and day/night
+- **What:** a game clock: one real second was 15 game seconds, a game day 96 real minutes, a new airport
+  opened at 06:00 on day 1. The HUD showed "Day 3 · 06:45". Demand followed the hour (`DEMAND_BY_HOUR`,
+  morning and evening rush, quiet night), and the sun and ambient light followed the time of day
+  (`DayNight`: sun height, warm low sun, dim blue night, `Clock.daylight`). The timetable counted in
+  game minutes (turnaround 90, stagger 17).
+- **Why it went:** the clock ran 15 times faster than the planes (which move at real speed), so a landing
+  took about 9 game minutes. Until time is rethought, there is no time of day.
+- **Now:** `AirportWorld.sim_time` (real seconds) is the one time. `Timetable.TURNAROUND_SECONDS` = 360
+  and `STAGGER_SECONDS` = 68 keep the old pacing. The HUD shows "Next flight in X s" and a countdown
+  ("in 1:23" / "now") per flight. Lighting is fixed daylight (the old noon values).
+- **Files:** `scripts/simulation/clock.gd`, `scenes/day_night/day_night.gd`, `ClockLabel` in `hud.tscn`,
+  the clock keys in the save (`clock`, `clock_elapsed`; format 12 drops them and saves `sim_time`).
+- **Last commit with it: `59fcb11`** (main before this PR). Restore with `git show 59fcb11:<file>`.
+

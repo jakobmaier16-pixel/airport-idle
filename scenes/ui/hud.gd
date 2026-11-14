@@ -45,7 +45,6 @@ var _notice_left: float = 0.0
 
 @onready var joystick: TouchJoystick = $SafeArea/TouchJoystick
 @onready var _view_button: Button = $SafeArea/TopButtons/ViewButton
-@onready var _clock_label: Label = $SafeArea/TopButtons/ClockLabel
 @onready var _build_menu: Control = $SafeArea/BuildMenu
 @onready var _building_buttons: HBoxContainer = $SafeArea/BuildMenu/BuildingButtons
 @onready var _tool_panel: Control = $SafeArea/ToolPanel
@@ -59,6 +58,7 @@ var _notice_left: float = 0.0
 @onready var _notice_panel: Control = $SafeArea/NoticeBox/NoticePanel
 @onready var _notice_label: Label = $SafeArea/NoticeBox/NoticePanel/NoticeLabel
 @onready var _status_label: Label = $SafeArea/InfoPanel/StatusLabel
+@onready var _next_flight_label: Label = $SafeArea/InfoPanel/NextFlightLabel
 @onready var _departures_label: Label = $SafeArea/InfoPanel/DeparturesLabel
 @onready var _reset_button: Button = $SafeArea/BuildMenu/PaintButtons/ResetButton
 @onready var _demo_button: Button = $SafeArea/BuildMenu/PaintButtons/DemoButton
@@ -98,7 +98,6 @@ func _ready() -> void:
 
 
 func _process(delta: float) -> void:
-	_clock_label.text = Airport.clock.text()
 	if _notice_left > 0.0:
 		_notice_left -= delta
 		if _notice_left <= 0.0:
@@ -185,6 +184,11 @@ func notice_text() -> String:
 ## Status line in the top left (both views).
 func set_status(text: String) -> void:
 	_status_label.text = text
+
+
+## "Next flight in X s" below the status line.
+func set_next_flight(text: String) -> void:
+	_next_flight_label.text = text
 
 
 ## Departures board below the status line, one flight per line.

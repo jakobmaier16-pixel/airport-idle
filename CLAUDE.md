@@ -53,8 +53,7 @@ When a decision is made, update the design doc.
   ("income" = average profit per minute over the last ~10 min of play).
 - **Saving:** automatic after every change, when the app goes to the background, and a 30 s safety
   save. Every save stores a timestamp (for offline income).
-- **Time:** 1 real second = 15 game seconds (a game day is 96 real minutes); a new airport opens at
-  06:00 on day 1 and the clock runs all 24 hours.
+- **Time:** the clock and day/night were removed 2026-11-14: there is no time of day (see `docs/decisions.md`).
 - **Fictional world:** all airlines and airports are fictional. No real names or logos.
 - **Art:** realistic look within the iPhone budget (decided 2026-11-13): few shared PBR materials / trim sheets, baked light, LOD, MultiMesh for repeated furniture, ASTC textures; a look-probe on the device comes first.
 - **Safe areas:** all UI must stay inside the safe area (notch, Dynamic Island, home indicator).
@@ -100,7 +99,6 @@ scenes/<feature>/     one folder per feature: <name>.tscn + <name>.gd side by si
   build/              build view logic: placing buildings (preview, rotate, place / cancel)
   buildings/          building visuals: BuildingLayer draws every simulated building
   planes/             PlaneLayer + PlaneVisual: planes taxiing in, parked, pushing back
-  day_night/          DayNight: sun and ambient light by the time of day
   ground/             map ground, sized from the grid
   ui/                 HUD, view button, joystick, safe area container, tap feedback
 scripts/autoload/     global singletons:
@@ -110,7 +108,7 @@ scripts/autoload/     global singletons:
                         TouchGestures -> touch / mouse / trackpad -> drag, tap, pinch signals
 scripts/simulation/   pure simulation data classes (no nodes, no visuals): AirportGrid, Building,
                       ZoneMap, AreaMap, Timetable (+ TimetableSlot), FlightSchedule, Flight,
-                      PlaneNetwork, PlaneRoute, CentrelineGraph, TaxiProfile, Clock.
+                      PlaneNetwork, PlaneRoute, CentrelineGraph, TaxiProfile.
                       Passengers, money, airlines, goals etc. were removed 2026-11-14
                       (docs/removed_features.md).
                       Advance everything with `Airport.step(delta)`.

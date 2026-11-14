@@ -1,6 +1,6 @@
 extends TestCase
 ## The fixed timetable (tech_architecture.md §6): every usable gate with its stand gets one
-## turnaround every Timetable.TURNAROUND_MINUTES game minutes, staggered by the gate's ID, with no
+## turnaround every Timetable.TURNAROUND_SECONDS seconds, staggered by the gate's ID, with no
 ## dice. Everything is checked over a span, never at one moment.
 
 const SHOWCASE_V7: String = "res://tests/saves/v7_showcase.json"
@@ -18,27 +18,26 @@ func _pattern() -> Array:
 
 
 func test_the_turnaround_is_one_number() -> void:
-	check_eq(Timetable.period_game(), Timetable.TURNAROUND_MINUTES * 60.0, "game seconds between two departures")
-	check_eq(Timetable.period_real(), Timetable.TURNAROUND_MINUTES * 60.0 / Clock.GAME_PER_REAL, "real seconds between two departures")
-	check(Timetable.period_real() > FlightSchedule.STAND_DWELL + FlightSchedule.BOARDING_OPENS, "long enough for a plane to stand there")
+	check_eq(Timetable.TURNAROUND_SECONDS, 360.0, "one turnaround per gate every 360 seconds")
+	check_eq(Timetable.STAGGER_SECONDS, 68.0, "gates are staggered by 68 seconds per ID")
+	check(Timetable.TURNAROUND_SECONDS > FlightSchedule.STAND_DWELL + FlightSchedule.BOARDING_OPENS, "long enough for a plane to stand there")
 
 
 func test_each_usable_gate_gets_a_turnaround_every_period() -> void:
 	ShowcaseAirport.build(0.0)
-	sim_seconds(5.0 * Timetable.period_real())
+	sim_seconds(5.0 * Timetable.TURNAROUND_SECONDS)
 	var gates := Airport.usable_gates()
 	check_eq(gates.size(), 3, "the showcase has three usable gates")
 	for gate in gates:
 		var slots := _slots_of(gate)
 		check(slots.size() >= 5, "gate %d has slots for several turnarounds: %d" % [gate.id, slots.size()])
 		for i in range(1, slots.size()):
-			check(absf(slots[i].departure_time - slots[i - 1].departure_time - Timetable.period_real()) < 0.01,
+			check(absf(slots[i].departure_time - slots[i - 1].departure_time - Timetable.TURNAROUND_SECONDS) < 0.01,
 				"gate %d: exactly one turnaround between departures (%s)" % [gate.id, slots.map(func(s: TimetableSlot) -> float: return s.departure_time)])
-		# On the pattern: the game time of every departure is the gate's phase plus whole turnarounds.
-		var phase := fmod(gate.id * Timetable.STAGGER_MINUTES, Timetable.TURNAROUND_MINUTES) * 60.0
+		# On the pattern: the time of every departure is the gate's phase plus whole turnarounds.
+		var phase := fmod(gate.id * Timetable.STAGGER_SECONDS, Timetable.TURNAROUND_SECONDS)
 		for slot in slots:
-			var game_time := Airport.clock.game_seconds + (slot.departure_time - Airport.sim_time) * Clock.GAME_PER_REAL
-			var steps := (game_time - phase) / Timetable.period_game()
+			var steps := (slot.departure_time - phase) / Timetable.TURNAROUND_SECONDS
 			check(absf(steps - roundf(steps)) < 0.0001, "gate %d: departure on its own grid (%.4f)" % [gate.id, steps])
 
 
@@ -49,12 +48,12 @@ func test_gates_are_staggered_by_their_id() -> void:
 	check_eq(phases.size(), 3, "three neighbouring gate IDs start at three different times")
 	var base := Timetable.next_departure_at_or_after(5, 100000.0)
 	check_eq(Timetable.next_departure_at_or_after(5, base), base, "a departure on the grid is its own next one")
-	check_eq(Timetable.next_departure_at_or_after(5, base + 1.0), base + Timetable.period_game(), "just after it: the next turnaround")
+	check_eq(Timetable.next_departure_at_or_after(5, base + 1.0), base + Timetable.TURNAROUND_SECONDS, "just after it: the next turnaround")
 
 
 func test_the_plane_class_fits_the_stand() -> void:
 	ShowcaseAirport.build(0.0)
-	sim_seconds(3.0 * Timetable.period_real())
+	sim_seconds(3.0 * Timetable.TURNAROUND_SECONDS)
 	var wide := 0
 	var narrow := 0
 	for slot in Airport.timetable.slots:
@@ -86,25 +85,20 @@ func test_the_timetable_is_deterministic_and_rolls_no_dice() -> void:
 	check_eq(_pattern(), first, "another seed gives exactly the same timetable")
 
 
-func test_a_full_day_has_flights_all_day_and_night() -> void:
+func test_flights_keep_coming_over_a_long_span() -> void:
 	ShowcaseAirport.build(0.0)
 	var by_gate: Dictionary[Building, int] = {}
-	var by_hour: Array[int] = []
-	by_hour.resize(24)
-	by_hour.fill(0)
 	var seen: Dictionary[Flight, bool] = {}
-	for i in int(5760.0 / Airport.SIM_STEP):  # one game day
+	var span := 5760.0
+	for i in int(span / Airport.SIM_STEP):
 		Airport.step(Airport.SIM_STEP)
 		for flight in Airport.schedule.flights:
 			if not seen.has(flight):
 				seen[flight] = true
 				by_gate[flight.gate] = by_gate.get(flight.gate, 0) + 1
-				by_hour[int(Airport.clock.hour_at(flight.departure_time - Airport.sim_time))] += 1
-	var expected := int(5760.0 / Timetable.period_real())
+	var expected := int(span / Timetable.TURNAROUND_SECONDS)
 	for gate in Airport.usable_gates():
-		check(by_gate.get(gate, 0) >= expected - 3, "gate %d flew about %d times a day: %d" % [gate.id, expected, by_gate.get(gate, 0)])
-	for hour in 24:
-		check(by_hour[hour] > 0, "a departure in hour %d (no curfew, no rush): %s" % [hour, by_hour])
+		check(by_gate.get(gate, 0) >= expected - 3, "gate %d flew about %d times: %d" % [gate.id, expected, by_gate.get(gate, 0)])
 
 
 func test_no_gate_no_slots() -> void:
@@ -138,10 +132,9 @@ func test_a_rebuilt_gate_starts_on_its_own_grid() -> void:
 	check_eq(Airport.usable_gates().size(), 3, "it works again")
 	var slots := _slots_of(gate)
 	check(not slots.is_empty(), "it got its own slots")
-	var phase := fmod(gate.id * Timetable.STAGGER_MINUTES, Timetable.TURNAROUND_MINUTES) * 60.0
+	var phase := fmod(gate.id * Timetable.STAGGER_SECONDS, Timetable.TURNAROUND_SECONDS)
 	for slot in slots:
-		var game_time := Airport.clock.game_seconds + (slot.departure_time - Airport.sim_time) * Clock.GAME_PER_REAL
-		var steps := (game_time - phase) / Timetable.period_game()
+		var steps := (slot.departure_time - phase) / Timetable.TURNAROUND_SECONDS
 		check(absf(steps - roundf(steps)) < 0.0001, "on the grid of its new ID")
 
 
@@ -193,14 +186,13 @@ func test_example_v8_loads_and_keeps_running() -> void:
 	loaded.dispose()
 
 
-func test_jumping_the_time_of_day_replans_the_pending_slots() -> void:
+func test_the_pattern_and_the_opening_flight_in_seconds() -> void:
 	ShowcaseAirport.build(0.0)
 	sim_seconds(1.0)
-	var before := Airport.timetable.pending().size()
-	check(before > 0, "slots are planned")
-	Airport.clock.game_seconds = 2.0 * 3600.0
-	sim_seconds(1.0)
-	var pending := Airport.timetable.pending()
-	check(pending.size() > 0, "slots for the new time of day")
-	var hour := int(Airport.clock.hour_at(pending[0].departure_time - Airport.sim_time))
-	check(hour in [2, 3, 4, 5], "the first one is in the next hours: %d" % hour)
+	# The opening flight lands about 26 seconds after the start (20 s plus the approach), not later than 30.
+	var flight := Airport.schedule.flights[0]
+	var touchdown := flight.departure_time - FlightSchedule.lead_of(Airport.schedule.route_of(flight))
+	check(touchdown < 30.0, "the first landing is within 30 seconds: %.1f" % touchdown)
+	# After it, the grid: departures at phase + n x 360 s, in the sim seconds the flights run on.
+	var gate_first := Timetable.next_departure_at_or_after(1, 0.0)
+	check_eq(Timetable.next_departure_at_or_after(1, gate_first + 1.0), gate_first + 360.0, "a gate departs every 360 s")

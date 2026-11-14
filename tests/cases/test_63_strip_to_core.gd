@@ -1,10 +1,11 @@
 extends TestCase
 ## The game stripped to its core (docs/removed_features.md, strip PR 2): building is free and the
-## whole map is buildable, the removed features are really gone, the save is format 11, and the
+## whole map is buildable, the removed features are really gone, the save is format 12, and the
 ## showcase shows a plane on its way right after the start.
 
 const V10: String = "res://tests/saves/v10_showcase.json"
 const V11: String = "res://tests/saves/v11_showcase.json"
+const V12: String = "res://tests/saves/v12_showcase.json"
 const REMOVED_FILES: Array[String] = [
 	"res://scripts/simulation/economy.gd", "res://scripts/simulation/airlines.gd", "res://scripts/simulation/airline.gd",
 	"res://scripts/simulation/airline_offer.gd", "res://scripts/simulation/demand.gd", "res://scripts/simulation/goals.gd",
@@ -67,9 +68,9 @@ func test_the_whole_map_is_buildable() -> void:
 	check_eq(runway.size(), 1, "a new game has its runway")
 
 
-func test_save_format_is_11_and_the_state_has_no_removed_keys() -> void:
-	check_eq(SaveGame.FORMAT_VERSION, 11, "the newest format")
-	check(SaveGame.migrations.has(10), "a converter for version 10")
+func test_save_format_is_12_and_the_state_has_no_removed_keys() -> void:
+	check_eq(SaveGame.FORMAT_VERSION, 12, "the newest format")
+	check(SaveGame.migrations.has(10) and SaveGame.migrations.has(11), "converters for versions 10 and 11")
 	ShowcaseAirport.build(0.0, Vector2i.ZERO, false)
 	var state := Airport.save_state()
 	for key in REMOVED_KEYS:
@@ -87,7 +88,7 @@ func test_v10_converter_drops_what_was_removed() -> void:
 	check(cargo_before > 0, "it holds buildings of removed types (%d)" % cargo_before)
 	var count_before: int = (saved["buildings"] as Array).size()
 	var converted := SaveGame.migrate(saved)
-	check_eq(converted["version"], 11, "now version 11")
+	check_eq(converted["version"], SaveGame.FORMAT_VERSION, "now the newest version")
 	for key in REMOVED_KEYS:
 		check(not converted.has(key), "'%s' is dropped" % key)
 	check(not converted.has("schedule") and not converted.has("timetable"), "old flights and the old timetable are dropped")
@@ -95,27 +96,43 @@ func test_v10_converter_drops_what_was_removed() -> void:
 	for entry: Dictionary in converted["buildings"]:
 		check(not entry.has("cost"), "no stored price on %s" % entry["type"])
 	# Everything else stays.
-	check(converted.has("clock") and converted.has("seed") and converted.has("walkways") and converted.has("taxiways"), "the clock, the seed and the layout stay")
+	check(converted.has("sim_time") and converted.has("seed") and converted.has("walkways") and converted.has("taxiways"), "the time, the seed and the layout stay")
 	check_eq(Airport.load_state(converted), 0, "it loads without a single failure")
 	check_eq(Airport.load_skipped.size(), 0, "nothing was reported")
 	check_eq(Airport.schedule.flights.size(), 0, "no flights on the apron after loading")
-	sim_seconds(Timetable.period_real() + FlightSchedule.FIRST_DEPARTURE_DELAY)
+	sim_seconds(Timetable.TURNAROUND_SECONDS + FlightSchedule.FIRST_DEPARTURE_DELAY)
 	check(Airport.timetable.slots.size() > 0, "the new timetable plans itself")
 
 
-func test_v11_example_loads_unchanged_and_round_trips() -> void:
+func test_v11_example_is_converted_and_loads() -> void:
 	var saved := _example(V11)
 	check_eq(int(saved["version"]), 11, "an example save of version 11")
-	check_eq(SaveGame.migrate(_example(V11)), saved, "a current save needs no conversion")
-	check_eq(Airport.load_state(_example(V11)), 0, "it loads completely")
+	var converted := SaveGame.migrate(_example(V11))
+	check_eq(converted["version"], SaveGame.FORMAT_VERSION, "converted to the newest version")
+	check(not converted.has("clock") and not converted.has("clock_elapsed"), "the clock keys are dropped")
+	check(is_equal_approx(float(converted["sim_time"]), float(saved["clock_elapsed"]) / 15.0), "the running time moved over in real seconds")
+	for pair: Array in converted["timetable"]["next"]:
+		check(float(pair[1]) > float(converted["sim_time"]), "a planned departure is still ahead of the time")
+	check_eq(Airport.load_state(converted), 0, "it loads completely")
 	check_eq(Airport.buildings.size(), SHOWCASE_BUILDINGS, "all its buildings")
 	check_eq(Airport.schedule.flights.size(), (saved["schedule"]["flights"] as Array).size(), "its flights are back")
 	check_eq(Airport.timetable.slots.size(), (saved["timetable"]["slots"] as Array).size(), "and its timetable")
+	check_eq(Airport.sim_time, float(converted["sim_time"]), "the time is back")
+	sim_seconds(300.0)
+	check(Airport.sim_time > float(converted["sim_time"]), "it keeps running")
+
+
+func test_v12_example_loads_unchanged_and_round_trips() -> void:
+	var saved := _example(V12)
+	check_eq(int(saved["version"]), 12, "an example save of version 12")
+	check_eq(SaveGame.migrate(_example(V12)), saved, "a current save needs no conversion")
+	check_eq(Airport.load_state(_example(V12)), 0, "it loads completely")
+	check_eq(Airport.buildings.size(), SHOWCASE_BUILDINGS, "all its buildings")
 	var again := JSON.parse_string(JSON.stringify(Airport.save_state(), "", true, true)) as Dictionary
-	for key in ["buildings", "walkways", "taxiways", "clock", "clock_elapsed", "schedule", "timetable", "seed", "rng_state"]:
+	for key in ["buildings", "walkways", "taxiways", "sim_time", "schedule", "timetable", "seed", "rng_state"]:
 		check_eq(again[key], saved[key], "saving it again gives the same '%s'" % key)
 	sim_seconds(300.0)
-	check(Airport.sim_time > float(saved["clock_elapsed"]) / Clock.GAME_PER_REAL, "it keeps running")
+	check(Airport.sim_time > float(saved["sim_time"]), "it keeps running")
 
 
 func test_showcase_shows_a_plane_on_its_way_at_the_start() -> void:

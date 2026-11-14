@@ -104,12 +104,6 @@ var plane_network: PlaneNetwork:
 	set(value):
 		brain.plane_network = value
 
-var clock: Clock:
-	get:
-		return brain.clock
-	set(value):
-		brain.clock = value
-
 var timetable: Timetable:
 	get:
 		return brain.timetable

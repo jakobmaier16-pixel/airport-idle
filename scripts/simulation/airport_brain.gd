@@ -40,7 +40,6 @@ var zone_map: ZoneMap = ZoneMap.new()
 ## Named areas (connected walkways per zone), derived after the zones; never saved.
 var area_map: AreaMap = AreaMap.new()
 ## Time of day (design doc §12.1). Reset, not replaced.
-var clock: Clock = Clock.new()
 ## The fixed timetable (tech_architecture.md §6); FlightSchedule turns its slots into flights.
 var timetable: Timetable = Timetable.new()
 ## Where the manager stands. Far away while nobody walks.
@@ -65,7 +64,7 @@ var _usable_gates: Array[Building] = []
 func _init(size_in_cells: Vector2i = MAP_SIZE_CELLS) -> void:
 	map_size = size_in_cells
 	grid = AirportGrid.new(map_size, CELL_SIZE)
-	# The very first dice come from the clock; every later new game takes its seed from them.
+	# The very first dice come from the system time; every later new game takes its seed from them.
 	var first := RandomNumberGenerator.new()
 	first.randomize()
 	reseed(first.randi())
@@ -99,16 +98,15 @@ func dispose() -> void:
 	timetable.world = null
 
 
-## Seconds since the airport started (flights are timed against it). Not a clock of its own: it
-## is `Clock.elapsed` in real seconds (tech_architecture.md §3, one clock).
-var sim_time: float:
-	get:
-		return clock.real_elapsed
+## Seconds since the airport started, only ever running forward: the one time of the simulation
+## (tech_architecture.md §3). Flights and the timetable are timed against it. There is no time of
+## day (docs/removed_features.md).
+var sim_time: float = 0.0
 
 
-## Advances the whole simulation by one step: the clock, the timetable and the flights.
+## Advances the whole simulation by one step: the time, the timetable and the flights.
 func step(delta: float) -> void:
-	clock.tick(delta)
+	sim_time += delta
 	timetable.tick()
 	schedule.tick(sim_time, delta)
 
@@ -325,7 +323,7 @@ func reset(with_runway: bool = true, new_seed: int = -1) -> void:
 	schedule = FlightSchedule.new()
 	schedule.plane_arriving.connect(plane_arriving.emit)
 	reseed(new_seed if new_seed >= 0 else int(rng.randi()))
-	clock.reset()
+	sim_time = 0.0
 	timetable.clear()
 	manager_position = NOBODY_THERE
 	saved_manager = {}
@@ -356,8 +354,7 @@ func save_state() -> Dictionary:
 		"map_size": [grid.size.x, grid.size.y],
 		"walkways": GridSave.encode(grid, AirportGrid.WALKWAY_BIT),
 		"taxiways": GridSave.encode(grid, AirportGrid.TAXIWAY_BIT),
-		"clock": clock.game_seconds,
-		"clock_elapsed": clock.elapsed,
+		"sim_time": sim_time,
 		"timetable": timetable.save_state(),
 		"schedule": schedule.save_state(),
 		"manager": {"x": manager_position.x, "z": manager_position.z, "yaw": manager_yaw} if manager_position != NOBODY_THERE else {},
@@ -382,9 +379,9 @@ func load_state(data: Dictionary) -> int:
 	var saved_size := _saved_map_size(data)
 	var shift := cell_shift_from(saved_size)
 	_load_layers(data, saved_size, shift)
-	if not data.has("clock_elapsed"):
-		push_warning("Saved airport has no clock_elapsed: the clock starts at zero.")
-	clock.load_state(float(data.get("clock_elapsed", 0.0)), float(data.get("clock", Clock.START_HOUR * 3600.0)))
+	if not data.has("sim_time"):
+		push_warning("Saved airport has no sim_time: the time starts at zero.")
+	sim_time = float(data.get("sim_time", 0.0))
 	saved_manager = data.get("manager", {})
 	var skipped := 0
 	_loading = true

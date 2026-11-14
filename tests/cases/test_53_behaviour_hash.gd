@@ -7,8 +7,9 @@ extends TestCase
 ## Re-baselined on purpose by the strip-to-core PR 1 (passengers, stations, shops, satisfaction and staff deleted; cargo handling is a fixed rate): 8ebdd6c4... -> 42cfd3b1...
 ## Re-baselined on purpose by the strip-to-core PR 2 (money, airlines, demand, tiers, cargo and the rest deleted; a fixed timetable replaces the demand-driven one; the save has format 11 and fewer keys): 42cfd3b1... -> 206ab6b9...
 ## Re-baselined on purpose by the airside fixes PR (showcase airside rebuilt with 12 cell taxiways and a runway 13 rows further south; planes are pushed back and turn on the taxiway; thin taxiway no longer counts; one opening flight on a fresh airport; push-back as a reverse arc with a stop for the tug; showcase with an apron strip behind the stands): 206ab6b9... -> fe2d0076... (route points rounded to 1 mm so the hash is the same on every CPU)
+## Re-baselined on purpose by the remove-clock PR (no clock or day/night: the timetable runs on simulation seconds with the same 360 s turnaround and 68 s stagger, and the save has "sim_time" instead of the clock keys, format 12): fe2d0076... -> f384d82a...
 ## Print the current value with tools/behaviour_hash.sh.
-const GOLDEN_BEHAVIOUR_HASH: String = "fe2d0076a161aed030f57b8ee6ecfb2d4bdaa2f5736f1bc5bcafd5ab01577359"
+const GOLDEN_BEHAVIOUR_HASH: String = "f384d82ab383d72feac93344c5ed7f2751d8efe982045cc96cf84e8163b4d5cf"
 
 
 func test_behaviour_hash_is_deterministic() -> void:

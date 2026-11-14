@@ -80,8 +80,9 @@ Current prototype: simple level upgrades (more counters, more lanes, faster scan
 Idle games let you hire "managers" so things run without you. The realistic version: as the airport grows, the player hires **department heads** (Head of Security, Head of Ground Operations, Head of Retail, …). Each takes over routine work in their area, such as planning shifts. A small airport is hands-on; at a hub the player sets direction and the team runs the details. The game becomes more idle as the airport grows, which is how a real manager's job changes too.
 
 ### 3.4 Time, offline and saving
-- **Game clock** with day and night. A new airport opens at **06:00 on day 1**; the clock runs through all 24 hours. Flights follow a daily schedule; night curfews and quiet hours are real.
-- **Day length:** one real second is 15 game seconds, so a game day lasts **96 real minutes**.
+- **REMOVED 2026-11-14 (docs/decisions.md, docs/removed_features.md): no clock and no day/night for now; flights run on simulation seconds, the lighting is fixed daylight.** Old text, kept for the rethink:
+- ~~**Game clock** with day and night. A new airport opens at **06:00 on day 1**; the clock runs through all 24 hours. Flights follow a daily schedule; night curfews and quiet hours are real.~~
+- ~~**Day length:** one real second is 15 game seconds, so a game day lasts **96 real minutes**.~~
 - A short **day report** at the end of each day: income, passengers, worst bottleneck. **(proposal)**
 - **Offline:** no income for breaks under 36 hours. After **36 hours or more** away, the player gets **4 hours of income** once. "Income" is the airport's average profit per minute over the last ~10 minutes of play.
 - **Saving** is automatic, with no save button: after every change, when the app goes to the background, and a safety save every 30 seconds. Every save stores a timestamp, which the offline income uses.

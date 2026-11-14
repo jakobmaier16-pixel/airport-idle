@@ -53,14 +53,6 @@ size_flags_horizontal = 8
 size_flags_vertical = 0
 mouse_filter = 2
 
-[node name="ClockLabel" type="Label" parent="SafeArea/TopButtons"]
-layout_mode = 2
-size_flags_vertical = 4
-mouse_filter = 2
-theme_override_font_sizes/font_size = 22
-label_settings = SubResource("LabelSettings_hint")
-text = "Day 1 · 06:00"
-
 [node name="ViewButton" type="Button" parent="SafeArea/TopButtons"]
 custom_minimum_size = Vector2(200, 72)
 layout_mode = 2
@@ -84,6 +76,11 @@ mouse_filter = 2
 theme_override_constants/separation = 4
 
 [node name="StatusLabel" type="Label" parent="SafeArea/InfoPanel"]
+layout_mode = 2
+mouse_filter = 2
+label_settings = SubResource("LabelSettings_hint")
+
+[node name="NextFlightLabel" type="Label" parent="SafeArea/InfoPanel"]
 layout_mode = 2
 mouse_filter = 2
 label_settings = SubResource("LabelSettings_hint")
