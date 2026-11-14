@@ -98,7 +98,7 @@ func test_place_a_piece_from_the_build_menu() -> void:
 	check(await place("Country road", at(Vector2i(20, 12)), 1), "a road placed rotated, from Landside > Roads")
 	check(await place("Bollard", at(Vector2i(30, 12))), "a bollard placed from Landside > Props")
 	var row := ui("BuildMenu/BuildingButtons")
-	await press(_menu_button(row, "‹"))
+	await press(_menu_button(row, "‹ Back"))
 	var texts: Array = row.get_children().filter(func(b: Node) -> bool: return not b.is_queued_for_deletion()).map(func(b: Node) -> String: return (b as Button).text)
 	check(texts.has("Roads ›") and texts.has("Props ›") and texts.has("Car park"), "Landside lists its sub-categories and the car park: %s" % [texts])
 	await close_build_view()

@@ -46,7 +46,8 @@ var _notice_left: float = 0.0
 @onready var joystick: TouchJoystick = $SafeArea/TouchJoystick
 @onready var _view_button: Button = $SafeArea/TopButtons/ViewButton
 @onready var _build_menu: Control = $SafeArea/BuildMenu
-@onready var _building_buttons: HBoxContainer = $SafeArea/BuildMenu/BuildingButtons
+@onready var _category_buttons: HFlowContainer = $SafeArea/BuildMenu/CategoryButtons
+@onready var _building_buttons: HFlowContainer = $SafeArea/BuildMenu/BuildingButtons
 @onready var _tool_panel: Control = $SafeArea/ToolPanel
 @onready var _hint_label: Label = $SafeArea/ToolPanel/HintLabel
 @onready var _rotate_button: Button = $SafeArea/ToolPanel/ToolBar/RotateButton
@@ -136,9 +137,8 @@ func setup_build_menu(types: Array[BuildingType]) -> void:
 ## (landside pieces: Roads, Curb, ...) shows them first; `sub_category` then lists one of them.
 func show_build_category(category: String, sub_category: String = "") -> void:
 	_open_category = category
-	for child in _building_buttons.get_children():
-		_building_buttons.remove_child(child)
-		child.queue_free()
+	_clear_row(_building_buttons)
+	_clear_row(_category_buttons)
 	if category.is_empty():
 		var categories: PackedStringArray = []
 		for type in _building_types:
@@ -147,8 +147,17 @@ func show_build_category(category: String, sub_category: String = "") -> void:
 		for category_name in categories:
 			_add_menu_button(category_name + " ›", show_build_category.bind(category_name))
 		return
+	# Inside a category the category row stays on top, so every category is one tap away
+	# (a mis-tap can never leave the player without a way to Terminal / Airside / Landside).
+	var categories: PackedStringArray = []
+	for type in _building_types:
+		if not categories.has(type.category):
+			categories.append(type.category)
+	for category_name in categories:
+		var category_button := _add_menu_button(category_name + " ›", show_build_category.bind(category_name), _category_buttons)
+		category_button.disabled = category_name == category and sub_category.is_empty()
 	# One step back: from a sub-category to its category, from a category to the list of categories.
-	_add_menu_button("‹", show_build_category.bind(category if not sub_category.is_empty() else ""))
+	_add_menu_button("‹ Back", show_build_category.bind(category if not sub_category.is_empty() else ""))
 	var subs: PackedStringArray = []
 	for type in _building_types:
 		if type.category == category and not type.sub_category.is_empty() and not subs.has(type.sub_category):
@@ -161,13 +170,20 @@ func show_build_category(category: String, sub_category: String = "") -> void:
 			_add_menu_button(type.display_name, building_type_selected.emit.bind(type))
 
 
-func _add_menu_button(text: String, action: Callable) -> void:
+func _clear_row(row: Control) -> void:
+	for child in row.get_children():
+		row.remove_child(child)
+		child.queue_free()
+
+
+func _add_menu_button(text: String, action: Callable, row: Control = null) -> Button:
 	var button := Button.new()
 	button.text = text
 	button.custom_minimum_size = BUTTON_MIN_SIZE
 	button.focus_mode = Control.FOCUS_NONE
 	button.pressed.connect(action)
-	_building_buttons.add_child(button)
+	(row if row != null else _building_buttons).add_child(button)
+	return button
 
 
 ## Shows a message at the top of the screen for a few seconds.
@@ -202,8 +218,8 @@ func set_view_button_text(text: String) -> void:
 
 func set_build_view_open(open: bool) -> void:
 	_build_view_open = open
-	if not open and not _open_category.is_empty():
-		show_build_category("")
+	# Every switch of view starts the menu at the top level again.
+	show_build_category("")
 	_update_visibility()
 
 
