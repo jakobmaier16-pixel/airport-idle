@@ -22,7 +22,11 @@ Rebuild: `BPY=$(tools/setup_blender.sh)`, then `"$BPY" art/vehicles/vehicle_text
 W excludes the mirrors (as in the spec sheets; mirrors add ~0.2 m per side). H includes roof rails
 (estate, SUV) and the roof vent (van); the taxi sign adds 0.15 m and the shark-fin antenna 3–6 cm.
 
-Shape notes: windscreen rake ~30° from horizontal on the cars, ~50° on the van (short bonnet, steep
+Shape notes: modern fronts: bonnet edge 0.77–0.80 m, cowl ~1.0 m, nearly upright rounded fascia with
+wide flat headlamps along the bonnet edge (wrapping into the wing), grille between, bumper with
+intake and plate below. The small car has its own face: shorter bonnet, more upright, round lamps,
+small grille; near-vertical hatch with a roof spoiler. Taxi roof sign 0.50 × 0.15 × 0.13 m above the
+B pillar / front seats. Windscreen rake ~30° from horizontal on the cars, ~50° on the van (short bonnet, steep
 screen, tall box); hatch and estate tailgates near vertical, SUV tailgate sloped (~50°), taxi
 three-box with a boot deck. SUV: dark cladding on arches, sills and lower bumpers. Van: sliding door
 (right, kerb side) with rail, dark bumpers with a rear step, side step, cab windows only, tall
@@ -49,10 +53,10 @@ steering wheel, door cards, headliner, luggage cover / parcel shelf, van bulkhea
 
 | Type | LOD0 tris | `_lodfar` tris | Materials LOD0 | Materials far | Textures |
 |---|---|---|---|---|---|
-| `car_small` | 1956 | 98 | 2 (`vehicle`, `glass_vehicle`) | 1 (`vehicle`) | shared atlas 2 × 512² |
-| `car_estate` | 2162 | 110 | 2 | 1 | shared |
+| `car_small` | 1952 | 110 | 2 (`vehicle`, `glass_vehicle`) | 1 (`vehicle`) | shared atlas 2 × 512² |
+| `car_estate` | 2128 | 110 | 2 | 1 | shared |
 | `car_suv` | 2100 | 110 | 2 | 1 | shared |
-| `car_taxi` | 2118 | 112 | 2 | 1 | shared |
+| `car_taxi` | 2084 | 112 | 2 | 1 | shared |
 | `van` | 1686 | 86 | 2 | 1 | shared |
 
 art_direction §6 (vehicle): LOD0 ≤ 3 k, LOD1 ≤ 800 (Godot generates it on import, `generate_lods`),
@@ -120,4 +124,5 @@ Suggested type mix in the car park: small 36 %, estate 26 %, SUV 32 %, van 6 %.
 | `vehicles_colours.png` | the estate in all nine paint colours, with weights |
 | `vehicles_landside.png` | eye level at the curb: van and estate in the Kiss & Fly, traffic, car park |
 | `vehicles_taxirank.png` | eye level at the taxi rank |
+| `vehicles_psign.png` | driver's view on the loop road: German "P" sign (Zeichen 314) before the car park |
 | `vehicles_top.png` | car park top-down as in the build view: LOD0 west of the walkway, `_lodfar` east |

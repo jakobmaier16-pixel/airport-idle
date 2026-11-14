@@ -9,6 +9,7 @@ renders into art/previews/vehicles/ (1280 × 720, Cycles):
   vehicles_landside.png  eye level at the curb by the zebra, looking west to the Kiss & Fly: van and
                          estate dropping off, through traffic, parked cars across the road
   vehicles_taxirank.png  eye level at the taxi rank
+  vehicles_psign.png     driver's view on the west leg: German "P" sign (Zeichen 314) before the car park
   vehicles_top.png       top-down over the car park as in the build view: LOD0 west of the walkway,
                          `_lodfar` east of it
 The landside .blend itself is not changed (saved as art/vehicles/vehicle_landside.blend).
@@ -37,6 +38,11 @@ scene = bpy.context.scene
 for o in [o for o in bpy.data.objects if o.name.startswith("prop_car")]:
     bpy.data.objects.remove(o)
 layout = bpy.data.collections["layout"]
+# The parking sign became the real German Zeichen 314 (0.6 m) after this .blend was saved: swap it in.
+_sign = K.sign_parking().lod0.build("sign_parking_z314", {m: bpy.data.materials[m] for m in ("markings", "metal_light")},
+                                    bpy.data.collections.new("sign_library"))
+for o in [o for o in layout.objects if o.name.startswith("sign_parking")]:
+    o.data = _sign.data
 lib = bpy.data.collections.new("vehicle_library")
 mats = VP.make_materials()
 cars = VP.build_all(mats, lib)                      # not linked to the scene: library only
@@ -135,6 +141,7 @@ cams = {
     "landside": camera("cam_veh_landside", CURB_CAM, (24.0, 64.0, 0.5), lens=28.0),
     "taxirank": camera("cam_veh_taxirank", (118.5, 71.2, 0.15 + 1.7), (96.0, 64.5, 0.7), lens=28.0),
     "top": camera("cam_veh_top", (46.0, 36.0, 200.0), ortho=50.0),
+    "psign": camera("cam_veh_psign", (2.2, 9.0, 1.3), (9.0, 24.0, 1.6), lens=30.0),
 }
 # Scale dummies standing right in front of the curb camera would hide the cars: leave them out here.
 for o in [o for o in layout.objects if o.name.startswith("prop_person")]:
