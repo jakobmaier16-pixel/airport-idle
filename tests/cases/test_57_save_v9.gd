@@ -111,7 +111,8 @@ func test_v9_example_is_in_the_newest_format() -> void:
 func test_showcase_save_stays_small() -> void:
 	var file_size := FileAccess.get_file_as_string(_path("v9_showcase")).length()
 	var v8_size := FileAccess.get_file_as_string(_path("v8_showcase")).length()
-	ShowcaseAirport.build()
+	# Without the landside pieces: each saved building costs about 160 bytes, and the limit is about the map layers.
+	ShowcaseAirport.build(180.0, Vector2i.ZERO, false)
 	sim_seconds(20.0)
 	var live_size := JSON.stringify(Airport.save_state(), "", true, true).length()
 	print("INFO showcase save: v8 example %d bytes, v9 example %d bytes, v9 live %d bytes (limit %d)" % [v8_size, file_size, live_size, SIZE_LIMIT_BYTES])

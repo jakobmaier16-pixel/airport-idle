@@ -33,10 +33,11 @@ func test_splitting_the_hall_renames_deterministically() -> void:
 
 func test_unnamed_areas_are_numbered() -> void:
 	ShowcaseAirport.build(0.0)
-	Airport.paint_walkway([at(Vector2i(2, 2)), at(Vector2i(3, 2))] as Array[Vector2i], true)
-	Airport.paint_walkway([at(Vector2i(2, 5))] as Array[Vector2i], true)
-	check_eq(Airport.area_name(at(Vector2i(2, 2))), "Landside 1", "first lonely walkway")
-	check_eq(Airport.area_name(at(Vector2i(2, 5))), "Landside 2", "second lonely walkway")
+	# Away from the landside pieces (north of the terminal) and from the stands.
+	Airport.paint_walkway([at(Vector2i(2, 52)), at(Vector2i(3, 52))] as Array[Vector2i], true)
+	Airport.paint_walkway([at(Vector2i(2, 55))] as Array[Vector2i], true)
+	check_eq(Airport.area_name(at(Vector2i(2, 52))), "Landside 1", "first lonely walkway")
+	check_eq(Airport.area_name(at(Vector2i(2, 55))), "Landside 2", "second lonely walkway")
 
 
 func test_names_survive_save_and_load() -> void:
