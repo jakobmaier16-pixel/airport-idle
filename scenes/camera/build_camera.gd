@@ -15,8 +15,8 @@ const HEIGHT_ABOVE_GROUND: float = 40.0
 @export var view_height: float = 250.0
 ## Closest zoom: visible height in meters.
 @export var min_view_height: float = 16.0
-## Farthest zoom: visible height in meters: the whole map (3.2 km high). The camera shows the whole
-## map at once, so the view never needs to be bigger than that.
+## Farthest zoom: visible height in meters, at most. It is also limited so the view never shows
+## more than the map on either axis (see `_largest_view_height`).
 @export var max_view_height: float = 3200.0
 ## Zoomed out further than this many meters, the sun's shadows are switched off: one shadow map
 ## cannot cover a kilometre sharply, and it costs frame time for nothing.
@@ -93,8 +93,14 @@ func _pan(screen_relative: Vector2) -> void:
 func _on_pinched(factor: float) -> void:
 	if not current:
 		return
-	# Fingers apart (factor > 1) = zoom in = see fewer meters.
-	view_height /= factor
+	# Fingers apart (factor > 1) = zoom in = see fewer meters. The map point under the fingers
+	# stays under them: shift the camera by how far that point's offset from the centre changed.
+	var old_height := view_height
+	view_height = clampf(view_height / factor, min_view_height, _largest_view_height())
+	var viewport_size := get_viewport().get_visible_rect().size
+	var offset := (TouchGestures.pinch_center - viewport_size * 0.5) * ((old_height - view_height) / viewport_size.y)
+	position.x += offset.x
+	position.z += offset.y
 	_apply_limits()
 
 
@@ -103,15 +109,22 @@ func _apply_limits() -> void:
 	var aspect := viewport_size.x / viewport_size.y
 	var map := Airport.grid.get_world_rect()
 
-	# The farthest zoom shows the whole map: its height, or on a wide screen its width.
-	var largest := minf(max_view_height, maxf(map.size.y, map.size.x / aspect))
-	view_height = clampf(view_height, min_view_height, maxf(largest, min_view_height))
+	view_height = clampf(view_height, min_view_height, _largest_view_height())
 	size = view_height  # Orthographic size = visible height in meters.
 	update_shadows()
 
 	var half_view := Vector2(view_height * aspect, view_height) * 0.5
 	position.x = _clamp_axis(position.x, map.position.x + half_view.x, map.end.x - half_view.x)
 	position.z = _clamp_axis(position.z, map.position.y + half_view.y, map.end.y - half_view.y)
+
+
+# The farthest zoom: the whole map fits on both axes (its height, or on a wide screen its width,
+# whichever is smaller), so the view never shows void and the clamp never has to centre it.
+func _largest_view_height() -> float:
+	var viewport_size := get_viewport().get_visible_rect().size
+	var map := Airport.grid.get_world_rect()
+	var largest := minf(max_view_height, minf(map.size.y, map.size.x / (viewport_size.x / viewport_size.y)))
+	return maxf(largest, min_view_height)
 
 
 # Clamps `value` between `low` and `high`; centers it if the view is wider than the map.

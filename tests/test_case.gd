@@ -175,9 +175,11 @@ func pinch(center: Vector2, start_gap: float, end_gap: float) -> void:
 	touch(1, false, center)
 
 
-func wheel(up: bool, times: int = 1) -> void:
+## Mouse wheel zoom; `position` is where the mouse is (the zoom happens about that point).
+func wheel(up: bool, times: int = 1, position: Vector2 = Vector2.ZERO) -> void:
 	for i in times:
 		var event := InputEventMouseButton.new()
+		event.position = position
 		event.button_index = MOUSE_BUTTON_WHEEL_UP if up else MOUSE_BUTTON_WHEEL_DOWN
 		event.pressed = true
 		get_tree().root.push_input(event, true)

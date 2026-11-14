@@ -28,6 +28,9 @@ const NOTICE_SECONDS: float = 10.0
 const BUTTON_MIN_SIZE: Vector2 = Vector2(120, 72)
 ## How long Reset / Demo wait for the confirming second tap.
 const CONFIRM_TIME: float = 3.0
+## Colours of the hint line while placing: info (allowed, something is missing) and error.
+const HINT_INFO_COLOR: Color = Color(0.6, 0.82, 1.0)
+const HINT_ERROR_COLOR: Color = Color(1.0, 0.6, 0.55)
 
 var _build_view_open: bool = false
 # Build menu: every building type, and the category whose buildings are shown ("" = categories).
@@ -205,6 +208,13 @@ func set_tool_state(tool: BuildMode.Tool, can_confirm: bool, hint: String) -> vo
 	_place_button.disabled = not can_confirm
 	_demolish_button.disabled = not can_confirm
 	_hint_label.text = hint
+	# Red-ish: not allowed. Blue-ish: allowed, but the building still needs something (info).
+	if tool == BuildMode.Tool.PLACE and can_confirm and hint != BuildMode.DRAG_HINT:
+		_hint_label.add_theme_color_override(&"font_color", HINT_INFO_COLOR)
+	elif tool == BuildMode.Tool.PLACE and not can_confirm:
+		_hint_label.add_theme_color_override(&"font_color", HINT_ERROR_COLOR)
+	else:
+		_hint_label.remove_theme_color_override(&"font_color")
 	_update_visibility()
 
 

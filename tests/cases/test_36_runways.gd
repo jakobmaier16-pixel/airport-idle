@@ -39,7 +39,7 @@ func test_showcase_stands_reach_the_runway() -> void:
 	# Cut the parallel taxiway: the stands lose their way to the runway.
 	Airport.paint_taxiway(cells(at(Vector2i(6, 79)), Vector2i(100, 2)), false)
 	var stand := _stand()
-	check_eq(Airport.connection_problem(stand.type, stand.origin_cell, stand.rotation_steps), "Needs a taxiway to a runway", "cut off")
+	check_eq(Airport.connection_problem(stand.type, stand.origin_cell, stand.rotation_steps), "No taxiway", "cut off")
 	check(Airport.usable_gates().is_empty(), "no gate gets flights")
 
 

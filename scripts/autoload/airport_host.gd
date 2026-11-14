@@ -211,6 +211,10 @@ func connection_problem(type: BuildingType, origin_cell: Vector2i, rotation_step
 	return brain.connection_problem(type, origin_cell, rotation_steps)
 
 
+func connection_hint(type: BuildingType, origin_cell: Vector2i, rotation_steps: int) -> String:
+	return brain.connection_hint(type, origin_cell, rotation_steps)
+
+
 ## `size_in_cells` is only for tests and tools that want a map of another size; the game always
 ## uses the default one (a zero size).
 func reset(with_runway: bool = true, new_seed: int = -1, size_in_cells: Vector2i = Vector2i.ZERO) -> void:
