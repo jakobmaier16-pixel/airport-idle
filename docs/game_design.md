@@ -207,6 +207,15 @@ Two kinds of services:
 
 ## 8. Building, Areas & Views
 
+### 8.0 Three kinds of building (decided 2026-11-14)
+Every airport should look different: the player decides what goes where and what shape the terminal has.
+| Kind | How it is built |
+|---|---|
+| **Terminal halls and piers** | Drawn freely on the grid (rectangles, L-shapes, extensions), snapping to a **12 m column grid** (6 cells). The shell (facade, roof, columns, ceiling, doors where a sidewalk or walkway meets it) is assembled automatically from a hand-made kit. Halls can be extended later; the shell grows with them. |
+| **Service buildings** (fire station, police, tower, VIP terminal, hangar, cargo, multi-storey car park, …) | Predesigned, hand-made buildings with upgrade levels, placed and rotated freely. |
+| **Inside** (check-in, security, shops, gates, …) | Stations placed freely inside the halls, as today. |
+The manager view is the heart of the game, so halls must look like real buildings at eye level: the column grid keeps columns, ceiling and facade consistent in any shape.
+
 ### 8.1 One map, automatic zones
 - The whole airport is **one continuous grid map**.
 - The player places **predesigned, rotatable buildings** and draws corridors and waiting areas to connect them.
