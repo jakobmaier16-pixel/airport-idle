@@ -4,6 +4,14 @@ Every decision Jakob makes goes here **immediately**, newest first, with the dat
 (translated to English where needed). Both leads read this file at the start of every session.
 `game_design.md` holds the resulting design; this file is the trail of what Jakob said and when.
 
+## 2026-11-14 (evening)
+- **The clock goes out for now (option c).** Reason: the clock ran 15× faster than the planes, which
+  move at real speed (Jakob likes that speed), so a landing took ~9 game minutes. Until time is
+  rethought cleanly there is no time of day; the HUD shows only "next flight in X s". Day/night lighting
+  goes with it (fixed daylight).
+- Lead decisions for the strip (not objected): cargo terminal and freighters out; baggage claim out;
+  the whole map is buildable (no land buying while there is no money).
+
 ## 2026-11-14 (device test, iPhone 13 Pro)
 - **Strip the game down to the basics.** Remove passengers, money and airline deals. Keep the clock
   only if it is cleanly built; otherwise remove it too. Also out (lead's core proposal, not objected):
