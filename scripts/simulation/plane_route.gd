@@ -53,7 +53,22 @@ var taxi_out_time: float = 0.0
 var roll_out_time: float = 0.0
 
 
+## Route points are rounded to this many metres (1 mm). The curves come from sin / cos / tan, whose last
+## bits differ between CPUs and C libraries; rounded, every platform gets the same route and the same
+## times, so the behaviour hash (test_53) is the same everywhere.
+const POINT_STEP_M: float = 0.001
+
+
+static func snap(line: PackedVector2Array) -> PackedVector2Array:
+	var result := PackedVector2Array()
+	result.resize(line.size())
+	for i in line.size():
+		result[i] = Vector2(snappedf(line[i].x, POINT_STEP_M), snappedf(line[i].y, POINT_STEP_M))
+	return result
+
+
 static func from_points(line: PackedVector2Array, fallback: bool = false) -> PlaneRoute:
+	line = snap(line)
 	var route := PlaneRoute.new()
 	route.points = line
 	route.from_fallback = fallback
@@ -77,6 +92,8 @@ static func from_points(line: PackedVector2Array, fallback: bool = false) -> Pla
 func set_way_out(back: PackedVector2Array, to_pushback: PackedVector2Array) -> void:
 	if points.is_empty():
 		return
+	back = snap(back)
+	to_pushback = snap(to_pushback)
 	var middle := points[points.size() - 1]
 	var line := PackedVector2Array()
 	blend_length = 0.0
