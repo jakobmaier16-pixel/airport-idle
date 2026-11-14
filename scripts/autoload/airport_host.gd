@@ -424,5 +424,5 @@ func end_batch() -> void:
 	brain.end_batch()
 
 
-func add_starting_runway() -> void:
-	brain.add_starting_runway()
+func add_starting_runway() -> Array[Building]:
+	return brain.add_starting_runway()

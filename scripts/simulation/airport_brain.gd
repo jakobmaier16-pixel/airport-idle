@@ -890,7 +890,10 @@ func load_state(data: Dictionary) -> int:
 	# Saves from before runways existed (design doc §7.5a) get the starting runway.
 	if not buildings.any(func(b: Building) -> bool: return b.type.role == BuildingType.Role.RUNWAY):
 		_loading = true
-		add_starting_runway()
+		for displaced in add_starting_runway():
+			skipped += 1
+			load_refund += displaced.type.build_cost
+			load_refunded.append(String(displaced.type.id))
 		_loading = false
 	if data.has("staff"):
 		for entry: Dictionary in data["staff"]:
@@ -1074,10 +1077,51 @@ func manager_start() -> Array:
 	return [Vector3.ZERO, 0.0]
 
 
-## Lays the runway a new airport starts with, on airside (design doc §7.5a).
-func add_starting_runway() -> void:
+## Lays the runway a new airport starts with, on airside (design doc §7.5a), at the default spot or,
+## if a building stands there (a migrated save), at the nearest free spot inside the owned land:
+## first moved up and down, then sideways. If there is none, the buildings in the default band are
+## removed to make room. Returns those removed buildings: the caller pays their full price back and
+## tells the player. Never fails silently.
+func add_starting_runway() -> Array[Building]:
 	var type := CATALOG.find(&"runway")
-	place_building(type, MapAnchor.centre_of(grid.size) + DEFAULT_RUNWAY_ORIGIN, 0, false)
+	var removed: Array[Building] = []
+	if buildings.any(func(b: Building) -> bool: return b.type.role == BuildingType.Role.RUNWAY):
+		return removed
+	var home := MapAnchor.centre_of(grid.size) + DEFAULT_RUNWAY_ORIGIN
+	var spot: Variant = _free_runway_spot(type, home)
+	if spot == null:
+		# Nothing is free: the runway goes to the default spot (kept inside the land) and what stands there leaves.
+		var land := progression.owned_land(grid.size)
+		spot = Vector2i(clampi(home.x, land.position.x, maxi(land.end.x - type.footprint.x, land.position.x)),
+			clampi(home.y, land.position.y, maxi(land.end.y - type.footprint.y, land.position.y)))
+		var band := Rect2i(spot, type.footprint)
+		for building in buildings.duplicate():
+			if Rect2i(building.origin_cell, Building.rotated_size(building.type.footprint, building.rotation_steps)).intersects(band):
+				for cell in building.get_cells():
+					grid.set_content(cell, null)
+				buildings.erase(building)
+				passenger_flow.remove_building(building)
+				building_removed.emit(building)
+				removed.append(building)
+	if place_building(type, spot, 0, false) == null:
+		push_warning("The starting runway could not be placed at %s." % [spot])
+	return removed
+
+
+# The nearest origin to `home` where a runway fits inside the owned land without touching a building,
+# or null. Rows first (up and down), then columns in steps of 50 cells.
+func _free_runway_spot(type: BuildingType, home: Vector2i) -> Variant:
+	var land := progression.owned_land(grid.size)
+	var rects: Array[Rect2i] = []
+	for building in buildings:
+		rects.append(Rect2i(building.origin_cell, Building.rotated_size(building.type.footprint, building.rotation_steps)))
+	for dx in [0, -50, 50, -100, 100, -150, 150, -200, 200]:
+		for step in range(0, land.size.y + 1):
+			for dy in ([0] if step == 0 else [step, -step]):
+				var rect := Rect2i(home + Vector2i(dx, dy), type.footprint)
+				if land.encloses(rect) and not rects.any(func(r: Rect2i) -> bool: return r.intersects(rect)):
+					return rect.position
+	return null
 
 
 func _is_aircraft_stand(cell: Vector2i) -> bool:

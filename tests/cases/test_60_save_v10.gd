@@ -109,3 +109,56 @@ func test_v10_example_loads_completely_and_saves_the_same() -> void:
 	check_eq(types_after, types_before, "saving it again gives the same buildings")
 	sim_seconds(120.0)
 	check(Airport.passenger_flow.passengers.size() > 0, "it keeps running")
+
+
+# A v9 save with a building in the default runway band (rows 81 to 103 of the reference map): the
+# new runway moves to the nearest free spot instead of silently not being laid.
+func _v9_with_a_shop_in_the_runway_band() -> Dictionary:
+	var saved := _example(V9)
+	saved["buildings"].append({"id": 99, "type": "shop", "cell": [30, 90], "rotation": 0, "level": 1, "cost": 3500.0, "upgrade_left": 0.0, "fast_track": false})
+	return saved
+
+
+func _runway() -> Building:
+	for building in Airport.buildings:
+		if building.type.role == BuildingType.Role.RUNWAY:
+			return building
+	return null
+
+
+func test_a_building_in_the_runway_band_moves_the_runway_and_flights_still_happen() -> void:
+	var saved := _v9_with_a_shop_in_the_runway_band()
+	var refund := legacy_refund_of(saved)
+	var money := float(saved["money"])  # migrate() changes the dictionary in place
+	check_eq(Airport.load_state(SaveGame.migrate(saved)), 0, "nothing is skipped")
+	var runway := _runway()
+	check(runway != null, "a runway was laid")
+	var shop: Building = Airport.buildings.filter(func(b: Building) -> bool: return b.type.id == &"shop" and b.id == 99)[0]
+	check(not Rect2i(runway.origin_cell, runway.type.footprint).intersects(Rect2i(shop.origin_cell, shop.type.footprint)), "it does not touch the shop")
+	check(Airport.progression.owned_land(Airport.grid.size).encloses(Rect2i(runway.origin_cell, runway.type.footprint)), "it lies on owned land")
+	check_eq(Airport.load_refund, 0.0, "nobody had to leave")
+	check_eq(Airport.economy.balance, money + refund, "balance = saved money + refunds")
+	# Give gate 1 a stand and a taxiway down to wherever the runway is: flights come.
+	var gate: Building = Airport.buildings.filter(func(b: Building) -> bool: return b.type.role == BuildingType.Role.GATE)[0]
+	var stand := Airport.place_building(type_of(&"aircraft_stand"), gate.origin_cell + Vector2i(-8, 5), 0)
+	check(stand != null, "a stand under the gate")
+	var link_x := stand.origin_cell.x + 9
+	var link_top := stand.origin_cell.y + stand.type.footprint.y
+	Airport.paint_taxiway(cells(Vector2i(link_x, link_top), Vector2i(2, runway.origin_cell.y - link_top)), true)
+	check(Airport.passenger_flow.route_problem.is_empty(), "a complete route: %s" % Airport.passenger_flow.route_problem)
+	check(first_flight(0, 3000.0) != null, "flights happen")
+
+
+func test_with_no_free_spot_the_buildings_in_the_way_are_removed_and_refunded() -> void:
+	# A map just 46 cells high: only two runway rows fit, and a wide-body stand blocks both.
+	var brain := AirportWorld.new(Vector2i(1200, 46))
+	var stand := brain.place_building(AirportWorld.CATALOG.find(&"wide_body_stand"), Vector2i(500, 3), 0, false)
+	check(stand != null, "the blocking stand is placed")
+	var removed := brain.add_starting_runway()
+	check_eq(removed, [stand] as Array[Building], "the stand had to leave")
+	var runways := brain.buildings.filter(func(b: Building) -> bool: return b.type.role == BuildingType.Role.RUNWAY)
+	check_eq(runways.size(), 1, "and the runway is there")
+	check(not brain.buildings.has(stand), "the stand is gone")
+	check_eq(brain.add_starting_runway().size(), 0, "a second call does nothing")
+	check_eq(brain.buildings.size(), 1, "still one building")
+	brain.dispose()
