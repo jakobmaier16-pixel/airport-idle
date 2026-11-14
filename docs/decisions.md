@@ -4,6 +4,19 @@ Every decision Jakob makes goes here **immediately**, newest first, with the dat
 (translated to English where needed). Both leads read this file at the start of every session.
 `game_design.md` holds the resulting design; this file is the trail of what Jakob said and when.
 
+## 2026-11-14 (midnight)
+- **Stations per asset confirmed** ("gladly, as long as it makes sense"): size, then look, then rules,
+  then moving parts; a station starts only after Jakob approved the one before. The lead's check: it
+  makes sense, with one refinement. **Size is the gate.** After it, look (visual lane) and rules (code
+  lane, on a grey box of the approved size) may run side by side, because rules need the dimensions,
+  not the look. Moving parts come last: they need the final model. Small decoration (bollard, sign)
+  does size and look in one step. If the size changes later, the asset goes back to station 1.
+- **Jakob asked whether Blender can raise the quality.** The lead's answer: yes, three levers, tried
+  on one asset first as a small look project (handoff issue #66): baked ambient occlusion
+  (asked for in art_direction §5, not in the Blender scripts yet), photo-based CC0 textures in place
+  of the computed noise textures, softened edges and more model detail. Jakob picks the step on the
+  device; nothing is rolled out before that.
+
 ## 2026-11-14 (late night): a new way of working
 - **Many small projects instead of one big world.** Jakob: what we did so far had no basis to succeed;
   the answers are good, the execution is a grade 6 (fail). From now on we work on very many small
