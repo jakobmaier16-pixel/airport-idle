@@ -13,23 +13,34 @@ var _areas: Dictionary[int, int] = {}
 # Areas that contain a runway cell.
 var _runway_areas: Dictionary[int, bool] = {}
 var _runways: Array[Building] = []
+# What the current network was built from (see rebuild).
+var _signature_of_network: PackedInt64Array = PackedInt64Array()
 
 
 func rebuild(grid: AirportGrid, buildings: Array[Building]) -> void:
+	# Only the paved cells matter: a layout change that moved none of them (a walkway, a shop)
+	# leaves the network as it is. With a 1,000-cell runway a rebuild is the costliest part of a
+	# layout change.
+	var signature := _signature(grid, buildings)
+	if grid == _grid and signature == _signature_of_network:
+		return
 	_grid = grid
+	_signature_of_network = signature
 	_runways.clear()
 	var width := grid.size.x
 	var seen: Dictionary[int, bool] = {}
-	for cell in grid.get_nonempty_cells():
-		if grid.is_taxiway(cell):
-			seen[cell.y * width + cell.x] = true
+	for cell in grid.get_cells_with_flag(AirportGrid.TAXIWAY_BIT):
+		seen[cell.y * width + cell.x] = true
 	for building in buildings:
 		if building.type.role == BuildingType.Role.RUNWAY:
 			_runways.append(building)
 		if building.type.role in [BuildingType.Role.RUNWAY, BuildingType.Role.AIRCRAFT_STAND]:
-			for cell in building.get_cells():
-				if is_paved(cell):
-					seen[cell.y * width + cell.x] = true
+			# Every cell of a stand or runway is paved: the rectangle goes in row by row.
+			var size := Building.rotated_size(building.type.footprint, building.rotation_steps)
+			for y in range(building.origin_cell.y, building.origin_cell.y + size.y):
+				var row := y * width
+				for x in range(building.origin_cell.x, building.origin_cell.x + size.x):
+					seen[row + x] = true
 	var ids := PackedInt32Array(seen.keys())
 	# Row by row, like the dense scan this replaced: area ids come out the same.
 	ids.sort()
@@ -49,6 +60,15 @@ func rebuild(grid: AirportGrid, buildings: Array[Building]) -> void:
 		if id % width > 0 and seen.has(id - 1):
 			_paths.connect_points(id, id - 1, false)
 	_label_areas(ids)
+
+
+# What decides the paved cells: the taxiway layer and where the stands and runways are.
+func _signature(grid: AirportGrid, buildings: Array[Building]) -> PackedInt64Array:
+	var result := PackedInt64Array([grid.taxiway_revision])
+	for building in buildings:
+		if building.type.role in [BuildingType.Role.RUNWAY, BuildingType.Role.AIRCRAFT_STAND]:
+			result.append_array(PackedInt64Array([building.id, building.origin_cell.x, building.origin_cell.y, building.rotation_steps]))
+	return result
 
 
 ## True for cells planes can use: taxiway, stands and runways.
@@ -141,8 +161,6 @@ func _label_areas(ids: PackedInt32Array) -> void:
 			var id := open[open.size() - 1]
 			open.resize(open.size() - 1)
 			var cell := Vector2i(id % width, id / width)
-			if runway_at(cell) != null:
-				_runway_areas[next_id] = true
 			for k in 4:
 				if (k == 0 and cell.x == width - 1) or (k == 1 and cell.x == 0):
 					continue
@@ -152,3 +170,6 @@ func _label_areas(ids: PackedInt32Array) -> void:
 				_areas[next] = next_id
 				open.append(next)
 		next_id += 1
+	# A runway is one connected rectangle: its first cell tells which area it is in.
+	for runway in _runways:
+		_runway_areas[_areas[runway.origin_cell.y * width + runway.origin_cell.x]] = true

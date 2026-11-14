@@ -28,13 +28,13 @@ func _ready() -> void:
 
 	# South of gate 1's stand, looking across the plane to the gate, while it boards (first departure at 210 s, boarding from 120 s).
 	sim_seconds(60)
-	manager().global_position = Airport.grid.cell_to_world(at(Vector2i(25, 52)))
-	manager_camera().face(Airport.grid.block_center(at(Vector2i(10, 39)), Vector2i(12, 12)) + Vector3.UP * 2.0)
+	manager().global_position = Airport.grid.cell_to_world(at(Vector2i(16, 70)))
+	manager_camera().face(Airport.grid.block_center(at(Vector2i(6, 39)), Vector2i(20, 23)) + Vector3.UP * 2.0)
 	await _shot("manager_at_gate_boarding")
 
 	# The long-haul plane at the wide-body stand behind gate 3 (design doc §10.2).
-	manager().global_position = Airport.grid.cell_to_world(at(Vector2i(41, 54)))
-	manager_camera().face(Airport.grid.block_center(at(Vector2i(22, 39)), Vector2i(16, 16)) + Vector3.UP * 3.0)
+	manager().global_position = Airport.grid.cell_to_world(at(Vector2i(43, 84)))
+	manager_camera().face(Airport.grid.block_center(at(Vector2i(26, 39)), Vector2i(35, 40)) + Vector3.UP * 3.0)
 	await _shot("wide_body_plane")
 
 	# Station panel: security seen from the airside walkway.

@@ -23,6 +23,9 @@ enum Access {
 ## New roles go at the end: saves and .tres files store the number.
 enum Role { NONE, ENTRANCE, CHECK_IN, SECURITY, GATE, AIRCRAFT_STAND, SHOP, BAGGAGE_CLAIM, TRANSFER_SECURITY, CAR_PARK, LOUNGE, RUNWAY, CARGO_TERMINAL }
 
+## How big a plane a stand takes, by wingspan (TimetableSlot.WINGSPAN_M).
+enum StandClass { NARROW, WIDE }
+
 ## Stable internal name, used for save games. Never change it once players have saves.
 @export var id: StringName
 ## Name shown in the build menu.
@@ -38,8 +41,9 @@ enum Role { NONE, ENTRANCE, CHECK_IN, SECURITY, GATE, AIRCRAFT_STAND, SHOP, BAGG
 @export var front_access: Access = Access.NONE
 @export var back_access: Access = Access.NONE
 @export var role: Role = Role.NONE
-## Stands: big enough for wide-body (long-haul) planes (design doc §10.2).
-@export var wide_body: bool = false
+## Stands: the biggest plane class that fits (design doc §10.2). A stand takes its own class and
+## every smaller one (see `fits`). Numbers are stored in .tres files: new classes go at the end.
+@export var stand_class: StandClass = StandClass.NARROW
 ## The airport tier that unlocks it (Progression.Tier, design doc §14.1); 0 = from the start.
 @export_range(0, 3) var unlocked_at: int = 0
 
@@ -75,3 +79,19 @@ enum Role { NONE, ENTRANCE, CHECK_IN, SECURITY, GATE, AIRCRAFT_STAND, SHOP, BAGG
 @export var color: Color = Color(0.7, 0.7, 0.75)
 ## Box height in meters.
 @export var height: float = 2.5
+
+
+## Stands: true for long-haul (wide-body) stands. Derived from `stand_class`.
+var wide_body: bool:
+	get:
+		return stand_class == StandClass.WIDE
+
+
+## True if a plane of `plane_class` can park on this stand: its own class or a smaller one.
+func fits(plane_class: TimetableSlot.PlaneClass) -> bool:
+	return role == Role.AIRCRAFT_STAND and TimetableSlot.size_rank(plane_class) <= int(stand_class)
+
+
+## Width of the footprint in metres (a stand's width is its wingspan limit), for any rotation.
+func width_m(cell_size: float) -> float:
+	return minf(footprint.x, footprint.y) * cell_size

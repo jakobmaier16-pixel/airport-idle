@@ -129,7 +129,7 @@ Decided 2026-10-13. The story intro above stays open; until it exists, a short g
 | Check-in | 5 × 3 | 10 × 6 | landside |
 | Security | 5 × 3 | 10 × 6 | border: front faces landside, back faces airside |
 | Gate | 5 × 5 | 10 × 10 | airside (waiting area included) |
-| Aircraft stand | 12 × 12 | 24 × 24 | airside (scaled down, see §7.1); flat, can be walked on |
+| Aircraft stand | 20 × 23 | 40 × 46 | airside, real scale since 2026-11-14 (was 12 × 12); flat, can be walked on |
 | Shop (duty free / retail) | 3 × 3 | 6 × 6 | airside |
 | Café | 4 × 3 | 8 × 6 | landside or airside |
 | Baggage claim | 6 × 4 | 12 × 8 | border: front faces landside, back faces airside (like security, used the other way) |
@@ -182,7 +182,7 @@ Only the direction from which passengers arrive at the map edge may be fixed.
 
 ### 7.5a Runways and taxiways (first version)
 Placeholder numbers, tunable. Compressed like the rest of the airside.
-- **Runway** (Airside, 52 × 6 cells, €40,000 · €20/min): planes land on it and take off from it. **A new airport already has one** (the field came with it): along the south edge of the map, free, on land the airport owns from the start. More runways can be built later.
+- **Runway** (Airside, 1,000 × 23 cells = 2 km, €400,000 · €20/min; was 52 × 6): planes land on it and take off from it. **A new airport already has one** (the field came with it): south of the map centre, free, on land the airport owns from the start. More runways can be built later.
 - **Taxiways** are painted like walkways (build view: *Taxiway*, airside only, €30 per cell, €0.05/min): dark asphalt with a yellow centre line. **A stand only works if a taxiway connects one of its sides to a runway**; otherwise its gate gets no flights and the stand shows "Needs a taxiway to a runway". *Remove* clears walkways and taxiways.
 - **Planes follow the taxiways:** an arriving plane descends onto the runway, rolls out, turns onto the taxiway and taxis to its stand; a departing plane taxis back, rolls down the runway and climbs away.
 - **Runway capacity:** every landing and every take-off occupies a runway for 20 seconds (compressed); one runway handles 180 movements per hour (about 4 gates' worth). An arriving plane that finds its runway busy holds before landing — an arrival delay the airport caused, which also delays its next departure (the turnaround is fixed). A departing plane pushes back on time and, if the runway is busy, waits at the holding point; punctuality counts the push-back, as real statistics do. Busy airports need a second runway.
@@ -393,7 +393,7 @@ Placeholder numbers, tunable. All names are fictional.
 
 ### 10.2 Long-haul flights (first version)
 Placeholder numbers, tunable. Unlocked at **International** (§14.1).
-- **Wide-body stand** (Airside, 16 × 16 cells, €15,000 · €35/min): the only stand big enough for wide-body planes. Narrow-body planes can use it too, but a wide-body airline gets it first.
+- **Wide-body stand** (Airside, 35 × 40 cells, €60,000 · €70/min; was 16 × 16): the only stand big enough for wide-body planes. Narrow-body planes can use it too, but a wide-body airline gets it first.
 - **Long-haul airlines** fly only wide-body planes, so they need a gate with a wide-body stand behind it; without one, their flights are refused (and they get unhappy).
 
   | Airline | Expects | From | Likes | Dislikes |
@@ -456,7 +456,7 @@ Placeholder numbers, tunable.
 Currency: **euro (€)**. All numbers are placeholders, tunable per building (compressed game time).
 - **Starting money:** €50,000.
 - **Income** when a flight's doors close: **€15 per departing passenger** (passenger fee paid by the airline) and **€300 per flight** (landing / turnaround fee).
-- **Construction:** Entrance €2,000 · Check-in €3,000 · Security €5,000 · Gate €4,000 · Aircraft stand €6,000 · Walkway €20 per cell. Removing walkway is free and refunds nothing (demolishing rules are still open, §19).
+- **Construction:** Entrance €2,000 · Check-in €3,000 · Security €5,000 · Gate €4,000 · Aircraft stand €18,000 (was €6,000) · Walkway €20 per cell. Removing walkway is free and refunds nothing (demolishing rules are still open, §19).
 - **Running costs per minute** (staff, maintenance, utilities): Entrance €10 · Check-in €30 · Security €40 · Gate €25 · Stand €15 · Walkway €0.05 per cell. Charged continuously while the game runs.
 - **Display:** balance and profit per minute (last 60 s) at the top of the info panel; red when negative.
 - **Negative balance** is a bank loan (§11.6).

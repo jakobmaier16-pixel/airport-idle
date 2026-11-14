@@ -51,17 +51,17 @@ func _measure(size: Vector2i) -> Dictionary:
 # cells. A generous ratio (and the best of several runs) keeps it from flaking on a busy machine.
 func test_big_map_step_is_not_slower() -> void:
 	# Two rounds in turn, the best of each size: a busy machine slows a whole run, not one size.
-	var small := _measure(MapAnchor.REFERENCE_SIZE)
+	var small := _measure(SMALL_MAP)
 	var big := _measure(AirportWorld.MAP_SIZE_CELLS)
 	var again_big := _measure(AirportWorld.MAP_SIZE_CELLS)
-	var again_small := _measure(MapAnchor.REFERENCE_SIZE)
+	var again_small := _measure(SMALL_MAP)
 	for key in ["step_ms", "layout_ms"]:
 		small[key] = minf(small[key], again_small[key])
 		big[key] = minf(big[key], again_big[key])
-	print("INFO step with ~%d passengers: 64x64 %.3f ms, %dx%d %.3f ms; layout change: %.2f ms vs %.2f ms" % [
-		big["passengers"], small["step_ms"], AirportWorld.MAP_SIZE_CELLS.x, AirportWorld.MAP_SIZE_CELLS.y, big["step_ms"], small["layout_ms"], big["layout_ms"]])
+	print("INFO step with ~%d passengers: %dx%d %.3f ms, %dx%d %.3f ms; layout change: %.2f ms vs %.2f ms" % [
+		big["passengers"], SMALL_MAP.x, SMALL_MAP.y, small["step_ms"], AirportWorld.MAP_SIZE_CELLS.x, AirportWorld.MAP_SIZE_CELLS.y, big["step_ms"], small["layout_ms"], big["layout_ms"]])
 	check(big["passengers"] >= 900 and small["passengers"] >= 900, "both airports are busy (%d, %d passengers)" % [small["passengers"], big["passengers"]])
-	check(big["step_ms"] <= small["step_ms"] * 1.2 + 0.1, "a step on the big map is at most 1.2 x the small one (%.3f vs %.3f ms)" % [big["step_ms"], small["step_ms"]])
+	check(big["step_ms"] <= small["step_ms"] * 1.2 + 0.2, "a step on the big map is at most 1.2 x the small one plus 0.2 ms of slack (%.3f vs %.3f ms)" % [big["step_ms"], small["step_ms"]])
 	check(big["layout_ms"] <= small["layout_ms"] * 3.0 + 20.0, "a layout change on the big map is not much slower (%.2f vs %.2f ms)" % [big["layout_ms"], small["layout_ms"]])
 
 

@@ -6,6 +6,9 @@ extends RefCounted
 
 ## The kind of plane a slot needs; the gate's stand decides what fits (stand_behind).
 enum PlaneClass { NARROW, WIDE, CARGO }
+## Wingspan in metres of each class (data for the stand rule: a stand must be at least this wide).
+## Freighters are narrow-body size (A321F / 737F class).
+const WINGSPAN_M: Dictionary[PlaneClass, float] = {PlaneClass.NARROW: 37.0, PlaneClass.WIDE: 65.0, PlaneClass.CARGO: 37.0}
 enum State { PENDING, FILLED, DROPPED }
 
 ## Departure time in simulation seconds (PassengerFlow.time, real seconds for now).
@@ -21,6 +24,11 @@ var state: State = State.PENDING
 ## Filled in when the slot becomes a flight: the airline's code ("" until then) and flight number.
 var airline_code: String = ""
 var flight_number: String = ""
+
+
+## Size order of the classes (0 = narrow-body size), compared with `BuildingType.stand_class`.
+static func size_rank(plane_class: PlaneClass) -> int:
+	return 1 if WINGSPAN_M[plane_class] > WINGSPAN_M[PlaneClass.NARROW] else 0
 
 
 func to_dict() -> Dictionary:

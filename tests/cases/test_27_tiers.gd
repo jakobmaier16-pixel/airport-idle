@@ -9,6 +9,7 @@ func _make_excellent() -> void:
 
 
 func test_regional_airport_owns_the_middle() -> void:
+	Airport.reset()  # a real new game, with its runway
 	check_eq(Airport.progression.tier, Progression.Tier.REGIONAL, "a new airport is regional")
 	var land := Airport.progression.owned_land(Airport.grid.size)
 	check_eq(land, Progression.STARTING_LAND, "the starting land (one named constant)")
@@ -18,7 +19,8 @@ func test_regional_airport_owns_the_middle() -> void:
 	check(map.encloses(land), "inside the map")
 	check(absi(land.get_center().x - map.get_center().x) <= 200, "about centred horizontally (within one land piece)")
 	check(land.has_point(MapAnchor.from_centre(Vector2i.ZERO, Airport.grid.size)), "the map centre is owned")
-	check(land.has_point(at(Vector2i(30, 56))), "the land reaches down to the runway")
+	var runway: Building = Airport.buildings.filter(func(b: Building) -> bool: return b.type.role == BuildingType.Role.RUNWAY)[0]
+	check(land.encloses(Rect2i(runway.origin_cell, runway.type.footprint)), "the starting land holds the whole runway")
 	var outside := land.position - Vector2i(2, 2)
 	check_eq(Airport.check_placement(type_of(&"check_in"), outside, 0), "Not your land yet (National airport)", "no building outside")
 	var row := land.position + Vector2i(-4, 20)

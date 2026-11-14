@@ -27,6 +27,9 @@ var _allocated_chunks: int = 0
 # Chunks whose flags changed since the last `take_dirty_chunks()`: chunk index -> true. Filled by every
 # flag write that changes a value (so a rebuild of the ground texture only visits these chunks).
 var _dirty: Dictionary[int, bool] = {}
+## Counts every change of the taxiway layer: lets the plane network skip a rebuild when no paved
+## cell moved (see PlaneNetwork.rebuild).
+var taxiway_revision: int = 0
 
 
 ## Edge length of a storage chunk in cells.
@@ -47,6 +50,10 @@ const OWNED_BIT: int = 0x20
 class GridChunk extends RefCounted:
 	var cells: PackedByteArray = PackedByteArray()
 	var nonzero: int = 0
+	## How many cells have each flag bit set (index = bit number; the zone bits 0-2 are not counted).
+	## Lets a scan for walkway or taxiway cells skip chunks that only hold zone flags, e.g. the
+	## ones under a 1,000-cell runway.
+	var bit_counts: PackedInt32Array = PackedInt32Array([0, 0, 0, 0, 0, 0, 0, 0])
 
 	func _init() -> void:
 		cells.resize(CHUNK_SIZE * CHUNK_SIZE)
@@ -214,8 +221,13 @@ func get_chunk_flags(chunk_coord: Vector2i) -> PackedByteArray:
 ## How many cells have any of the bits in `mask` set (e.g. WALKWAY_BIT), counted chunk by chunk.
 func count_flag(mask: int) -> int:
 	var total := 0
+	# One flag bit (not a zone): the chunks keep the count, no scanning.
+	var single_bit := mask & (mask - 1) == 0 and mask & ZONE_MASK == 0
 	for chunk: GridChunk in _chunks:
 		if chunk == null:
+			continue
+		if single_bit:
+			total += chunk.bit_counts[_bit_number(mask)]
 			continue
 		for value in chunk.cells:
 			if value & mask != 0:
@@ -259,9 +271,13 @@ func get_nonempty_cells() -> Array[Vector2i]:
 ## the allocated chunks, not the map. The order is chunk by chunk, not row by row.
 func get_cells_with_flag(mask: int) -> Array[Vector2i]:
 	var result: Array[Vector2i] = []
+	var counted := mask & ZONE_MASK == 0
 	for index in _chunks.size():
 		var chunk: GridChunk = _chunks[index]
 		if chunk == null:
+			continue
+		# Chunks without a cell of these bits are skipped (not the zone bits: they are not counted).
+		if counted and not _chunk_has_bits(chunk, mask):
 			continue
 		var base := Vector2i(index % _chunks_wide, index / _chunks_wide) * CHUNK_SIZE
 		for i in chunk.cells.size():
@@ -276,14 +292,72 @@ func set_zone_rect(rect: Rect2i, zone: Zone) -> void:
 	var area := rect.intersection(Rect2i(Vector2i.ZERO, size))
 	var bits := int(zone) & ZONE_MASK
 	for y in range(area.position.y, area.end.y):
-		for x in range(area.position.x, area.end.x):
-			_write(Vector2i(x, y), ZONE_MASK, bits)
+		# One chunk at a time along the row: a 1,000-cell runway touches 16 chunks per row, not 1,000 cells.
+		var x := area.position.x
+		while x < area.end.x:
+			var run_end := mini(area.end.x, (x | CHUNK_MASK) + 1)
+			_write_run(y, x, run_end, bits)
+			x = run_end
 
 
 func _chunk_at(chunk_coord: Vector2i) -> GridChunk:
 	if chunk_coord.x < 0 or chunk_coord.y < 0 or chunk_coord.x >= _chunks_wide or chunk_coord.y >= _chunks_high:
 		return null
 	return _chunks[chunk_coord.y * _chunks_wide + chunk_coord.x]
+
+
+func _bit_number(mask: int) -> int:
+	return int(log(float(mask)) / log(2.0) + 0.5)
+
+
+func _chunk_has_bits(chunk: GridChunk, mask: int) -> bool:
+	for bit in range(3, 8):
+		if mask & (1 << bit) != 0 and chunk.bit_counts[bit] > 0:
+			return true
+	return false
+
+
+# Keeps a chunk's per-bit counts (and the taxiway revision) right after a cell changed from `old` to `value`.
+func _count_change(chunk: GridChunk, old: int, value: int) -> void:
+	var diff := (old ^ value) & ~ZONE_MASK
+	if diff == 0:
+		return
+	for bit in range(3, 8):
+		if diff & (1 << bit) != 0:
+			chunk.bit_counts[bit] += 1 if value & (1 << bit) != 0 else -1
+	if diff & TAXIWAY_BIT != 0:
+		taxiway_revision += 1
+
+
+# Sets the zone bits of the cells (x0 .. x1 - 1, y), all inside one chunk, like `_write` for each.
+func _write_run(y: int, x0: int, x1: int, bits: int) -> void:
+	var chunk_index := (y >> CHUNK_SHIFT) * _chunks_wide + (x0 >> CHUNK_SHIFT)
+	var chunk: GridChunk = _chunks[chunk_index]
+	if chunk == null:
+		if bits == 0:
+			return
+		chunk = GridChunk.new()
+		_chunks[chunk_index] = chunk
+		_allocated_chunks += 1
+	var first := (y & CHUNK_MASK) * CHUNK_SIZE + (x0 & CHUNK_MASK)
+	var changed := false
+	for i in range(first, first + (x1 - x0)):
+		var old: int = chunk.cells[i]
+		var value := (old & ~ZONE_MASK) | bits
+		if value == old:
+			continue
+		chunk.cells[i] = value
+		changed = true
+		if old == 0:
+			chunk.nonzero += 1
+		elif value == 0:
+			chunk.nonzero -= 1
+	if not changed:
+		return
+	_dirty[chunk_index] = true
+	if chunk.nonzero == 0:
+		_chunks[chunk_index] = null
+		_allocated_chunks -= 1
 
 
 # Sets the bits in `mask` of `cell` to `bits`; allocates the chunk on first non-zero write and frees
@@ -304,6 +378,7 @@ func _write(cell: Vector2i, mask: int, bits: int) -> void:
 		return
 	_dirty[chunk_index] = true
 	chunk.cells[i] = value
+	_count_change(chunk, old, value)
 	if old == 0:
 		chunk.nonzero += 1
 	elif value == 0:

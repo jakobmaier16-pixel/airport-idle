@@ -2,8 +2,9 @@ extends TestCase
 ## The behaviour hash (scripts/dev/behaviour_hash.gd): the simulation does the same thing every time.
 
 ## Refactors must not change this. A PR that changes behaviour on purpose updates it and says so in the PR text.
+## Re-baselined on purpose by PR 6B (real-scale stands, runway and showcase): 3546a4ab... -> 7ff28f52... (the hash now also covers the whole airside: 256 x 256 reference cells instead of 64 x 64)
 ## Print the current value with tools/behaviour_hash.sh.
-const GOLDEN_BEHAVIOUR_HASH: String = "3546a4ab996e0cfde893a7a7681168bde8050b68f598f031d69cfe89d2f47f75"
+const GOLDEN_BEHAVIOUR_HASH: String = "7ff28f5202c0ffba383cd24d77686da5b3bef4545180ad1040e05a4dc7c484fb"
 
 
 func test_behaviour_hash_is_deterministic() -> void:
@@ -28,9 +29,9 @@ func test_wall_clock_fields_are_ignored() -> void:
 func test_behaviour_hash_does_not_depend_on_the_map_size() -> void:
 	# The same airport at the same place relative to the map centre behaves the same on a small and on
 	# the full-size map (cells are normalised to the centre, the map size is ignored).
-	var small := BehaviourHash.compute(MapAnchor.REFERENCE_SIZE)
+	var small := BehaviourHash.compute(SMALL_MAP)
 	var big := BehaviourHash.compute(Vector2i(2200, 1600))
-	check_eq(small, GOLDEN_BEHAVIOUR_HASH, "benchmark airport on a 64 x 64 map")
+	check_eq(small, GOLDEN_BEHAVIOUR_HASH, "benchmark airport on a 1,200 x 400 map")
 	check_eq(big, small, "benchmark airport on 2,200 x 1,600 cells gives the same hash")
-	var odd_shape := BehaviourHash.compute(Vector2i(400, 300))
-	check_eq(odd_shape, small, "and on a 400 x 300 map")
+	var odd_shape := BehaviourHash.compute(Vector2i(1100, 300))
+	check_eq(odd_shape, small, "and on a 1,100 x 300 map")

@@ -21,6 +21,7 @@ func test_wide_body_stand_unlocks_at_international() -> void:
 	var type := type_of(&"wide_body_stand")
 	check_eq(Airport.check_placement(type, at(Vector2i(20, 36)), 0), "Unlocked at International airport", "not before International")
 	Airport.progression.tier = Progression.Tier.INTERNATIONAL
+	Airport.economy.bonus(type.build_cost)  # a real-scale wide-body stand costs more than a new airport has
 	check_eq(Airport.check_placement(type, at(Vector2i(20, 36)), 0), "", "then it can be built")
 
 
