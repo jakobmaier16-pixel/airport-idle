@@ -234,6 +234,13 @@ UI controls (buttons) consume their touches first, so taps on buttons never reac
 
 ## Working with agents
 
+- **Shared memory (both lanes):** at the start of every session read `docs/decisions.md` and
+  `docs/status.md`. Write every decision Jakob makes into `docs/decisions.md` right away (date, his
+  words). Update your lane's section of `docs/status.md` at the end of every session. Chats have no
+  memory of each other: what is not in the repo is lost.
+- **In-game look belongs to the visual lane:** the visual lane brings its own assets into the game
+  (scenes, materials, placement) and compares in-game screenshots with its previews before Jakob sees
+  them. The code lane provides the technical base (systems, data, performance) underneath.
 - Roles: the **lead** (Claude in the claude.ai chat) plans from `docs/roadmap.md`, writes a spec per
   task and merges; **builder**, **artist**, **reviewer**, **performance** and **playtest** agents are defined in `.claude/agents/`.
   **playtest** runs only on request: it prepares the showcase airport for a device test and writes Jakob a German step-by-step guide.
