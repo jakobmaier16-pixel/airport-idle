@@ -34,7 +34,15 @@ texture noise, so the build view (top-down) stays readable and the iPhone stays 
   lane width 3.5 m, curb 0.15 m, parking bay 2.5 × 5 m, bus 12 m; narrow-body plane ~38 × 36 m,
   wide-body ~70 × 65 m, taxiway 23 m wide, runway 45 m wide.
 - Blender: units metric, scale 1.0, **+Z up in Blender, exported as glTF +Y up** (default).
-  Origin at the **ground centre of the footprint**, facing −Y in Blender (= −Z / "forward" in Godot).
+  Origin at the **ground centre of the footprint**.
+- **Axes (checked in Godot 2026-11-14):** the glTF export maps Blender (x, y, z) to Godot (x, z, −y),
+  so Blender **−Y becomes Godot +Z** and Blender **+Y becomes Godot −Z**.
+  - Landside and terminal pieces are built with their front / outside at Blender −Y, so in Godot it
+    is at **+Z**: the opposite side to `BuildingType`'s front (−Z). The landside layer and the
+    showcase place them with that in mind (landside pieces have no access sides), so nothing is
+    wrong on screen today. Keep the convention for these kits; code that wires a piece with an
+    access side must turn it by 180°.
+  - Vehicles point their nose to Blender +Y, so they face **−Z** in Godot (Node3D forward, `look_at`).
 
 ## 3. Colour palette
 
