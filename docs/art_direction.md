@@ -34,7 +34,15 @@ texture noise, so the build view (top-down) stays readable and the iPhone stays 
   lane width 3.5 m, curb 0.15 m, parking bay 2.5 × 5 m, bus 12 m; narrow-body plane ~38 × 36 m,
   wide-body ~70 × 65 m, taxiway 23 m wide, runway 45 m wide.
 - Blender: units metric, scale 1.0, **+Z up in Blender, exported as glTF +Y up** (default).
-  Origin at the **ground centre of the footprint**, facing −Y in Blender (= −Z / "forward" in Godot).
+  Origin at the **ground centre of the footprint**.
+- **Axes (checked in Godot 2026-11-14):** the glTF export maps Blender (x, y, z) to Godot (x, z, −y),
+  so Blender **−Y becomes Godot +Z** and Blender **+Y becomes Godot −Z**.
+  - Landside and terminal pieces are built with their front / outside at Blender −Y, so in Godot it
+    is at **+Z**: the opposite side to `BuildingType`'s front (−Z). The landside layer and the
+    showcase place them with that in mind (landside pieces have no access sides), so nothing is
+    wrong on screen today. Keep the convention for these kits; code that wires a piece with an
+    access side must turn it by 180°.
+  - Vehicles point their nose to Blender +Y, so they face **−Z** in Godot (Node3D forward, `look_at`).
 
 ## 3. Colour palette
 
@@ -65,6 +73,12 @@ warnings. Vehicles, people, plants and real-world traffic signs bring the rest o
 safety lines); the "red only for alerts" rule applies to buildings and signs.
 Airline colours (fictional) live on planes, counters and signs, not on the building.
 
+Realism decisions for real-world street furniture and vehicles (Jakob, 2026-11-14):
+- **Parking signs are blue with a white "P"** (German Zeichen 314), in sign blue `#1F5AA6`.
+- **Taxis are light ivory** (RAL 1015 hellelfenbein, `#E6D2B5`) **with a yellow roof sign and black
+  "TAXI"**, as German taxis. This replaces the earlier signal-yellow taxis. Taxi rank bay markings
+  stay yellow. Car paint colours and weights: `art/vehicles/vehicles.md`.
+
 ## 4. Materials (shared library)
 
 Few shared materials, reused by every asset. Each is a Godot `StandardMaterial3D` saved as
@@ -84,6 +98,8 @@ Few shared materials, reused by every asset. Each is a Godot `StandardMaterial3D
 | `markings` | road/apron lines, zebra, signs | trim sheet (albedo + alpha) | one atlas for all lines and symbols |
 | `emissive_lights` | window glow, lamp heads, signs at night | albedo + emission | night is faked with this (see §5) |
 | `trim_building` | door frames, vents, skirting, small details | trim sheet | one 1024² atlas shared by all buildings |
+| `vehicle` | every car, taxi and van (body, trim, tyres, lamps, interior) | atlas 512² (albedo + paint mask, rough / metal / emission) | ShaderMaterial; paint colour per MultiMesh instance (`art/vehicles/vehicles.md`) |
+| `glass_vehicle` | car windows | none (flat colour) | like `glass`, darker tint, alpha 0.55 |
 
 - **Textures:** tileable, **1024² max** (512² for small trims), compressed as **ASTC**
   (`VRAM Compressed`, mipmaps on). Normal maps flagged as normal maps on import.

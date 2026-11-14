@@ -1,0 +1,13 @@
+[gd_resource type="ShaderMaterial" format=3]
+
+[ext_resource type="Shader" path="res://assets/materials/vehicle.gdshader" id="1_shader"]
+[ext_resource type="Texture2D" path="res://assets/textures/vehicle/vehicle_albedo.png" id="2_albedo"]
+[ext_resource type="Texture2D" path="res://assets/textures/vehicle/vehicle_rme.png" id="3_rme"]
+
+[resource]
+resource_name = "vehicle"
+shader = ExtResource("1_shader")
+shader_parameter/albedo_atlas = ExtResource("2_albedo")
+shader_parameter/rme_atlas = ExtResource("3_rme")
+shader_parameter/flake_metallic = 0.5
+shader_parameter/light_energy = 4.0

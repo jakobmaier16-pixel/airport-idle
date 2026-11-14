@@ -1149,12 +1149,16 @@ def carpark_info_board() -> Piece:
 
 
 def sign_parking() -> Piece:
-    """Parking direction sign: 0.9 m "P" panel on a 3 m pole, readable from -Y."""
-    p = Piece("sign_parking", (1.0, 0.2), "parking sign P 0.9 × 0.9 m on pole")
+    """German parking sign (Zeichen 314): blue square, white "P", white border, standard size
+    0.6 × 0.6 m, lower edge 2.0 m above ground (StVO clearance over footways), on a 76 mm
+    galvanised pole with two clamps. Readable from -Y."""
+    p = Piece("sign_parking", (1.0, 0.2), "parking sign Zeichen 314, 0.6 × 0.6 m on pole")
     g = p.lod0
-    cylinder(g, 0, 0.05, 0.0, 2.95, 0.04, "metal_light", n=6)
-    box(g, -0.47, -0.02, 2.0, 0.47, 0.0, 2.94, "metal_light", sides="nesw", bottom=True)
-    sign_face(g, (-0.45, -0.021), (0.45, -0.021), 2.02, 2.92, "p_sign")
+    cylinder(g, 0, 0.05, 0.0, 2.65, 0.038, "metal_light", n=8)
+    box(g, -0.30, -0.02, 2.0, 0.30, 0.0, 2.6, "metal_light", sides="nesw", bottom=True)    # sign plate, grey back
+    for z in (2.12, 2.48):                                                                # pole clamps
+        box(g, -0.05, 0.0, z - 0.02, 0.05, 0.1, z + 0.02, "metal_light", sides="nesw")
+    sign_face(g, (-0.30, -0.021), (0.30, -0.021), 2.0, 2.6, "p_sign")
     return p
 
 
