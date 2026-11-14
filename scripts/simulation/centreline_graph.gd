@@ -20,6 +20,11 @@ const LEAD_IN_RADIUS: int = 24
 ## Corner rounding radius in metres (design doc: about 30 m).
 const CORNER_RADIUS_M: float = 30.0
 const ARC_STEPS: int = 6
+## A corner that turns less than this (radians) is left as it is.
+const MIN_DEFLECTION: float = 0.05
+## The corner before a stand's straight run is only rounded if it turns more than this (about 11 degrees):
+## a smaller kink is invisible, and its tiny arc would only wobble the line.
+const STAND_MIN_DEFLECTION: float = 0.2
 const MIN_GAP: float = 4.0
 ## Room (cells) each side of a pulled-tight line; small, so a thin taxiway's wobble straightens out.
 const PULL_ROOM: float = 0.4
@@ -282,7 +287,7 @@ func _find_exits(runway: Building) -> void:
 		for other in astar.get_point_connections(id):
 			var point := astar.get_point_position(other)
 			var offset := absf(point.y - middle.y) if along_x else absf(point.x - middle.x)
-			if offset > BLOCK * 1.5 and not on_line.has(other):
+			if offset > BLOCK and not on_line.has(other):
 				exits.append(id)
 				break
 	_exits[runway.id] = exits
@@ -339,6 +344,28 @@ func smooth(points: PackedVector2Array, origin: Vector2, cell_size: float) -> Pa
 	result.resize(rounded.size())
 	for i in rounded.size():
 		result[i] = origin + rounded[i] * cell_size
+	return result
+
+
+## Like `smooth`, for a route that ends with a straight run along a stand's axis. `points` runs from
+## the runway exit to the push-back point B (its last point), `middle` is the stand's middle (cell
+## corner coordinates). Returns two lines in metres: [0] the way in, exit to the stand's middle, with
+## the corner at B rounded; [1] exit to B, whose last corner stays sharp: pushed back, the plane turns
+## there, on the taxiway (see PlaneRoute).
+func smooth_to_stand(points: PackedVector2Array, middle: Vector2, origin: Vector2, cell_size: float) -> Array[PackedVector2Array]:
+	var pulled := _drop_close_points(_string_pull(points))
+	var radius := CORNER_RADIUS_M / cell_size
+	var way_out := _round_corners(pulled, radius)
+	var with_middle := pulled.duplicate()
+	with_middle.append(middle)
+	var way_in := _round_corners(with_middle, radius, STAND_MIN_DEFLECTION)
+	var result: Array[PackedVector2Array] = []
+	for line in [way_in, way_out]:
+		var metres := PackedVector2Array()
+		metres.resize(line.size())
+		for i in line.size():
+			metres[i] = origin + line[i] * cell_size
+		result.append(metres)
 	return result
 
 
@@ -403,7 +430,7 @@ func _drop_close_points(line: PackedVector2Array) -> PackedVector2Array:
 # Cuts every corner with a quadratic curve, as wide as the pavement allows: the tangent length of a
 # circle of `radius` (cell units), at most half of each neighbouring line, halved until the whole
 # curve stays on paved cells.
-func _round_corners(line: PackedVector2Array, radius: float) -> PackedVector2Array:
+func _round_corners(line: PackedVector2Array, radius: float, last_min_deflection: float = MIN_DEFLECTION) -> PackedVector2Array:
 	if line.size() < 3:
 		return line
 	var result := PackedVector2Array()
@@ -420,7 +447,7 @@ func _round_corners(line: PackedVector2Array, radius: float) -> PackedVector2Arr
 		var dir_next := to_next / next_length
 		# Deflection angle between the incoming and the outgoing direction.
 		var deflection := PI - absf(dir_prev.angle_to(dir_next))
-		if deflection < 0.05:
+		if deflection < (last_min_deflection if i == line.size() - 2 else MIN_DEFLECTION):
 			result.append(corner)
 			continue
 		var tangent := minf(radius * tan(deflection * 0.5), 0.5 * minf(prev_length, next_length))

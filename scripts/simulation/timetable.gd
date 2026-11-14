@@ -14,6 +14,12 @@ const TURNAROUND_MINUTES: float = 90.0
 const STAGGER_MINUTES: float = 17.0
 ## Slots are planned this many turnarounds ahead (and at least one beyond the first possible one).
 const PLAN_TURNAROUNDS: int = 2
+## A fresh airport opens with one flight, off the grid: the plane of one gate touches down this
+## many seconds after the start, so the first landing happens within the first minute instead of
+## after the grid's first slot (at least the longest taxi plus 4.5 minutes). The grid slot after it
+## keeps its time (unless it would be less than a turnaround later: it is skipped), so the rest of
+## the pattern is unchanged.
+const OPENING_LANDING_DELAY: float = 20.0
 ## Done slots are kept this long (real seconds, one game day) for the departures board.
 const KEEP_SECONDS: float = 5760.0
 
@@ -69,13 +75,36 @@ func tick() -> void:
 	var earliest := game_now + world.schedule.first_departure_delay() * Clock.GAME_PER_REAL
 	var horizon := game_now + maxf(PLAN_TURNAROUNDS * period_game(), earliest - game_now + period_game())
 	var added := false
+	# Only a fresh airport opens with a flight: nothing is planned or flying yet. It goes to the gate
+	# whose first grid slot is the latest (the one that would wait longest), ties to the first gate.
+	var opening_gate: Building = null
+	if slots.is_empty() and _next.is_empty() and world.schedule.flights.is_empty():
+		var latest := -INF
+		for gate in usable:
+			if world.stand_behind(gate) != null:
+				var first_slot := next_departure_at_or_after(gate.id, earliest)
+				if first_slot > latest:
+					latest = first_slot
+					opening_gate = gate
 	for gate in usable:
 		var stand := world.stand_behind(gate)
 		if stand == null:
 			continue
 		var plane_class := TimetableSlot.PlaneClass.WIDE if stand.type.wide_body else TimetableSlot.PlaneClass.NARROW
-		var next: float = _next.get(gate.id, next_departure_at_or_after(gate.id, earliest))
-		while next <= horizon:
+		var first_grid := earliest
+		if gate == opening_gate:
+			# The grid slot after the opening flight keeps its place, unless it would be less than a
+			# turnaround after it: then it is skipped.
+			var grid_first := next_departure_at_or_after(gate.id, earliest)
+			var opening := now + FlightSchedule.lead_of(world.plane_network.route_to_stand(stand)) \
+				+ FlightSchedule.APPROACH_TIME + OPENING_LANDING_DELAY
+			var grid_real := now + (grid_first - game_now) / Clock.GAME_PER_REAL
+			if opening < grid_real:
+				world.schedule.add_opening_flight(gate, opening, plane_class)
+				if grid_real < opening + period_real():
+					first_grid = grid_first + period_game()
+		var next: float = _next.get(gate.id, next_departure_at_or_after(gate.id, first_grid))
+		while next <= maxf(horizon, first_grid + period_game()):
 			var slot := TimetableSlot.new()
 			slot.gate = gate
 			slot.plane_class = plane_class

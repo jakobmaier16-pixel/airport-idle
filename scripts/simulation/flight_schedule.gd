@@ -229,6 +229,11 @@ func _fill_slot(slot: TimetableSlot, usable: Array[Building], now: float) -> voi
 	slot.flight_number = _schedule(slot.gate, slot.departure_time, slot.plane_class).number
 
 
+## The flight of a gate's opening (see Timetable.OPENING_LANDING_DELAY): not part of a slot.
+func add_opening_flight(gate: Building, departure_time: float, plane_class: TimetableSlot.PlaneClass) -> Flight:
+	return _schedule(gate, departure_time, plane_class)
+
+
 # Makes the flight (tests call it directly).
 func _schedule(gate: Building, departure_time: float, plane_class: TimetableSlot.PlaneClass = TimetableSlot.PlaneClass.NARROW) -> Flight:
 	var flight := Flight.new()

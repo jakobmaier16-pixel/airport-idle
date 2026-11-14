@@ -56,13 +56,13 @@ func _pose(flight: Flight, now: float) -> Variant:
 	if time_left > 0.0:
 		# 0 at the start of the approach.
 		var since := FlightSchedule.lead_of(route) + FlightSchedule.APPROACH_TIME - arrival_left
-		return _arriving(route, maxf(since, 0.0), parked)
+		return _arriving(route, maxf(since, 0.0))
 	var left := now - flight.departs_at()
-	return _departing(route, left, now - flight.takeoff_at if flight.takeoff_booked else -1.0, parked, flight)
+	return _departing(route, left, now - flight.takeoff_at if flight.takeoff_booked else -1.0)
 
 
 # `since` seconds after the approach began: approach, landing roll, taxi in, then parked.
-func _arriving(route: PlaneRoute, since: float, parked: Transform3D) -> Transform3D:
+func _arriving(route: PlaneRoute, since: float) -> Transform3D:
 	var runway_dir := (route.points[0] - route.touchdown).normalized()
 	var approach := FlightSchedule.APPROACH_TIME
 	if since < approach:
@@ -77,12 +77,13 @@ func _arriving(route: PlaneRoute, since: float, parked: Transform3D) -> Transfor
 	since -= route.roll_in_time
 	var distance := route.profile_in.distance_at(since)
 	var position := route.position_at(distance)
-	var basis := Basis.looking_at(_to_3d(route.heading_at(distance)), Vector3.UP)
-	return _park_turn(basis, position, route.length - distance, parked)
+	# The last stretch of the route runs straight along the stand's axis, so the plane arrives with the
+	# parked heading: nose towards the gate, no turn on the spot at the stand.
+	return Transform3D(Basis.looking_at(_to_3d(route.heading_at(distance)), Vector3.UP), Vector3(position.x, 0.0, position.y))
 
 
 # `time` seconds after push-back; `rolled` seconds since the take-off run began (-1 = not yet).
-func _departing(route: PlaneRoute, time: float, rolled: float, parked: Transform3D, flight: Flight) -> Transform3D:
+func _departing(route: PlaneRoute, time: float, rolled: float) -> Transform3D:
 	var runway_dir := (route.liftoff - route.points[0]).normalized()
 	if rolled >= 0.0:
 		if rolled < route.roll_out_time:
@@ -95,18 +96,11 @@ func _departing(route: PlaneRoute, time: float, rolled: float, parked: Transform
 	if time >= route.taxi_out_time:
 		# Waiting at the holding point for the runway.
 		return _flat(route.points[0], 0.0, runway_dir)
-	var distance := route.profile_out.distance_at(time)
+	# Push-back: straight back along the stand's axis, nose still towards the gate; on the taxiway
+	# the plane turns on the spot, then taxis out (PlaneRoute.nose_out).
+	var distance := route.out_distance_at(time)
 	var position := route.position_out(distance)
-	var basis := Basis.looking_at(_to_3d(route.heading_out(distance)), Vector3.UP)
-	return _park_turn(basis, position, distance, parked)
-
-
-# Near the stand the plane turns into the parked heading (nose-in towards the gate); leaving it is
-# the push-back, backwards out of the stand.
-func _park_turn(basis: Basis, position: Vector2, to_stand: float, parked: Transform3D) -> Transform3D:
-	if to_stand < PARK_TURN:
-		basis = parked.basis.slerp(basis, to_stand / PARK_TURN)
-	return Transform3D(basis.orthonormalized(), Vector3(position.x, 0.0, position.y))
+	return Transform3D(Basis.looking_at(_to_3d(route.nose_out(time, distance)), Vector3.UP), Vector3(position.x, 0.0, position.y))
 
 
 func _flat(position: Vector2, height: float, direction: Vector2) -> Transform3D:
@@ -136,5 +130,3 @@ const APPROACH_HEIGHT: float = 22.0
 const APPROACH_DISTANCE: float = 420.0
 ## How far beyond the end of the runway a plane climbs before it is gone, in meters.
 const CLIMB_DISTANCE: float = 420.0
-## Within this distance of the stand's middle the plane turns to face the gate.
-const PARK_TURN: float = 12.0

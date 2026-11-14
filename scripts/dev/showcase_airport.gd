@@ -7,20 +7,27 @@ extends RefCounted
 ## The layout is written in cells of the 64 x 64 reference map and placed around the middle of the
 ## real map by `MapAnchor`, so it works on every map size that holds the 1,000-cell runway.
 ## Real scale (1 cell = 2 m): stands are 20 x 23 (narrow) and 35 x 40 (wide-body) cells, each served
-## by exactly one gate, with a parallel taxiway between the stands and the runway.
+## by exactly one gate, with a 12 cell wide parallel taxiway between the stands and the runway.
+
+## Where the showcase's runway starts, in cells from the map's middle (a new game's is
+## AirportWorld.DEFAULT_RUNWAY_ORIGIN, 13 rows further north).
+const RUNWAY_FROM_CENTRE: Vector2i = Vector2i(-500, 62)
 
 ## Builds the showcase into an empty airport. `warm_up_seconds` lets the airport run for a while
-## first, so it's already busy when the player looks at it: the first flight is on its way and
-## after the default 3 minutes its plane is at the stand, the next one is not far behind.
+## first, so it's already busy when the player looks at it: after the default 30 s the opening flight
+## (Timetable.OPENING_LANDING_DELAY) has just touched down and is taxiing to its stand.
 ## `map_size` (tests only) builds it on a map of another size; zero is the game's map.
 ## `with_landside` false leaves out the landside pieces (scripts/dev/showcase_landside.gd): the behaviour
 ## hash and the device benchmark measure the simulation and keep their airport.
-static func build(warm_up_seconds: float = 180.0, map_size: Vector2i = Vector2i.ZERO, with_landside: bool = true) -> void:
-	Airport.reset(true, -1, map_size)
+static func build(warm_up_seconds: float = 30.0, map_size: Vector2i = Vector2i.ZERO, with_landside: bool = true) -> void:
+	# No starting runway yet: it is laid below, 13 rows further south than a new game's, so that the
+	# wide-body stand, a 12 cell parallel taxiway behind it and a gap for the links fit above it.
+	Airport.reset(false, -1, map_size)
 	var catalog := Airport.CATALOG
 	# One layout update for the whole layout instead of one per building (the real-scale runway
 	# makes each update expensive).
 	Airport.begin_batch()
+	Airport.place_building(catalog.find(&"runway"), MapAnchor.centre_of(Airport.grid.size) + RUNWAY_FROM_CENTRE, 0)
 	# Walkways: a landside hall and an airside walkway along the gates.
 	Airport.paint_walkway(_cells(Vector2i(18, 21), Vector2i(28, 7)), true)
 	Airport.paint_walkway(_cells(Vector2i(6, 31), Vector2i(82, 3)), true)
@@ -37,12 +44,14 @@ static func build(warm_up_seconds: float = 180.0, map_size: Vector2i = Vector2i.
 	# Long-haul (§10.2): gate 3 in the middle with a wide-body stand behind it (wide planes).
 	Airport.place_building(catalog.find(&"gate"), _at(Vector2i(27, 34)), 0)
 	Airport.place_building(catalog.find(&"wide_body_stand"), _at(Vector2i(26, 39)), 0)
-	# Taxiways (§7.5a): a parallel taxiway along the runway (the wide-body stand touches it), and
-	# links up to the narrow stands.
-	Airport.paint_taxiway(_cells(Vector2i(6, 79), Vector2i(100, 2)), true)
-	Airport.paint_taxiway(_cells(Vector2i(15, 62), Vector2i(2, 17)), true)
-	Airport.paint_taxiway(_cells(Vector2i(71, 62), Vector2i(2, 17)), true)
-	Airport.paint_taxiway(_cells(Vector2i(93, 66), Vector2i(2, 13)), true)
+	# Taxiways (§7.5a), all 12 cells (24 m) wide: a parallel taxiway behind the stands (the wide-body
+	# stand touches it), links up to the narrow stands, and links across the gap to the runway.
+	Airport.paint_taxiway(_cells(Vector2i(4, 79), Vector2i(102, 12)), true)
+	Airport.paint_taxiway(_cells(Vector2i(10, 62), Vector2i(12, 17)), true)
+	Airport.paint_taxiway(_cells(Vector2i(66, 62), Vector2i(12, 17)), true)
+	Airport.paint_taxiway(_cells(Vector2i(10, 91), Vector2i(12, 3)), true)
+	Airport.paint_taxiway(_cells(Vector2i(38, 91), Vector2i(12, 3)), true)
+	Airport.paint_taxiway(_cells(Vector2i(66, 91), Vector2i(12, 3)), true)
 
 	# A car park beside the landside hall.
 	Airport.place_building(catalog.find(&"car_park"), _at(Vector2i(46, 21)), 3)

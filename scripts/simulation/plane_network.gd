@@ -4,6 +4,13 @@ extends RefCounted
 ## cell gets an area id, so "is this stand connected to a runway?" is a quick lookup, and planes
 ## find their way with Godot's grid pathfinding. Rebuilt when the layout changes.
 
+## A taxiway must be at least this many cells (24 m) wide, across, to count for planes: thinner
+## pavement is not part of the network, so no route runs on it (ICAO taxiways are 15 to 23 m wide
+## with the wings reaching beyond the edge). Stands and runways are always wide enough.
+const MIN_TAXIWAY_CELLS: int = 12
+## How far the push-back point lies beyond the stand's back edge at most (cells): the middle of the
+## pavement behind the stand, at most half of a taxiway's width.
+const PUSHBACK_REACH_CELLS: int = MIN_TAXIWAY_CELLS
 ## Where on the runway a plane touches down, measured from its far end, and how far before that end
 ## it lifts off (metres).
 const TOUCHDOWN_ZONE_M: float = 300.0
@@ -18,6 +25,8 @@ var _areas: Dictionary[int, int] = {}
 # Areas that contain a runway cell.
 var _runway_areas: Dictionary[int, bool] = {}
 var _runways: Array[Building] = []
+# The buildings of the last rebuild (to find the gate in front of a stand).
+var _buildings: Array[Building] = []
 # What the current network was built from (see rebuild).
 var _signature_of_network: PackedInt64Array = PackedInt64Array()
 # The middle lines of the pavement (step 7b), derived in rebuild; not used for timing yet.
@@ -48,6 +57,7 @@ func rebuild(grid: AirportGrid, buildings: Array[Building]) -> void:
 		return
 	var started := Time.get_ticks_usec()
 	_grid = grid
+	_buildings = buildings
 	_signature_of_network = signature
 	_runways.clear()
 	_routes.clear()
@@ -56,8 +66,11 @@ func rebuild(grid: AirportGrid, buildings: Array[Building]) -> void:
 	var stands: Array[Building] = []
 	var width := grid.size.x
 	var seen: Dictionary[int, bool] = {}
+	var taxiway: Array[int] = []
 	for cell in grid.get_cells_with_flag(AirportGrid.TAXIWAY_BIT):
+		taxiway.append(cell.y * width + cell.x)
 		seen[cell.y * width + cell.x] = true
+	var solid: Dictionary[int, bool] = {}
 	for building in buildings:
 		if building.type.role == BuildingType.Role.RUNWAY:
 			_runways.append(building)
@@ -70,6 +83,11 @@ func rebuild(grid: AirportGrid, buildings: Array[Building]) -> void:
 				var row := y * width
 				for x in range(building.origin_cell.x, building.origin_cell.x + size.x):
 					seen[row + x] = true
+					solid[row + x] = true
+	# Thin taxiway is not part of the network (see MIN_TAXIWAY_CELLS).
+	for id in taxiway:
+		if not solid.has(id) and not _is_wide_enough(id, seen, width, grid.size.y):
+			seen.erase(id)
 	var ids := PackedInt32Array(seen.keys())
 	# Row by row, like the dense scan this replaced: area ids come out the same.
 	ids.sort()
@@ -103,6 +121,34 @@ func rebuild(grid: AirportGrid, buildings: Array[Building]) -> void:
 	last_routes_ms = (finished - routes_started) / 1000.0
 	last_rebuild_ms = (finished - started) / 1000.0
 	rebuild_count += 1
+
+
+# True if the pavement through `id` is at least MIN_TAXIWAY_CELLS cells long both across and along:
+# the run of paved cells in a row and in a column through the cell.
+func _is_wide_enough(id: int, paved: Dictionary, width: int, height: int) -> bool:
+	var x := id % width
+	var y := id / width
+	var run := 1
+	var k := 1
+	while run < MIN_TAXIWAY_CELLS and x - k >= 0 and paved.has(id - k):
+		run += 1
+		k += 1
+	k = 1
+	while run < MIN_TAXIWAY_CELLS and x + k < width and paved.has(id + k):
+		run += 1
+		k += 1
+	if run < MIN_TAXIWAY_CELLS:
+		return false
+	run = 1
+	k = 1
+	while run < MIN_TAXIWAY_CELLS and y - k >= 0 and paved.has(id - k * width):
+		run += 1
+		k += 1
+	k = 1
+	while run < MIN_TAXIWAY_CELLS and y + k < height and paved.has(id + k * width):
+		run += 1
+		k += 1
+	return run >= MIN_TAXIWAY_CELLS
 
 
 # What decides the paved cells: the taxiway layer and where the stands and runways are.
@@ -235,11 +281,72 @@ func _make_route(stand: Building) -> PlaneRoute:
 		var size := Building.rotated_size(stand.type.footprint, stand.rotation_steps)
 		best[best.size() - 1] = Vector2(stand.origin_cell) + Vector2(size) * 0.5
 	var origin := Vector2(_grid.origin.x, _grid.origin.z)
-	var route := PlaneRoute.from_points(_centreline.smooth(best, origin, _grid.cell_size), fallback)
+	var route: PlaneRoute
+	var pushback: Variant = _pushback_point(stand) if not fallback else null
+	if pushback != null:
+		# The plane drives the last stretch straight along the stand's axis, and is pushed back along
+		# it: the route reaches the axis at the push-back point B on the taxiway behind the stand.
+		var to_b := best.duplicate()
+		to_b.remove_at(to_b.size() - 1)  # the stand's lead-in: B replaces it
+		# The nodes on the stand's side of B go too (the way to the lead-in ran through the stand).
+		var b_point := pushback[0] as Vector2
+		var away := pushback[1] as Vector2
+		while to_b.size() > 1 and (to_b[to_b.size() - 1] - b_point).dot(away) < 0.0:
+			to_b.remove_at(to_b.size() - 1)
+		to_b.append(pushback[0] as Vector2)
+		var lines := _centreline.smooth_to_stand(to_b, Vector2(stand.origin_cell) + Vector2(size_of_stand) * 0.5, origin, _grid.cell_size)
+		route = PlaneRoute.from_points(lines[0], false)
+		route.set_pushback(lines[1])
+	else:
+		route = PlaneRoute.from_points(_centreline.smooth(best, origin, _grid.cell_size), fallback)
+		route.set_pushback(PackedVector2Array())
 	route.runway = best_runway
 	_place_runway_rolls(route)
 	route.plan_timing()
 	return route
+
+
+# The push-back point of `stand`: [B (cell corner coordinates), the unit direction pointing away from the gate], or
+# null if the stand has no gate in front or no pavement right behind it. The plane parks nose-in
+# towards its gate (like PlaneLayer._parked_pose) and is pushed back straight away from it, to
+# B: the middle of the pavement just behind the stand, at most PUSHBACK_REACH_CELLS / 2 beyond the edge.
+func _pushback_point(stand: Building) -> Variant:
+	var size := Building.rotated_size(stand.type.footprint, stand.rotation_steps)
+	var rect := Rect2i(stand.origin_cell, size)
+	var gate: Building = null
+	for building in _buildings:
+		if building.type.role != BuildingType.Role.GATE:
+			continue
+		for cell in Building.outside_row(building.type.footprint, building.origin_cell, building.rotation_steps, false):
+			if rect.has_point(cell):
+				gate = building
+				break
+		if gate != null:
+			break
+	if gate == null:
+		return null
+	var middle := Vector2(stand.origin_cell) + Vector2(size) * 0.5
+	var gate_size := Building.rotated_size(gate.type.footprint, gate.rotation_steps)
+	var offset := middle - (Vector2(gate.origin_cell) + Vector2(gate_size) * 0.5)
+	var away := Vector2(signf(offset.x), 0.0) if absf(offset.x) > absf(offset.y) else Vector2(0.0, signf(offset.y))
+	if away == Vector2.ZERO:
+		return null
+	# The paved run behind the stand's back edge, along its axis (the cell the axis runs through; an
+	# axis on a cell border counts either neighbour).
+	var half := (size.x if away.x != 0.0 else size.y) * 0.5
+	var width := _grid.size.x
+	var run := 0
+	for k in PUSHBACK_REACH_CELLS:
+		var point := middle + away * (half + k + 0.5)
+		var cell := Vector2i(floori(point.x), floori(point.y))
+		var side := Vector2i(floori(point.x - absf(away.y) * 0.5), floori(point.y - absf(away.x) * 0.5))
+		if not (_grid.is_inside(cell) and _areas.has(cell.y * width + cell.x)) \
+				and not (_grid.is_inside(side) and _areas.has(side.y * width + side.x)):
+			break
+		run += 1
+	if run < 4:
+		return null
+	return [middle + away * (half + run * 0.5), away]
 
 
 # Where planes touch down and lift off for `route`: on the runway's middle line, towards the end
