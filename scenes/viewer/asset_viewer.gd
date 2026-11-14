@@ -11,7 +11,7 @@ signal item_changed(index: int)
 ## The grey figure's height (a person 1.80 m tall).
 const PERSON_HEIGHT: float = 1.8
 const PERSON_COLOR: Color = Color(0.55, 0.56, 0.58)
-## How far the figure stands from the item's edge, in metres.
+## How far the figure stands outside the item's bounds, in metres.
 const PERSON_GAP: float = 1.0
 
 @export var camera: ViewerCamera
@@ -78,6 +78,9 @@ func show_item(new_index: int) -> void:
 	_frame.position += anchor
 	_size_text = ViewerCatalog.size_text(item, self)
 	_place_person()
+	# The stand-in exists only for some items: for the others the switch goes back to off.
+	if not has_far_model():
+		far_model = false
 	_apply_far_model()
 	camera.frame(_frame)
 	item_changed.emit(index)
@@ -195,13 +198,16 @@ func _spawn_display(item: ViewerItem, anchor: Vector3) -> void:
 	_item_root.add_child(swatch)
 
 
-# The figure stands just off the item's edge, on the right as the start view sees it, so it is as far from
-# the camera as the item itself (a figure in front of the item would look huge).
+# The figure stands on the camera's side of the item (front right as the start view sees it), just
+# outside its bounds: never hidden behind the item and never inside it. Big items: about PERSON_GAP from the edge.
 func _place_person() -> void:
+	var yaw := deg_to_rad(ViewerCamera.START_YAW_DEG)
+	var towards_camera := Vector3(sin(yaw), 0.0, cos(yaw))
+	var right := Vector3(cos(yaw), 0.0, -sin(yaw))
+	var way := (towards_camera + right * 0.3).normalized()
 	var middle := _frame.get_center()
-	var right := Vector3(cos(deg_to_rad(ViewerCamera.START_YAW_DEG)), 0.0, -sin(deg_to_rad(ViewerCamera.START_YAW_DEG)))
-	var reach := minf((_frame.size.x * 0.5) / absf(right.x), (_frame.size.z * 0.5) / absf(right.z))
-	_person.position = Vector3(middle.x, 0.0, middle.z) + right * (reach + PERSON_GAP)
+	var reach := minf((_frame.size.x * 0.5) / maxf(absf(way.x), 0.001), (_frame.size.z * 0.5) / maxf(absf(way.z), 0.001))
+	_person.position = Vector3(middle.x, 0.0, middle.z) + way * (reach + PERSON_GAP)
 	_person.visible = person_visible
 
 

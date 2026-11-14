@@ -133,7 +133,7 @@ func test_category_row_jumps_to_the_first_item_of_a_category() -> void:
 	for expected in ["Terminal", "Airside", "Landside", "Ground", "Planes", "Terminal kit", "Decals", "Materials"]:
 		check(names.has(expected), "category %s in the row" % expected)
 	for button: Button in row.get_children():
-		if button.disabled:
+		if button.button_pressed:
 			continue
 		await press(button)
 		var first: ViewerItem = null
@@ -314,3 +314,36 @@ func test_every_control_is_on_screen_and_inside_the_safe_area() -> void:
 	check(not manager().visible, "no manager")
 	check(not ui("TouchJoystick").visible and not ui("BuildMenu").visible and not ui("InfoPanel").visible, "no joystick, build menu or flights list")
 	check(not ui("TopButtons/ViewButton").visible, "no view button")
+
+
+func test_current_category_is_marked_not_locked() -> void:
+	await enter_world(TestWorlds.ASSET_VIEWER)
+	var row := ui("ViewerHud/CategoryRow")
+	for target in ["Landside", "Planes", "Materials"]:
+		for button: Button in row.get_children():
+			if button.text == target:
+				await press(button)
+		await frames(1)
+		for button: Button in row.get_children():
+			check(not button.disabled, "%s is never disabled" % button.text)
+			check_eq(button.button_pressed, button.text == target, "%s: the mark is on %s only" % [button.text, target])
+			check_eq(button.has_theme_color_override(&"font_color"), button.text == target, "%s: the colour mark" % button.text)
+
+
+func test_person_is_visible_outside_the_item_on_the_camera_side() -> void:
+	await enter_world(TestWorlds.ASSET_VIEWER)
+	var camera := _camera()
+	for id in [&"terminal_facade_glass", &"curb_dropoff_segment", &"aircraft_stand", &"runway", &"swatch_paving"]:
+		await _show(id)
+		var person := _viewer().person()
+		var bounds := _viewer().frame_bounds()
+		var spot := person.global_position
+		var body := Vector3(spot.x, 0.9, spot.z)
+		check(not camera.is_position_behind(body), "%s: the figure is in front of the camera" % id)
+		check(Rect2(Vector2.ZERO, screen_size()).has_point(camera.unproject_position(body)), "%s: the figure is on screen" % id)
+		var flat := Rect2(bounds.position.x, bounds.position.z, bounds.size.x, bounds.size.z)
+		check(not flat.has_point(Vector2(spot.x, spot.z)), "%s: the figure is outside the item's bounds" % id)
+		var eye := Vector2(camera.global_position.x, camera.global_position.z)
+		check(eye.distance_to(Vector2(spot.x, spot.z)) < eye.distance_to(Vector2(bounds.get_center().x, bounds.get_center().z)), "%s: nearer to the camera than the item's centre" % id)
+		var edge := flat.grow(3.5)
+		check(edge.has_point(Vector2(spot.x, spot.z)), "%s: within about 3 m of the item's edge" % id)

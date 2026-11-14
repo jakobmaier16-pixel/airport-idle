@@ -65,6 +65,7 @@ func setup(viewer: AssetViewer, camera: ViewerCamera) -> void:
 	for category in ViewerCatalog.categories(viewer.items):
 		var button := _button("Category_%s" % category, category, _category_row)
 		button.set_meta(&"category", category)
+		button.toggle_mode = true
 		button.pressed.connect(viewer.show_category.bind(category))
 
 	_person_button = _button("PersonButton", "Person", action_row)
@@ -87,14 +88,22 @@ func _refresh(_index: int) -> void:
 	_label.text = _viewer.label_text()
 	_size_label.text = _viewer.size_text()
 	var category := _viewer.current_item().category
+	# The current category looks selected (pressed, yellow text), the others are normal and tappable.
 	for button: Button in _category_row.get_children():
-		button.disabled = button.get_meta(&"category") == category
+		var current: bool = button.get_meta(&"category") == category
+		button.set_pressed_no_signal(current)
+		if current:
+			button.add_theme_color_override(&"font_color", Color(1.0, 0.88, 0.45))
+			button.add_theme_color_override(&"font_pressed_color", Color(1.0, 0.88, 0.45))
+			button.add_theme_color_override(&"font_hover_pressed_color", Color(1.0, 0.88, 0.45))
+		else:
+			button.remove_theme_color_override(&"font_color")
+			button.remove_theme_color_override(&"font_pressed_color")
+			button.remove_theme_color_override(&"font_hover_pressed_color")
 	_person_button.set_pressed_no_signal(_viewer.person_visible)
 	_person_button.text = "Person: %s" % ("on" if _viewer.person_visible else "off")
 	# The far model exists only for items that have one; for the others the switch is off and disabled.
 	var has_far := _viewer.has_far_model()
-	if not has_far:
-		_viewer.set_far_model(false)
 	_far_button.disabled = not has_far
 	_far_button.set_pressed_no_signal(_viewer.far_model)
 	_far_button.text = "Far model: %s" % ("on" if _viewer.far_model else "off")
