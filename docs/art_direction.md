@@ -65,6 +65,12 @@ warnings. Vehicles, people, plants and real-world traffic signs bring the rest o
 safety lines); the "red only for alerts" rule applies to buildings and signs.
 Airline colours (fictional) live on planes, counters and signs, not on the building.
 
+Realism decisions for real-world street furniture and vehicles (Jakob, 2026-11-14):
+- **Parking signs are blue with a white "P"** (German Zeichen 314), in sign blue `#1F5AA6`.
+- **Taxis are light ivory** (RAL 1015 hellelfenbein, `#E6D2B5`) **with a yellow roof sign and black
+  "TAXI"**, as German taxis. This replaces the earlier signal-yellow taxis. Taxi rank bay markings
+  stay yellow. Car paint colours and weights: `art/vehicles/vehicles.md`.
+
 ## 4. Materials (shared library)
 
 Few shared materials, reused by every asset. Each is a Godot `StandardMaterial3D` saved as
@@ -84,6 +90,8 @@ Few shared materials, reused by every asset. Each is a Godot `StandardMaterial3D
 | `markings` | road/apron lines, zebra, signs | trim sheet (albedo + alpha) | one atlas for all lines and symbols |
 | `emissive_lights` | window glow, lamp heads, signs at night | albedo + emission | night is faked with this (see §5) |
 | `trim_building` | door frames, vents, skirting, small details | trim sheet | one 1024² atlas shared by all buildings |
+| `vehicle` | every car, taxi and van (body, trim, tyres, lamps, interior) | atlas 512² (albedo + paint mask, rough / metal / emission) | ShaderMaterial; paint colour per MultiMesh instance (`art/vehicles/vehicles.md`) |
+| `glass_vehicle` | car windows | none (flat colour) | like `glass`, darker tint, alpha 0.55 |
 
 - **Textures:** tileable, **1024² max** (512² for small trims), compressed as **ASTC**
   (`VRAM Compressed`, mipmaps on). Normal maps flagged as normal maps on import.
