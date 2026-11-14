@@ -244,17 +244,21 @@ func paint_walkway(cells: Array[Vector2i], walkway: bool) -> String:
 	return ""
 
 
-## Adds (or removes) taxiway on `cells` (design doc §7.5a): airside only, never on walkway.
-## Returns "" if it worked, or a hint why nothing was painted.
+## Adds (or removes) taxiway on `cells` (design doc §7.5a): never on walkway and never under a
+## building of any kind (stands and runways have their own pavement, landside pieces are not airside).
+## Returns "" if it all worked, or a hint if cells were left out because a building stands on them.
 func paint_taxiway(cells: Array[Vector2i], taxiway: bool) -> String:
 	var changing := _taxiway_changes(cells, taxiway)
+	var hint := ""
+	if taxiway and cells.any(func(c: Vector2i) -> bool: return grid.is_inside(c) and not grid.is_empty(c)):
+		hint = "Can't build a taxiway over a building"
 	if changing.is_empty():
-		return ""
+		return hint
 	for cell in changing:
 		grid.set_taxiway(cell, taxiway)
 	walkways_changed.emit()
 	layout_changed.emit()
-	return ""
+	return hint
 
 
 func _taxiway_changes(cells: Array[Vector2i], taxiway: bool) -> Array[Vector2i]:
@@ -262,7 +266,7 @@ func _taxiway_changes(cells: Array[Vector2i], taxiway: bool) -> Array[Vector2i]:
 	for cell in cells:
 		if not grid.is_inside(cell) or grid.is_taxiway(cell) == taxiway:
 			continue
-		if taxiway and grid.is_walkway(cell):
+		if taxiway and (grid.is_walkway(cell) or not grid.is_empty(cell)):
 			continue
 		changing.append(cell)
 	return changing

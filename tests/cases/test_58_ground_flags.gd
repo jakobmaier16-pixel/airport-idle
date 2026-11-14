@@ -122,3 +122,32 @@ func test_big_map_touches_only_allocated_chunks() -> void:
 	check_eq(flags.image.get_pixel(1101, 801).r8, AirportGrid.TAXIWAY_BIT, "the edit arrived")
 	check_eq(flags.refresh(), 0, "nothing changed: nothing copied")
 	print("INFO ground texture on %dx%d: build %.1f ms (%d chunks), one-chunk edit %.1f ms" % [BIG.x, BIG.y, build_ms, allocated, edit_ms])
+
+
+# The taxiway markings are worked out on the CPU into a second texture (RG8) so the shader needs one
+# fetch instead of a walk over the neighbours; see GroundFlagTexture.marks_image.
+func test_taxiway_marks_texture() -> void:
+	await start_game()
+	var flags := _ground_texture()
+	var shader_material := (main.get_node("Ground/MeshInstance3D") as MeshInstance3D).mesh.surface_get_material(0) as ShaderMaterial
+	check(shader_material.get_shader_parameter(&"taxi_marks") == flags.marks_texture, "the shader reads the marks texture")
+	# A strip 30 cells long and 12 wide, lying along x, far from anything else.
+	var corner := at(Vector2i(10, 70))
+	Airport.paint_taxiway(cells(corner, Vector2i(30, 12)), true)
+	await frames(2)
+	var image := flags.marks_image
+	check_eq(image.get_format(), Image.FORMAT_RG8, "two bytes per cell")
+	for row in 12:
+		var cell := corner + Vector2i(15, row)
+		var marks := image.get_pixelv(cell)
+		var expected_line := 14 + (11 - row) - row  # cells after minus cells before, along y
+		check_eq(roundi(marks.r8), expected_line, "row %d: the centreline sits in the middle of the strip" % row)
+		var bits := roundi(marks.g8)
+		check_eq(bits & 1, 1, "row %d: the short axis is y" % row)
+		check_eq((bits & 2) != 0, row == 0, "row %d: an edge line on the low side only in the first row" % row)
+		check_eq((bits & 4) != 0, row == 11, "row %d: and on the high side only in the last" % row)
+	check_eq(roundi(image.get_pixelv(corner - Vector2i(1, 0)).r8), 0, "no marks off the strip")
+	# A change updates it: remove the strip and the marks are gone.
+	Airport.paint_taxiway(cells(corner, Vector2i(30, 12)), false)
+	await frames(2)
+	check_eq(roundi(image.get_pixelv(corner + Vector2i(15, 5)).r8), 0, "the marks go with the strip")

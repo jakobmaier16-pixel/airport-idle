@@ -5,9 +5,11 @@
 //
 // Everything about a cell comes from ONE texture, the flag layer of the AirportGrid (see
 // scenes/ground/ground_flag_texture.gd); neighbour cells are read with texelFetch, so no extra
-// data is needed (taxiway centrelines and stand edges are derived from the neighbour bits).
-// Per pixel: 1 flag fetch + 1 material sample (+ 1 atlas sample on a marking, + 4 neighbour fetches on
-// taxiway / stand cells). Textures tile in world metres (1 cell = 2 m), albedo only (the ORM and normal
+// data is needed for the stand edges; the taxiway centreline and edge lines come from a second small
+// texture that is worked out on the CPU when the layout changes.
+// Per pixel: 1 flag fetch + 1 material sample (+ 1 atlas sample on a marking; on taxiway pixels 1 more
+// fetch of the CPU-made marks texture, none when zoomed far out; + 4 neighbour fetches on stand cells).
+// Textures tile in world metres (1 cell = 2 m), albedo only (the ORM and normal
 // maps of the .tres materials are for the 3D models; the ground is flat).
 shader_type spatial;
 
@@ -27,6 +29,9 @@ uniform vec2 yellow_line_rows = vec2(236.0, 268.0);
 uniform vec2 red_line_rows = vec2(272.0, 304.0);
 // Line widths in metres: taxi centreline 0.3 m, stand boundary 0.2 m, inset from the stand edge.
 uniform float taxi_line_width_m = 0.3;
+// Taxiway edge lines: 0.2 m wide, 0.6 m inside the pavement edge.
+uniform float taxi_edge_width_m = 0.2;
+uniform float taxi_edge_inset_m = 0.6;
 uniform float stand_line_width_m = 0.2;
 uniform float stand_line_inset_m = 0.8;
 
@@ -52,6 +57,8 @@ uniform vec2 map_size = vec2(128.0);
 //   bits 6-7 (0xC0): surface under a building, 1 = concrete (stand), 2 = runway asphalt
 // Keep these in step with AirportGrid.ZONE_MASK / WALKWAY_BIT / TAXIWAY_BIT / OWNED_BIT / SURFACE_MASK.
 uniform sampler2D flag_map : filter_nearest, repeat_disable;
+// RG8, one texel per cell: where the taxiway centreline and edge lines go (see the taxiway branch).
+uniform sampler2D taxi_marks : filter_nearest, repeat_disable;
 
 varying vec3 world_position;
 
@@ -108,20 +115,31 @@ void fragment() {
 
 	vec2 in_cell = fract(cell) - 0.5;
 	if (taxiway) {
-		// Centreline, derived from the neighbouring taxiway cells: an arm from the cell centre to every
-		// side that has a taxiway neighbour; a lone cell is a dot.
-		bool east = (flags_at(cell_i + ivec2(1, 0), limit) & 0x10) != 0;
-		bool west = (flags_at(cell_i + ivec2(-1, 0), limit) & 0x10) != 0;
-		bool south = (flags_at(cell_i + ivec2(0, 1), limit) & 0x10) != 0;
-		bool north = (flags_at(cell_i + ivec2(0, -1), limit) & 0x10) != 0;
-		float dist = length(in_cell);
-		if (in_cell.x > 0.0 ? east : west) {
-			dist = min(dist, abs(in_cell.y));
+		// ONE centreline along the strip and an edge line along each long side. Which cells get them
+		// was worked out on the CPU (GroundFlagTexture.marks_image), so this is one more fetch:
+		//   R: 0 = no line, else 14 + (cells after - cells before) along the strip's short axis, i.e. the
+		//      line sits (R - 14) / 2 cells from the cell's middle, the same place for every cell of
+		//      the strip so the cells join up into one line;
+		//   G: bit 0 = the short axis is y, bit 1 / bit 2 = an edge line on the low / high side.
+		float line_dist = 1.0e3;
+		float edge_dist = 1.0e3;
+		if (px < 0.8) {
+			ivec2 marks = ivec2(texelFetch(taxi_marks, cell_i, 0).rg * 255.0 + 0.5);
+			if (marks.x > 0) {
+				bool horizontal = (marks.y & 1) != 0;
+				float across = horizontal ? in_cell.y : in_cell.x;
+				line_dist = abs(across - float(marks.x - 14) * 0.5);
+				float edge_inset = taxi_edge_inset_m / cell_size;
+				if ((marks.y & 2) != 0) {
+					edge_dist = min(edge_dist, abs(across + 0.5 - edge_inset));
+				}
+				if ((marks.y & 4) != 0) {
+					edge_dist = min(edge_dist, abs(0.5 - edge_inset - across));
+				}
+			}
 		}
-		if (in_cell.y > 0.0 ? south : north) {
-			dist = min(dist, abs(in_cell.x));
-		}
-		float cover = line_cover(dist, taxi_line_width_m / cell_size * 0.5, px);
+		float cover = line_cover(line_dist, taxi_line_width_m / cell_size * 0.5, px);
+		cover = max(cover, line_cover(edge_dist, taxi_edge_width_m / cell_size * 0.5, px));
 		if (cover > 0.0) {
 			// The paint colour comes from the middle of the atlas strip (solid strips repeat along U).
 			vec2 uv = vec2(0.5, mix(yellow_line_rows.x, yellow_line_rows.y, 0.5) / 1024.0);

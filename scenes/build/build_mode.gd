@@ -60,12 +60,19 @@ var _paint_kind: PaintKind = PaintKind.WALKWAY
 var _painting_drag: bool = false
 var _paint_start_cell: Vector2i = Vector2i.ZERO
 var _paint_rect: Rect2i = Rect2i()
-# Taxiway brush: a BRUSH_CELLS square stamp (1 cell = 2 m, so 24 m) that locks to one axis once
-# the drag has moved AXIS_LOCK_CELLS, then slides along it. Remove uses it when the drag starts on taxiway.
+# Taxiway: a rectangle from the start cell to the finger whose short side is BRUSH_CELLS (12 cells =
+# 24 m, the width planes need); what the preview shows is exactly what is painted on release.
+# Remove uses the older brush (a stamp that locks to one axis once the drag has moved AXIS_LOCK_CELLS)
+# when the drag starts on taxiway.
 const BRUSH_CELLS: int = 12
 const AXIS_LOCK_CELLS: int = 3
+## The long axis of a taxiway rectangle only switches when the finger is this many cells further along
+## the other axis, so the rectangle does not flip near the diagonal.
+const AXIS_SWITCH_CELLS: int = 6
 var _brush_drag: bool = false
 var _brush_axis: int = -1  # -1 not locked yet, 0 = x, 1 = y
+var _taxiway_drag: bool = false
+var _taxiway_axis: int = 0  # the long axis of the taxiway rectangle: 0 = x, 1 = y
 var _paint_preview: MeshInstance3D
 var _paint_material: StandardMaterial3D
 
@@ -124,8 +131,7 @@ func start_painting(kind: PaintKind) -> void:
 	cancel_tool()
 	_tool = Tool.PAINT
 	_paint_kind = kind
-	var colors: Array[Color] = [walkway_paint_color, remove_paint_color, taxiway_paint_color]
-	_paint_material.albedo_color = colors[kind]
+	_paint_material.albedo_color = _paint_color()
 	_update_highlight()
 	_emit_paint_hint("")
 
@@ -194,11 +200,14 @@ func _on_tapped(screen_position: Vector2) -> void:
 			if not _footprint_contains(cell, 0):
 				_center_preview_on(cell)
 		Tool.PAINT:
-			if _uses_brush(cell):
+			if _paint_kind == PaintKind.TAXIWAY:
+				# A tap lays nothing: a taxiway is always dragged out, so a stray touch never paints.
+				_emit_paint_hint("")
+			elif _uses_brush(cell):
 				_emit_paint_hint(_apply_paint(_rect_cells(_brush_rect(cell, cell, -1))))
 			else:
 				var single: Array[Vector2i] = [cell]
-				_emit_paint_hint(_apply_paint(single))
+				_emit_paint_hint(_paint_or_refuse(single, Rect2i(cell, Vector2i.ONE)))
 		Tool.DEMOLISH:
 			_select_for_demolish(cell)
 
@@ -217,7 +226,9 @@ func _on_drag_started(start_position: Vector2, touch_position: Vector2) -> void:
 			# One finger paints; two fingers still move the camera.
 			camera.pan_enabled = false
 			_paint_start_cell = _clamp_to_map(Airport.grid.world_to_cell(start_point))
-			_brush_drag = _uses_brush(_paint_start_cell)
+			_taxiway_drag = _paint_kind == PaintKind.TAXIWAY
+			_taxiway_axis = 0
+			_brush_drag = not _taxiway_drag and _uses_brush(_paint_start_cell)
 			_brush_axis = -1
 			_update_paint_rect(touch_position)
 			_paint_preview.visible = true
@@ -234,8 +245,9 @@ func _on_drag_ended(_touch_position: Vector2) -> void:
 	_stop_dragging_preview()
 	if _painting_drag:
 		var cells := _rect_cells(_paint_rect)
+		var rect := _paint_rect
 		_stop_painting_drag()
-		_emit_paint_hint(_apply_paint(cells))
+		_emit_paint_hint(_paint_or_refuse(cells, rect))
 
 
 # A second finger turned the drag into a pinch: keep the preview where it is, drop the rectangle.
@@ -334,6 +346,10 @@ func _update_paint_rect(screen_position: Vector2) -> void:
 	if point == null:
 		return
 	var end_cell := _clamp_to_map(Airport.grid.world_to_cell(point))
+	if _taxiway_drag:
+		_paint_rect = _taxiway_rect(_paint_start_cell, end_cell)
+		_show_paint_rect()
+		return
 	if _brush_drag:
 		_paint_rect = _brush_rect(_paint_start_cell, end_cell, _lock_axis(end_cell))
 		_show_paint_rect()
@@ -346,12 +362,68 @@ func _update_paint_rect(screen_position: Vector2) -> void:
 
 func _show_paint_rect() -> void:
 	var grid := Airport.grid
+	# Red where the paint would be refused (it goes over a building), like a building that cannot be placed.
+	if _paint_kind != PaintKind.REMOVE_WALKWAY:
+		var blocked := _building_in(_paint_rect) != null or _taxiway_cut_short(_paint_rect)
+		_paint_material.albedo_color = invalid_color if blocked else _paint_color()
 	_paint_preview.position = grid.block_center(_paint_rect.position, _paint_rect.size) + Vector3(0.0, 0.03, 0.0)
 	_paint_preview.scale = Vector3(_paint_rect.size.x * grid.cell_size, 1.0, _paint_rect.size.y * grid.cell_size)
 
 
 func _uses_brush(cell: Vector2i) -> bool:
-	return _paint_kind == PaintKind.TAXIWAY or (_paint_kind == PaintKind.REMOVE_WALKWAY and Airport.grid.is_taxiway(cell))
+	return _paint_kind == PaintKind.REMOVE_WALKWAY and Airport.grid.is_taxiway(cell)
+
+
+func _paint_color() -> Color:
+	match _paint_kind:
+		PaintKind.WALKWAY:
+			return walkway_paint_color
+		PaintKind.REMOVE_WALKWAY:
+			return remove_paint_color
+	return taxiway_paint_color
+
+
+# The taxiway rectangle of a drag from `start` to `end`: it runs along the long axis from the start
+# cell to the finger (at least BRUSH_CELLS long, extending towards the finger) and is BRUSH_CELLS wide
+# across it, centred on the start cell. Cut off at the edge of the map.
+func _taxiway_rect(start: Vector2i, end: Vector2i) -> Rect2i:
+	var delta := end - start
+	var along := [absi(delta.x), absi(delta.y)]
+	if _taxiway_axis == 0 and along[1] >= along[0] + AXIS_SWITCH_CELLS:
+		_taxiway_axis = 1
+	elif _taxiway_axis == 1 and along[0] >= along[1] + AXIS_SWITCH_CELLS:
+		_taxiway_axis = 0
+	var long_delta := delta.x if _taxiway_axis == 0 else delta.y
+	var length := maxi(absi(long_delta) + 1, BRUSH_CELLS)
+	var first := start.x if _taxiway_axis == 0 else start.y
+	var low := first - length + 1 if long_delta < 0 else first
+	var across := (start.y if _taxiway_axis == 0 else start.x) - BRUSH_CELLS / 2
+	var rect := Rect2i(Vector2i(low, across), Vector2i(length, BRUSH_CELLS)) if _taxiway_axis == 0 \
+		else Rect2i(Vector2i(across, low), Vector2i(BRUSH_CELLS, length))
+	return rect.intersection(Rect2i(Vector2i.ZERO, Airport.grid.size))
+
+
+# The first building (any kind: also roads, curb, fence, car park ...) standing in `rect`, or null.
+func _building_in(rect: Rect2i) -> Building:
+	for building in Airport.buildings:
+		if building.get_rect().intersects(rect):
+			return building
+	return null
+
+
+# True for a taxiway rectangle that the map's edge cut below the 12 cells a taxiway needs (either side).
+func _taxiway_cut_short(rect: Rect2i) -> bool:
+	return _paint_kind == PaintKind.TAXIWAY and minf(rect.size.x, rect.size.y) < BRUSH_CELLS
+
+
+# Paints unless a taxiway or walkway would go over a building, or a taxiway was cut short by the map's
+# edge: then nothing is painted and the player is told. Remove is never refused.
+func _paint_or_refuse(cells: Array[Vector2i], rect: Rect2i) -> String:
+	if _taxiway_cut_short(rect):
+		return "Not enough room: a taxiway is %d cells wide" % BRUSH_CELLS
+	if _paint_kind != PaintKind.REMOVE_WALKWAY and _building_in(rect) != null:
+		return "Can't build %s over a building" % ("a taxiway" if _paint_kind == PaintKind.TAXIWAY else "a walkway")
+	return _apply_paint(cells)
 
 
 # Locks to the axis of the bigger movement once the drag is AXIS_LOCK_CELLS away from the start.
@@ -391,6 +463,7 @@ func _stop_painting_drag() -> void:
 	if _painting_drag:
 		_painting_drag = false
 		_brush_drag = false
+		_taxiway_drag = false
 		_paint_preview.visible = false
 		camera.pan_enabled = true
 
@@ -411,7 +484,7 @@ func _apply_paint(cells: Array[Vector2i]) -> String:
 
 # Shows `problem` if there is one, otherwise how to use the current paint tool.
 func _emit_paint_hint(problem: String) -> void:
-	var actions: Array[String] = ["lay walkway", "remove walkway or taxiway", "lay taxiway from stands to the runway"]
+	var actions: Array[String] = ["lay walkway", "remove walkway or taxiway", "lay a 12 cell wide taxiway from stands to the runway"]
 	var hint := problem
 	if hint.is_empty():
 		hint = "Drag to %s. Two fingers: move and zoom." % actions[_paint_kind]

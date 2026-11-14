@@ -39,8 +39,8 @@ func test_building_costs_nothing_and_needs_no_money() -> void:
 	check(Airport.place_building(type_of(&"wide_body_stand"), at(Vector2i(20, 36)), 0) != null, "a wide-body stand")
 	check(Airport.place_building(type_of(&"gate"), at(Vector2i(24, 31)), 0) != null, "a gate")
 	check_eq(Airport.paint_walkway(cells(at(Vector2i(10, 20)), Vector2i(40, 20)), true), "", "800 cells of walkway")
-	check_eq(Airport.paint_taxiway(cells(at(Vector2i(10, 60)), Vector2i(60, 12)), true), "", "720 cells of taxiway")
-	check(Airport.grid.is_taxiway(at(Vector2i(10, 60))) and Airport.grid.is_walkway(at(Vector2i(10, 20))), "both were laid")
+	check_eq(Airport.paint_taxiway(cells(at(Vector2i(60, 30)), Vector2i(60, 12)), true), "", "720 cells of taxiway (beside the stand: never under a building)")
+	check(Airport.grid.is_taxiway(at(Vector2i(60, 30))) and Airport.grid.is_walkway(at(Vector2i(10, 20))), "both were laid")
 	var building: Building = Airport.buildings.filter(func(b: Building) -> bool: return b.type.role == BuildingType.Role.GATE)[0]
 	check(Airport.demolish(building), "demolishing works")
 	for type in Airport.CATALOG.types:
