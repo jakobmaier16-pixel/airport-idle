@@ -328,11 +328,17 @@ func load_showcase_if_new_build() -> bool:
 	return true
 
 
+## Seconds the showcase runs before the player sees it. Short on purpose: the opening flight touches
+## down about 26 s after the start, and the player should be there to watch it (a longer warm-up
+## would let it land before the first frame; the push-back then follows about 3 minutes later).
+const SHOWCASE_WARM_UP: float = 10.0
+
+
 ## Replaces the map with the showcase airport and saves it. The caller reloads the scene
 ## if the game is already running, to rebuild the visuals.
 func load_showcase() -> void:
 	_loading = true
-	ShowcaseAirport.build()
+	ShowcaseAirport.build(SHOWCASE_WARM_UP)
 	_loading = false
 	_saved_build = build_stamp
 	save_now()
