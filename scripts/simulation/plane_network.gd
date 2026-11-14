@@ -15,6 +15,16 @@ var _runway_areas: Dictionary[int, bool] = {}
 var _runways: Array[Building] = []
 # What the current network was built from (see rebuild).
 var _signature_of_network: PackedInt64Array = PackedInt64Array()
+# The middle lines of the pavement (step 7b), derived in rebuild; not used for timing yet.
+var _centreline: CentrelineGraph = CentrelineGraph.new()
+# Smoothed routes by stand id (null = the stand has none), built on first use and dropped with the
+# network.
+var _routes: Dictionary[int, PlaneRoute] = {}
+## Counts the real rebuilds (a layout change that moved no paved cell does not count).
+var rebuild_count: int = 0
+## How long the last real rebuild took in total / of that the centreline graph (milliseconds).
+var last_rebuild_ms: float = 0.0
+var last_centreline_ms: float = 0.0
 
 
 func rebuild(grid: AirportGrid, buildings: Array[Building]) -> void:
@@ -24,9 +34,12 @@ func rebuild(grid: AirportGrid, buildings: Array[Building]) -> void:
 	var signature := _signature(grid, buildings)
 	if grid == _grid and signature == _signature_of_network:
 		return
+	var started := Time.get_ticks_usec()
 	_grid = grid
 	_signature_of_network = signature
 	_runways.clear()
+	_routes.clear()
+	var stands: Array[Building] = []
 	var width := grid.size.x
 	var seen: Dictionary[int, bool] = {}
 	for cell in grid.get_cells_with_flag(AirportGrid.TAXIWAY_BIT):
@@ -34,6 +47,8 @@ func rebuild(grid: AirportGrid, buildings: Array[Building]) -> void:
 	for building in buildings:
 		if building.type.role == BuildingType.Role.RUNWAY:
 			_runways.append(building)
+		if building.type.role == BuildingType.Role.AIRCRAFT_STAND:
+			stands.append(building)
 		if building.type.role in [BuildingType.Role.RUNWAY, BuildingType.Role.AIRCRAFT_STAND]:
 			# Every cell of a stand or runway is paved: the rectangle goes in row by row.
 			var size := Building.rotated_size(building.type.footprint, building.rotation_steps)
@@ -60,6 +75,12 @@ func rebuild(grid: AirportGrid, buildings: Array[Building]) -> void:
 		if id % width > 0 and seen.has(id - 1):
 			_paths.connect_points(id, id - 1, false)
 	_label_areas(ids)
+	var centreline_started := Time.get_ticks_usec()
+	_centreline.build(_areas, width, grid.size.y, stands, _runways)
+	var finished := Time.get_ticks_usec()
+	last_centreline_ms = (finished - centreline_started) / 1000.0
+	last_rebuild_ms = (finished - started) / 1000.0
+	rebuild_count += 1
 
 
 # What decides the paved cells: the taxiway layer and where the stands and runways are.
@@ -105,6 +126,58 @@ func path_to_stand(stand: Building) -> Array[Vector2i]:
 		if not path.is_empty() and (best.is_empty() or path.size() < best.size()):
 			best = path
 	return best
+
+
+## The middle lines graph (for tests and diagnostics).
+func centreline() -> CentrelineGraph:
+	return _centreline
+
+
+## The smooth ground route from a runway exit to `stand`, or null if the stand has no way to a
+## runway. Cached until the paved layout changes. Deterministic: ties go to the first runway and
+## exit in id order.
+func route_to_stand(stand: Building) -> PlaneRoute:
+	if _routes.has(stand.id):
+		return _routes[stand.id]
+	var route := _make_route(stand)
+	_routes[stand.id] = route
+	return route
+
+
+func _make_route(stand: Building) -> PlaneRoute:
+	var lead_in := _centreline.lead_in_of(stand.id)
+	var best := PackedVector2Array()
+	var best_length := INF
+	if _centreline.has_lead_in(stand.id):
+		for runway in _runways:
+			for exit: int in _centreline.exits_of(runway.id):
+				var nodes := _centreline.node_path(lead_in, exit)
+				if nodes.is_empty():
+					continue
+				var line := PackedVector2Array()
+				var length := 0.0
+				# Runway exit first, the stand last.
+				for k in range(nodes.size() - 1, -1, -1):
+					var point := _centreline.point_of(nodes[k])
+					if not line.is_empty():
+						length += point.distance_to(line[line.size() - 1])
+					line.append(point)
+				if length < best_length - 0.0001:
+					best = line
+					best_length = length
+	var fallback := false
+	if best.is_empty():
+		# The axis graph has no way (e.g. a stand too far from any axis): smooth the 4-way path.
+		var cells := path_to_stand(stand)
+		if cells.is_empty():
+			return null
+		fallback = true
+		for cell in cells:
+			best.append(Vector2(cell) + Vector2(0.5, 0.5))
+		var size := Building.rotated_size(stand.type.footprint, stand.rotation_steps)
+		best[best.size() - 1] = Vector2(stand.origin_cell) + Vector2(size) * 0.5
+	var origin := Vector2(_grid.origin.x, _grid.origin.z)
+	return PlaneRoute.from_points(_centreline.smooth(best, origin, _grid.cell_size), fallback)
 
 
 ## The runway a path starts on (the one containing `cell`), or null.
