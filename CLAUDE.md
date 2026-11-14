@@ -89,6 +89,23 @@ Target: smooth on older iPhones. Plan this in from the start (design doc §16).
   `docs/master_plan.md`.
 - Update `docs/game_design.md` whenever a design decision is made.
 
+## Small projects and test worlds (decided 2026-11-14)
+
+- **Many small projects, never one overloaded world.** Every piece of work is one small project with
+  one question (one asset, one function, one rule, one control). It is built, tested and fixed on its
+  own, in its own small **test world**. Projects are joined in a combined world only after Jakob
+  approved the parts.
+- **Kinds of worlds:** *look* (what things look like; the **asset viewer** shows every asset alone),
+  *function* (one function or rule each), *combined* (approved parts only, grows step by step).
+- **Three separate parts of the game:** content (what you see), game functions (rules, later the idle
+  loop) and controls (what the player taps, where information is). Controls come last.
+- **The board is `docs/worlds.md`:** every world and project with its status and Jakob's verdict.
+  Both leads plan from it and keep it current. `docs/roadmap.md` is history.
+- Every world has its own test file, so a failing test names its world.
+- **(proposal)** An asset counts as done only when Jakob approved it in the asset viewer on the
+  device. Blender previews are the visual lane's working tool, not the acceptance.
+- **(proposal)** A world answers one question; one that needs more than about five check points is split.
+
 ## Folder structure
 
 ```
@@ -237,7 +254,7 @@ UI controls (buttons) consume their touches first, so taps on buttons never reac
 - **In-game look belongs to the visual lane:** the visual lane brings its own assets into the game
   (scenes, materials, placement) and compares in-game screenshots with its previews before Jakob sees
   them. The code lane provides the technical base (systems, data, performance) underneath.
-- Roles: the **lead** (Claude in the claude.ai chat) plans from `docs/roadmap.md`, writes a spec per
+- Roles: the **lead** (Claude in the claude.ai chat) plans from `docs/worlds.md`, writes a spec per
   task and merges; **builder**, **artist**, **reviewer**, **performance** and **playtest** agents are defined in `.claude/agents/`.
   **playtest** runs only on request: it prepares the showcase airport for a device test and writes Jakob a German step-by-step guide.
   The user decides design questions and tests on the devices.
