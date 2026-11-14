@@ -36,25 +36,6 @@ func _ready() -> void:
 	_hud.reset_confirmed.connect(_on_reset_confirmed)
 	_hud.showcase_confirmed.connect(_on_showcase_confirmed)
 	_hud.benchmark_confirmed.connect(_on_benchmark_confirmed)
-	# Managing a station needs the manager on the spot (design doc §15.1).
-	_hud.upgrade_pressed.connect(func(building: Building) -> void:
-		if Airport.manage_problem(building).is_empty():
-			Airport.start_upgrade(building))
-	_hud.hire_pressed.connect(func(building: Building) -> void:
-		if Airport.manage_problem(building).is_empty():
-			Airport.hire(building))
-	_hud.dismiss_pressed.connect(func(building: Building) -> void:
-		if Airport.manage_problem(building).is_empty():
-			Airport.dismiss(building))
-	_hud.train_pressed.connect(func(building: Building) -> void:
-		if Airport.manage_problem(building).is_empty():
-			Airport.train(building))
-	_hud.promote_pressed.connect(func(building: Building) -> void:
-		if Airport.manage_problem(building).is_empty():
-			Airport.promote(building))
-	_hud.fast_track_pressed.connect(func(building: Building) -> void:
-		if Airport.manage_problem(building).is_empty():
-			Airport.buy_fast_track(building))
 	TouchGestures.tapped.connect(_on_tapped)
 	Airport.restructured.connect(_on_restructured)
 	Airport.tier_reached.connect(_on_tier_reached)
@@ -111,8 +92,8 @@ func _process(_delta: float) -> void:
 	var economy := Airport.economy
 	_hud.set_loan(economy.debt(), economy.interest_per_minute(), Airport.credit_limit(), Airport.restructure_in())
 	_hud.set_rating(Airport.stars(), Airport.progression.name_of(Airport.progression.tier))
-	_hud.set_status(Airport.passenger_flow.status_text())
-	_hud.set_departures(Airport.passenger_flow.departures_text())
+	_hud.set_status(Airport.status_text())
+	_hud.set_departures(Airport.schedule.departures_text())
 
 
 func _on_restructured(sold: PackedStringArray) -> void:
@@ -144,7 +125,7 @@ func _on_airline_left(airline: Airline) -> void:
 	_hud.notify("%s ended its deal and left the airport." % airline.type.display_name)
 
 
-# Manager view: tapping a building opens its station panel; tapping elsewhere closes it.
+# Manager view: tapping a building opens its panel; tapping elsewhere closes it.
 func _on_tapped(screen_position: Vector2) -> void:
 	if current_view != View.MANAGER:
 		return  # build view taps belong to the build tools

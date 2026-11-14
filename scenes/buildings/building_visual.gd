@@ -21,7 +21,6 @@ static var _vertex_color_material: StandardMaterial3D
 const GLASS_COLOR: Color = Color(0.2, 0.3, 0.42)
 const ROOF_EDGE_COLOR: Color = Color(0.85, 0.86, 0.88)
 const CANOPY_COLOR: Color = Color(0.9, 0.9, 0.92)
-const AWNING_COLORS: Array[Color] = [Color(0.85, 0.2, 0.2), Color(0.97, 0.95, 0.9)]
 
 
 ## Builds the meshes. Call once, right after creating the node.
@@ -80,7 +79,7 @@ func _add_details(type: BuildingType, size: Vector3, cast_shadows: bool) -> void
 			_add_runway_markings(size)
 
 
-# Windows, roof edge, canopy and awnings, built into one mesh with vertex colors, so all of a
+# Windows, roof edge and canopy, built into one mesh with vertex colors, so all of a
 # building's details are a single draw call (cheap on older iPhones).
 func _add_facade(type: BuildingType, size: Vector3) -> void:
 	if _vertex_color_material == null:
@@ -101,14 +100,8 @@ func _add_facade(type: BuildingType, size: Vector3) -> void:
 	_box(tool, Vector3(half.x - 0.15, size.y + 0.1, 0.0), Vector3(0.3, 0.25, size.z + 0.1), ROOF_EDGE_COLOR)
 	match type.role:
 		BuildingType.Role.ENTRANCE:
-			# A canopy over the doors at the back (where passengers come in from the walkway).
+			# A canopy over the doors at the back (where the walkway comes in).
 			_box(tool, Vector3(0.0, size.y * 0.8, half.z + 1.0), Vector3(size.x * 0.8, 0.15, 2.0), CANOPY_COLOR)
-		BuildingType.Role.SHOP:
-			# A striped awning over the shop front.
-			var stripes := 6
-			for i in stripes:
-				var x := -half.x + (i + 0.5) * size.x / stripes
-				_box(tool, Vector3(x, size.y * 0.7, -half.z - 0.6), Vector3(size.x / stripes, 0.12, 1.2), AWNING_COLORS[i % 2])
 	tool.generate_normals()
 	var mesh := tool.commit()
 	mesh.surface_set_material(0, _vertex_color_material)

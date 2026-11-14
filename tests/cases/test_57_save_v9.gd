@@ -100,11 +100,9 @@ func test_v9_example_is_in_the_newest_format() -> void:
 	check(_is_chunk_list(saved["walkways"]), "chunk lists")
 	var loaded := AirportWorld.new()
 	loaded.load_state(SaveGame.migrate(saved))
-	var walking := loaded.passenger_flow.passengers.filter(func(p: Passenger) -> bool: return p.state == Passenger.State.WALKING and p.path.size() > 1)
-	check(walking.size() > 0, "passengers are on their way (%d)" % walking.size())
 	for i in int(30.0 / AirportWorld.SIM_STEP):
 		loaded.step(AirportWorld.SIM_STEP)
-	check(loaded.passenger_flow.passengers.size() > 0, "it keeps running")
+	check(loaded.sim_time > 0.0, "it keeps running")
 	loaded.dispose()
 
 
@@ -147,7 +145,7 @@ func test_loading_into_a_bigger_map_centres_everything() -> void:
 	for i in small.buildings.size():
 		var a := small.buildings[i]
 		var b := big.buildings[i]
-		check(a.type == b.type and a.id == b.id and a.level == b.level and a.rotation_steps == b.rotation_steps, "building %d is the same" % i)
+		check(a.type == b.type and a.id == b.id and a.rotation_steps == b.rotation_steps, "building %d is the same" % i)
 		check_eq(b.origin_cell, a.origin_cell + shift, "building %d moved by the shift" % i)
 		var size := Building.rotated_size(a.type.footprint, a.rotation_steps)
 		check_eq(big.grid.block_center(b.origin_cell, size), small.grid.block_center(a.origin_cell, size), "building %d stands at the same place in metres" % i)
@@ -181,32 +179,14 @@ func test_loading_into_a_bigger_map_centres_everything() -> void:
 				or not small.owns_cell(building.origin_cell):
 			owned_wrong += 1
 	check_eq(owned_wrong, 0, "every building of the loaded airport stands on the regional land")
-	# Passengers: the same places in metres, and a walking one keeps its way (re-encoded to the new width).
-	check_eq(big.passenger_flow.passengers.size(), small.passenger_flow.passengers.size(), "every passenger is back")
-	var walking_checked := 0
-	for i in small.passenger_flow.passengers.size():
-		var a := small.passenger_flow.passengers[i]
-		var b := big.passenger_flow.passengers[i]
-		check_eq(b.position, a.position, "passenger %d is at the same place in metres" % i)
-		if a.state == Passenger.State.WALKING and a.path.size() > 1:
-			walking_checked += 1
-			check_eq(b.path.size(), a.path.size(), "passenger %d keeps its path" % i)
-			for k in a.path.size():
-				var cell_a := Vector2i(a.path[k] % small.grid.size.x, a.path[k] / small.grid.size.x)
-				var cell_b := Vector2i(b.path[k] % big.grid.size.x, b.path[k] / big.grid.size.x)
-				if cell_b != cell_a + shift or big.grid.cell_to_world(cell_b) != small.grid.cell_to_world(cell_a):
-					check(false, "passenger %d: path cell %d is not the same place" % [i, k])
-					break
-	check(walking_checked > 0, "at least one passenger was in the middle of a path (%d)" % walking_checked)
 	# Flights and money survive, and the airport runs on.
-	check_eq(big.passenger_flow.schedule.flights.size(), small.passenger_flow.schedule.flights.size(), "the same flights")
+	check_eq(big.schedule.flights.size(), small.schedule.flights.size(), "the same flights")
 	check_eq(big.economy.balance, small.economy.balance, "the same money")
 	for i in int(30.0 / AirportWorld.SIM_STEP):
 		small.step(AirportWorld.SIM_STEP)
 		big.step(AirportWorld.SIM_STEP)
-	check(big.passenger_flow.passengers.size() > 0, "the big airport keeps running")
-	check_eq(big.passenger_flow.departed_count, small.passenger_flow.departed_count, "30 s later: the same departures")
-	check_eq(big.passenger_flow.passengers.size(), small.passenger_flow.passengers.size(), "30 s later: the same passengers")
+	check(big.sim_time > 0.0, "the big airport keeps running")
+	check_eq(big.reputation.departures, small.reputation.departures, "30 s later: the same departures")
 	small.dispose()
 	big.dispose()
 
@@ -225,14 +205,6 @@ func test_loading_into_a_smaller_map_skips_what_does_not_fit() -> void:
 		brain.step(AirportWorld.SIM_STEP)
 	check(true, "it runs on without a crash")
 	brain.dispose()
-
-
-func test_remap_path_with_a_shift() -> void:
-	var path := PackedInt32Array([2 + 64 * 3, 3 + 64 * 3])
-	var moved := PassengerSave.remap_path(path, 64, Vector2i(100, 80), Vector2i(10, 5))
-	check_eq(moved, PackedInt32Array([12 + 100 * 8, 13 + 100 * 8]), "shifted and re-encoded with the new width")
-	check(PassengerSave.remap_path(path, 64, Vector2i(100, 80), Vector2i(-3, 0)).is_empty(), "shifted off the left edge: dropped")
-	check(PassengerSave.remap_path(path, 64, Vector2i(10, 80), Vector2i(8, 0)).is_empty(), "shifted off the right edge: dropped")
 
 
 func test_behaviour_hash_ignores_the_layer_format() -> void:

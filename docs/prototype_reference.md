@@ -6,6 +6,8 @@
 
 ---
 
+> **Removed 2026-11-14 (strip to core, PR 1), see [removed_features.md](removed_features.md):** §7.8 station upgrades, §8.1 to §8.10 passengers, shops, arrivals, transfers and satisfaction, §9 staff, §11.8 car park fees, lounge and fast track, §15.1 managing on the spot. Last commit with them: 262844b. The text below stays unchanged.
+
 ## 1. Pitch
 
 A **free, strategic airport management game with idle elements** for iPhone and iPad.

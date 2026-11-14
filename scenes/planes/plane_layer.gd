@@ -13,11 +13,10 @@ func _ready() -> void:
 
 
 func _process(_delta: float) -> void:
-	var flow := Airport.passenger_flow
 	# Smooth time between simulation steps.
-	var now := flow.time + Airport.sim_alpha * Airport.SIM_STEP
+	var now := Airport.sim_time + Airport.sim_alpha * Airport.SIM_STEP
 	var shown: Dictionary[Flight, bool] = {}
-	for flight in flow.schedule.flights:
+	for flight in Airport.schedule.flights:
 		var pose: Variant = _pose(flight, now)
 		if pose == null:
 			continue
@@ -50,7 +49,7 @@ func plane_count() -> int:
 func _pose(flight: Flight, now: float) -> Variant:
 	if flight.stand == null or flight.phase == Flight.Phase.CANCELLED or flight.phase == Flight.Phase.SCHEDULED:
 		return null
-	var schedule := Airport.passenger_flow.schedule
+	var schedule := Airport.schedule
 	var route := schedule.route_of(flight)
 	var parked := _parked_pose(flight)
 	var time_left := flight.departs_at() - now

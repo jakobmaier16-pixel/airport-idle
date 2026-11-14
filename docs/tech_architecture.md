@@ -59,6 +59,8 @@ The game is split into three parts that are kept strictly apart:
 
 ## 5. The passenger journey as a recipe
 
+> **Removed 2026-11-14, see [removed_features.md](removed_features.md).** Passengers, stations, journeys and the passenger save block are deleted (PR 1 of the strip to core); the text stays as the design for when they come back.
+
 - In the prototype the order "check-in → security → gate" is wired into the code. Now a journey is a **recipe in a data file**: a list of steps, each naming the kind of station that comes next.
 - **Each passenger is a small record:** where they are, which step of the recipe they are on, how long they have waited, how happy they are. No 3D figure belongs to a passenger; the windows decide whether to draw one.
 - **Stations** (check-in, security, gate) have queues and counters. How long a passenger takes comes from the station's data and its upgrade step.

@@ -4,8 +4,8 @@ extends TestCase
 
 func _movements_between(from_hour: float, to_hour: float) -> int:
 	var count := 0
-	for booking: Array in Airport.passenger_flow.schedule.runway_bookings:
-		var hour := Airport.clock.hour_at(booking[1] - Airport.passenger_flow.time)
+	for booking: Array in Airport.schedule.runway_bookings:
+		var hour := Airport.clock.hour_at(booking[1] - Airport.sim_time)
 		if hour >= from_hour and hour < to_hour:
 			count += 1
 	return count
@@ -28,7 +28,7 @@ func test_no_flights_at_night() -> void:
 		Airport.step(Airport.SIM_STEP)
 		if Airport.curfew_at() and Airport.curfew_at(FlightSchedule.ARRIVALS_START):
 			refused_in_curfew += refused.call() - refused_before
-		for flight in Airport.passenger_flow.schedule.flights:
+		for flight in Airport.schedule.flights:
 			if flight.phase >= Flight.Phase.ARRIVING and flight.phase <= Flight.Phase.DEPARTING and Airport.curfew_at():
 				if not seen.has(flight):
 					seen.append(flight)
@@ -52,4 +52,4 @@ func test_hud_shows_curfew() -> void:
 	await start_game()
 	await frames(1)
 	check((ui("TopButtons/ClockLabel") as Label).text.ends_with("Curfew"), "clock: '%s'" % (ui("TopButtons/ClockLabel") as Label).text)
-	check(Airport.passenger_flow.departures_text().begins_with("Night curfew"), "board explains")
+	check(Airport.schedule.departures_text().begins_with("Night curfew"), "board explains")

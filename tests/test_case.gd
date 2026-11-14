@@ -8,11 +8,12 @@ extends Node
 var failures: Array[String] = []
 ## Set by the runner before each test.
 var current_test: String = ""
-## Number of buildings in the showcase airport without landside pieces: what the example saves in
-## tests/saves/ hold (scripts/dev/showcase_airport.gd).
-const SHOWCASE_BUILDINGS: int = 19
+## Number of buildings in the showcase airport without landside pieces (scripts/dev/showcase_airport.gd).
+## The example saves in tests/saves/ hold 19: their shop, cafe, lounge, baggage claim and transfer
+## security no longer exist (removed 2026-11-14) and are skipped, with a refund, when they load.
+const SHOWCASE_BUILDINGS: int = 14
 ## ... and in the showcase as built today, with the landside layout (scripts/dev/showcase_landside.gd).
-const SHOWCASE_WITH_LANDSIDE_BUILDINGS: int = 524
+const SHOWCASE_WITH_LANDSIDE_BUILDINGS: int = 519
 
 ## Building types of the 6 m prototype that save format 10 removes (full refund) when it converts an
 ## older save; the new runway is laid on loading. Prices are what format 9 saved when an entry has none.
@@ -103,7 +104,7 @@ func physics_frames(count: int) -> void:
 		await get_tree().physics_frame
 
 
-## Fast-forwards the passenger simulation without waiting in real time.
+## Fast-forwards the simulation without waiting in real time.
 func sim_seconds(seconds: float) -> void:
 	for i in int(seconds / Airport.SIM_STEP):
 		Airport.step(Airport.SIM_STEP)
@@ -114,25 +115,11 @@ func sim_seconds(seconds: float) -> void:
 ## then returns the next departure. With `gate_number` > 0 it waits for a flight at that gate.
 ## Returns null if there is none within `max_seconds`.
 func first_flight(gate_number: int = 0, max_seconds: float = 1500.0) -> Flight:
-	var schedule := Airport.passenger_flow.schedule
+	var schedule := Airport.schedule
 	for i in int(max_seconds / Airport.SIM_STEP):
 		for flight in schedule.upcoming():
-			if gate_number == 0 or Airport.passenger_flow.gate_number(flight.gate) == gate_number:
+			if gate_number == 0 or Airport.gate_number(flight.gate) == gate_number:
 				return flight
-		Airport.step(Airport.SIM_STEP)
-	return null
-
-
-## Runs the simulation until two flights depart at least MIN_CONNECTION apart (so passengers can
-## connect from the earlier one to the later one), and returns the earlier one. Null if none within
-## `max_seconds`.
-func first_flight_with_connection(max_seconds: float = 2400.0) -> Flight:
-	var schedule := Airport.passenger_flow.schedule
-	for i in int(max_seconds / Airport.SIM_STEP):
-		for flight in schedule.upcoming():
-			for other in schedule.flights:
-				if not other.cargo and other.departure_time >= flight.departure_time + FlightSchedule.MIN_CONNECTION:
-					return flight
 		Airport.step(Airport.SIM_STEP)
 	return null
 
@@ -308,7 +295,7 @@ func type_of(id: StringName) -> BuildingType:
 
 
 ## A minimal terminal: landside hall with an entrance, security on the border, and an airside
-## walkway behind it (gates and shops can go along that walkway). No money or tier needed.
+## walkway behind it (gates can go along that walkway). No money or tier needed.
 func build_basic_terminal() -> void:
 	Airport.economy.balance = 1.0e9
 	Airport.paint_walkway(cells(at(Vector2i(18, 21)), Vector2i(28, 7)), true)
@@ -317,9 +304,23 @@ func build_basic_terminal() -> void:
 	Airport.place_building(type_of(&"security"), at(Vector2i(30, 28)), 0)
 
 
-## The showcase airport (scripts/dev/showcase_airport.gd), without passengers yet.
+## The showcase airport (scripts/dev/showcase_airport.gd), without a warm-up.
 func build_reference_airport() -> void:
 	ShowcaseAirport.build(0.0)
+
+
+## Types of the example saves that no longer exist (removed 2026-11-14): they are skipped, with
+## half their saved price refunded, when a save loads.
+const REMOVED_TYPES: Array[String] = ["baggage_claim", "transfer_security", "shop", "cafe", "lounge"]
+
+
+## What loading an example save refunds for its removed types (half the saved price each).
+func removed_refund_of(saved: Dictionary) -> float:
+	var total := 0.0
+	for entry: Dictionary in saved.get("buildings", []):
+		if REMOVED_TYPES.has(str(entry.get("type", ""))):
+			total += float(entry.get("cost", 0.0)) * 0.5
+	return total
 
 
 # --- Loading saves from before format 10 (the real-scale airside) ---

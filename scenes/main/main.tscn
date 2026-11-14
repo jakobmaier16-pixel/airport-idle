@@ -8,7 +8,6 @@
 [ext_resource type="PackedScene" path="res://scenes/build/build_mode.tscn" id="6_build_mode"]
 [ext_resource type="Script" path="res://scenes/main/main.gd" id="7_main"]
 [ext_resource type="Script" path="res://scenes/buildings/building_layer.gd" id="8_building_layer"]
-[ext_resource type="Script" path="res://scenes/passengers/passenger_layer.gd" id="9_passenger_layer"]
 [ext_resource type="Script" path="res://scenes/buildings/landside_layer.gd" id="12_landside_layer"]
 [ext_resource type="Script" path="res://scenes/planes/plane_layer.gd" id="10_plane_layer"]
 [ext_resource type="Script" path="res://scenes/day_night/day_night.gd" id="11_day_night"]
@@ -50,9 +49,6 @@ script = ExtResource("12_landside_layer")
 [node name="Buildings" type="Node3D" parent="." node_paths=PackedStringArray("landside")]
 script = ExtResource("8_building_layer")
 landside = NodePath("../Landside")
-
-[node name="Passengers" type="Node3D" parent="."]
-script = ExtResource("9_passenger_layer")
 
 [node name="Planes" type="Node3D" parent="."]
 script = ExtResource("10_plane_layer")

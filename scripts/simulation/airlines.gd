@@ -272,14 +272,14 @@ func end_deal(airline: Airline) -> void:
 	_cooldowns[airline.type.id] = COOLDOWN
 
 
-## A flight of `airline` left: rates it (late or not, share of its passengers who missed it).
-func record_flight(airline: Airline, late: bool, missed_share: float) -> void:
+## A flight of `airline` left: rates it (late or not).
+func record_flight(airline: Airline, late: bool) -> void:
 	if airline == null or not signed.has(airline):
 		return
 	airline.flown += 1
 	if late:
 		airline.late += 1
-	_rate(airline, (LATE_SCORE if late else 100.0) - missed_share * 100.0)
+	_rate(airline, LATE_SCORE if late else 100.0)
 
 
 ## Flights per hour all signed airlines want together.

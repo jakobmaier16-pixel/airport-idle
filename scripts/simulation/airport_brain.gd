@@ -6,13 +6,8 @@ extends RefCounted
 ## Visuals listen to its signals (re-emitted by the host) and never change its data directly.
 
 signal building_placed(building: Building)
-## An upgrade started or finished (design doc §7.8).
-signal building_upgraded(building: Building)
-## An unattended bag closed `building` (design doc §12.3).
 ## The bank sold buildings to cover the debt (design doc §11.6). `sold` names them.
 signal restructured(sold: PackedStringArray)
-## Someone was hired or dismissed at `building` (design doc §9.1).
-signal staff_changed(building: Building)
 ## The land the airport owns changed (a new tier, design doc §14.1).
 signal land_changed
 ## A building was demolished (design doc §7.6). Sent before layout_changed.
@@ -22,7 +17,7 @@ signal walkways_changed
 ## Anything about the layout changed (buildings, zones, walkways). Used for saving and connection hints.
 signal layout_changed
 ## Re-sent from the parts that make them, so a listener connects to the brain once, even when a
-## part (the passenger flow) is replaced on a reset.
+## part (the flight schedule) is replaced on a reset.
 signal tier_reached(tier: Progression.Tier)
 signal offer_arrived(offer: AirlineOffer)
 signal airline_unhappy(airline: Airline)
@@ -36,18 +31,6 @@ const CELL_SIZE: float = 2.0
 const MAP_SIZE_CELLS: Vector2i = Vector2i(2200, 1600)
 ## Every building type in the game.
 const CATALOG: BuildingCatalog = preload("res://data/buildings/catalog.tres")
-## Salary per minute for the stations that need staff (design doc §9.1).
-const SALARIES: Dictionary = {
-	BuildingType.Role.CHECK_IN: 8.0,
-	BuildingType.Role.SECURITY: 10.0,
-	BuildingType.Role.TRANSFER_SECURITY: 10.0,
-	BuildingType.Role.CARGO_TERMINAL: 9.0,
-}
-## Fictional names for new employees.
-const FIRST_NAMES: Array[String] = [
-	"Anna", "Luca", "Mia", "Noah", "Lea", "Elias", "Sara", "Jonas", "Emma", "Felix", "Nina", "Paul",
-	"Lena", "David", "Clara", "Tim", "Sofia", "Ben", "Ida", "Max", "Yara", "Omar", "Leni", "Malik",
-]
 ## The simulation advances in fixed steps of this many seconds (10 per second): cheap and
 ## independent of the frame rate. Visuals move smoothly between steps using `sim_alpha`.
 const SIM_STEP: float = 0.1
@@ -56,7 +39,8 @@ var grid: AirportGrid = AirportGrid.new(MAP_SIZE_CELLS, CELL_SIZE)
 ## The map size this brain was made with (tests make bigger ones); `reset()` keeps it.
 var map_size: Vector2i = MAP_SIZE_CELLS
 var buildings: Array[Building] = []
-var passenger_flow: PassengerFlow = PassengerFlow.new()
+## Turns the timetable's slots into flights and runs them (design doc §8.5). Replaced on a reset.
+var schedule: FlightSchedule = FlightSchedule.new()
 ## Where planes can move: taxiways, stands, runways (design doc §7.5a).
 var plane_network: PlaneNetwork = PlaneNetwork.new()
 ## Zones computed from the layout (tech_architecture.md §4): written into `grid` after every layout change.
@@ -77,12 +61,9 @@ var demand: Demand = Demand.new()
 var goals: Goals = Goals.new()
 ## Airport tiers and lifetime passenger counts (design doc §14.1). Reset, not replaced.
 var progression: Progression = Progression.new()
-## Star rating from satisfaction and punctuality (design doc §11.7).
+## Star rating from punctuality (design doc §11.7).
 var reputation: Reputation = Reputation.new()
-## Everyone working at the airport (design doc §9.1).
-var staff: Array[Employee] = []
-## Where the manager stands (design doc §15.1). Gameplay state, not a visual: it decides which
-## stations can be managed and where the manager's presence helps. Far away while nobody walks.
+## Where the manager stands. Far away while nobody walks.
 var manager_position: Vector3 = NOBODY_THERE
 ## Where the manager looks (first person, design doc §15), saved with the position.
 var manager_yaw: float = 0.0
@@ -90,17 +71,18 @@ var manager_yaw: float = 0.0
 var saved_manager: Dictionary = {}
 ## The airport's dice (tech_architecture.md §3). Every random choice of the simulation comes from
 ## here, so the same seed and the same player actions give exactly the same game. Shared with
-## PassengerFlow, FlightSchedule and Airlines; saved with the game.
+## FlightSchedule and Airlines; saved with the game.
 var rng: RandomNumberGenerator = RandomNumberGenerator.new()
 ## The number the dice started from, for replaying a game (e.g. a failing test).
 var game_seed: int = 0
 
 # While loading a save, layout_changed is sent once at the end instead of for every building.
 var _loading: bool = false
-# Running costs of everything built plus salaries, in euros per minute (recalculated when the
-# layout or the staff changes), and the salaries alone.
+# Running costs of everything built, in euros per minute (recalculated when the layout changes).
 var _running_cost_per_minute: float = 0.0
-var _salaries_per_minute: float = 0.0
+# Gates and cargo terminals that can have flights right now (see usable_gates()); recalculated with the layout.
+var _usable_gates: Array[Building] = []
+var _usable_cargo_terminals: Array[Building] = []
 
 
 func _init(size_in_cells: Vector2i = MAP_SIZE_CELLS) -> void:
@@ -116,7 +98,7 @@ func _init(size_in_cells: Vector2i = MAP_SIZE_CELLS) -> void:
 	airlines.offer_arrived.connect(offer_arrived.emit)
 	airlines.airline_unhappy.connect(airline_unhappy.emit)
 	airlines.airline_left.connect(airline_left.emit)
-	passenger_flow.schedule.plane_arriving.connect(plane_arriving.emit)
+	schedule.plane_arriving.connect(plane_arriving.emit)
 	_on_layout_changed()
 
 
@@ -129,12 +111,10 @@ func reseed(new_seed: int) -> void:
 
 # Every part of the simulation rolls the same dice.
 func _share_rng() -> void:
-	passenger_flow.rng = rng
-	passenger_flow.world = self
-	passenger_flow.schedule.world = self
+	schedule.world = self
 	goals.world = self
 	timetable.world = self
-	passenger_flow.schedule.rng = rng
+	schedule.rng = rng
 	airlines.rng = rng
 
 
@@ -154,39 +134,34 @@ func dispose() -> void:
 		airlines.airline_unhappy.disconnect(airline_unhappy.emit)
 	if airlines.airline_left.is_connected(airline_left.emit):
 		airlines.airline_left.disconnect(airline_left.emit)
-	if passenger_flow.schedule.plane_arriving.is_connected(plane_arriving.emit):
-		passenger_flow.schedule.plane_arriving.disconnect(plane_arriving.emit)
-	passenger_flow.world = null
-	passenger_flow.schedule.world = null
+	if schedule.plane_arriving.is_connected(plane_arriving.emit):
+		schedule.plane_arriving.disconnect(plane_arriving.emit)
+	schedule.world = null
 	goals.world = null
 	timetable.world = null
 
 
-## Advances the whole simulation by one step: passengers, flights and money.
+## Seconds since the airport started (flights are timed against it). Not a clock of its own: it
+## is `Clock.elapsed` in real seconds (tech_architecture.md §3, one clock).
+var sim_time: float:
+	get:
+		return clock.real_elapsed
+
+
+## Advances the whole simulation by one step: the timetable, flights and money.
 func step(delta: float) -> void:
 	clock.tick(delta)
 	demand.tick(clock.day(), progression.tier, stars(), reputation.on_time_rate)
 	timetable.tick()
-	passenger_flow.tick(delta)
-	economy.tick(delta, _running_cost_per_minute - _salaries_per_minute, _salaries_per_minute)
+	schedule.tick(sim_time, delta)
+	economy.tick(delta, _running_cost_per_minute, 0.0)
 	reputation.tick(delta)
 	# Airlines don't count flights as owed during the curfew (design doc §12.4).
-	var operating := (not passenger_flow.usable_gates().is_empty() or not passenger_flow.usable_cargo_terminals().is_empty()) \
+	var operating := (not _usable_gates.is_empty() or not _usable_cargo_terminals.is_empty()) \
 		and not curfew_at() and not curfew_at(FlightSchedule.ARRIVALS_START)  # slots are planned that far ahead
 	airlines.tick(delta, stars(), operating, progression.tier, has_cargo_terminal())
 	progression.check(stars())
 	_check_loan(delta)
-	for employee in staff:
-		if employee.is_training():
-			employee.training_left -= delta
-			if not employee.is_training():
-				var role := employee.workplace.type.role
-				employee.served[role] = employee.served.get(role, 0) + Employee.TRAINING_EXPERIENCE
-	for building in buildings:
-		if building.is_upgrading():
-			building.upgrade_seconds_left -= delta
-			if building.upgrade_seconds_left <= 0.0:
-				_finish_upgrade(building)
 
 
 # --- Airport tiers (design doc §14.1) ---
@@ -217,38 +192,8 @@ func _on_tier_reached(tier: Progression.Tier) -> void:
 			airlines.offer_from(&"corvista")
 
 
-# --- Manager on the spot (design doc §15.1) ---
-
-## Hiring, dismissing and upgrading need the manager within this many meters of the building.
-const MANAGE_DISTANCE: float = 10.0
-## Within this many meters the manager's presence helps: staff work faster, queues stay calmer.
-const PRESENCE_DISTANCE: float = 6.0
 ## manager_position while there is no manager (e.g. simulation-only tests).
 const NOBODY_THERE: Vector3 = Vector3(1.0e9, 0.0, 1.0e9)
-
-
-## Meters from `point` to the nearest edge of `building` (0 inside it), on the ground.
-func distance_to_building(building: Building, point: Vector3) -> float:
-	var size := Building.rotated_size(building.type.footprint, building.rotation_steps)
-	var center := grid.block_center(building.origin_cell, size)
-	var half := Vector2(size) * grid.cell_size * 0.5
-	var outside := Vector2(maxf(absf(point.x - center.x) - half.x, 0.0), maxf(absf(point.z - center.z) - half.y, 0.0))
-	return outside.length()
-
-
-## Why the manager can't manage `building` from where they stand, or "" if they can.
-func manage_problem(building: Building) -> String:
-	var distance := distance_to_building(building, manager_position)
-	if distance <= MANAGE_DISTANCE:
-		return ""
-	if distance > 1000.0:
-		return "Walk here to manage"
-	return "Walk closer to manage (%d m away)" % ceili(distance)
-
-
-## True while the manager stands right at `building`.
-func is_manager_near(building: Building) -> bool:
-	return distance_to_building(building, manager_position) <= PRESENCE_DISTANCE
 
 
 # --- Airline deals (design doc §10.1): player commands from the Airlines panel ---
@@ -273,17 +218,13 @@ func end_airline_deal(airline: Airline) -> void:
 
 ## Stars taken off the rating by a restructuring (fades, see Reputation).
 const RESTRUCTURE_PENALTY_STARS: float = 1.0
-## The bank sells these first, newest first: they make money but passengers can do without them.
-const OPTIONAL_ROLES: Array[BuildingType.Role] = [BuildingType.Role.SHOP, BuildingType.Role.TRANSFER_SECURITY]
 
 
-## What everything built is worth: build prices plus the upgrades paid for.
+## What everything built is worth: the build prices.
 func airport_value() -> float:
 	var value := 0.0
 	for building in buildings:
 		value += building.type.build_cost
-		for i in building.level - 1:
-			value += building.type.upgrades[i].cost
 	return value
 
 
@@ -309,15 +250,14 @@ func _check_loan(delta: float) -> void:
 
 
 ## The bank sells buildings (at the demolish refund) until the debt is covered, and writes off
-## whatever is still missing. It never sells the last building of a kind the passenger route
-## needs. The airport's reputation suffers. Returns the names of what was sold.
+## whatever is still missing. It never sells the last building of a kind the airport needs. The airport's reputation suffers. Returns the names of what was sold.
 func restructure() -> PackedStringArray:
 	var sold: PackedStringArray = []
 	while economy.balance < 0.0:
 		var building := _next_to_sell()
 		if building == null:
 			break
-		sold.append(passenger_flow.station_label(building) if passenger_flow.station_for(building) != null else building.type.display_name)
+		sold.append(building.type.display_name)
 		demolish(building)
 	economy.balance = maxf(economy.balance, 0.0)
 	economy.over_limit_seconds = 0.0
@@ -326,11 +266,8 @@ func restructure() -> PackedStringArray:
 	return sold
 
 
-# Optional buildings first, then second (third, ...) buildings of a kind; newest first.
+# Buildings without a role first, then second (third, ...) buildings of a kind; newest first.
 func _next_to_sell() -> Building:
-	for i in range(buildings.size() - 1, -1, -1):
-		if buildings[i].type.role in OPTIONAL_ROLES:
-			return buildings[i]
 	for i in range(buildings.size() - 1, -1, -1):
 		var role := buildings[i].type.role
 		if role == BuildingType.Role.NONE:
@@ -359,194 +296,12 @@ func has_cargo_terminal() -> bool:
 
 ## The airport's star rating, 1.0 to 5.0 (design doc §11.7).
 func stars() -> float:
-	return reputation.stars(passenger_flow.satisfaction.average)
+	return reputation.stars()
 
 
-## Why `building` can't be upgraded right now, as a short hint, or "" if it can.
-func upgrade_problem(building: Building) -> String:
-	if building.type.upgrades.is_empty():
-		return "No upgrades for this building yet"
-	if building.is_upgrading():
-		return "Upgrade in progress"
-	var upgrade := building.next_upgrade()
-	if upgrade == null:
-		return "Fully upgraded"
-	if not economy.can_afford(upgrade.cost):
-		return "Not enough money (%s)" % Economy.format(upgrade.cost)
-	return ""
-
-
-## Pays for and starts the next upgrade. Small upgrades finish at once, big ones take time.
-func start_upgrade(building: Building) -> bool:
-	if not upgrade_problem(building).is_empty():
-		return false
-	var upgrade := building.next_upgrade()
-	economy.pay_construction(upgrade.cost)
-	if upgrade.build_seconds <= 0.0:
-		_finish_upgrade(building)
-	else:
-		building.upgrade_seconds_left = upgrade.build_seconds
-		building_upgraded.emit(building)
-	return true
-
-
-func _finish_upgrade(building: Building) -> void:
-	building.upgrade_seconds_left = 0.0
-	building.level += 1
-	_update_running_cost()
-	building_upgraded.emit(building)
-
-
-## A fast track lane for security (design doc §11.8): a one-off price.
-const FAST_TRACK_COST: float = 5000.0
-
-
-## Why `building` can't get a fast track right now, or "" if it can.
-func fast_track_problem(building: Building) -> String:
-	if building.type.role != BuildingType.Role.SECURITY:
-		return "Only for security"
-	if building.fast_track:
-		return "Has a fast track"
-	if not economy.can_afford(FAST_TRACK_COST):
-		return "Not enough money (%s)" % Economy.format(FAST_TRACK_COST)
-	return ""
-
-
-func buy_fast_track(building: Building) -> bool:
-	if not fast_track_problem(building).is_empty():
-		return false
-	economy.pay_construction(FAST_TRACK_COST)
-	building.fast_track = true
-	building_upgraded.emit(building)
-	return true
-
-
-## Running costs of everything built plus salaries, in euros per minute.
+## Running costs of everything built, in euros per minute.
 func running_cost_per_minute() -> float:
 	return _running_cost_per_minute
-
-
-# --- Staff (design doc §9.1) ---
-
-## True for stations that need one employee per counter / lane.
-func needs_staff(building: Building) -> bool:
-	return SALARIES.has(building.type.role)
-
-
-## Employees working at `building`, in the order they were hired (employee i runs counter i).
-func staff_at(building: Building) -> Array[Employee]:
-	var result: Array[Employee] = []
-	for employee in staff:
-		if employee.workplace == building:
-			result.append(employee)
-	return result
-
-
-## Why nobody can be hired for `building` right now, or "" if someone can.
-func hire_problem(building: Building) -> String:
-	if not needs_staff(building):
-		return "No staff needed here"
-	if staff_at(building).size() >= building.service_slots():
-		return "Every counter is staffed"
-	return ""
-
-
-## Hires a new employee for `building`. Returns them, or null if nobody can be hired there.
-func hire(building: Building) -> Employee:
-	if not hire_problem(building).is_empty():
-		return null
-	var employee := Employee.new()
-	employee.name = "%s %s." % [FIRST_NAMES[rng.randi() % FIRST_NAMES.size()], char(65 + rng.randi() % 26)]
-	employee.workplace = building
-	employee.salary_per_minute = SALARIES[building.type.role]
-	staff.append(employee)
-	_update_running_cost()
-	# Staffing decides whether e.g. transfer security works (design doc §8.9).
-	passenger_flow.refresh_route()
-	staff_changed.emit(building)
-	return employee
-
-
-## Dismisses the most recently hired employee at `building`. Returns false if nobody works there.
-func dismiss(building: Building) -> bool:
-	var working := staff_at(building)
-	if working.is_empty():
-		return false
-	staff.erase(working[-1])
-	_update_running_cost()
-	passenger_flow.refresh_route()
-	staff_changed.emit(building)
-	return true
-
-
-## Staff at `building` who are at their counters right now (not in training). Counter i is run
-## by the i-th of them.
-func staff_working_at(building: Building) -> Array[Employee]:
-	return staff_at(building).filter(func(e: Employee) -> bool: return not e.is_training())
-
-
-## The employee at `building` who would go to training next (least experienced), or null.
-func next_trainee(building: Building) -> Employee:
-	var best: Employee = null
-	for employee in staff_at(building):
-		if not employee.is_expert() and (best == null or employee.experience() < best.experience()):
-			best = employee
-	return best
-
-
-## Why nobody at `building` can be trained right now, or "" if someone can.
-func train_problem(building: Building) -> String:
-	if staff_at(building).is_empty():
-		return "Nobody to train"
-	if staff_at(building).any(func(e: Employee) -> bool: return e.is_training()):
-		return "Training in progress"
-	if next_trainee(building) == null:
-		return "Everyone is an expert"
-	if not economy.can_afford(Employee.TRAINING_COST):
-		return "Not enough money (%s)" % Economy.format(Employee.TRAINING_COST)
-	return ""
-
-
-## Sends the least experienced employee at `building` to training (design doc §9.2).
-func train(building: Building) -> Employee:
-	if not train_problem(building).is_empty():
-		return null
-	var trainee := next_trainee(building)
-	economy.pay_construction(Employee.TRAINING_COST)
-	trainee.training_left = Employee.TRAINING_SECONDS
-	staff_changed.emit(building)
-	return trainee
-
-
-## Why nobody at `building` can be promoted right now, or "" if someone can.
-func promote_problem(building: Building) -> String:
-	var working := staff_at(building)
-	if working.any(func(e: Employee) -> bool: return e.is_supervisor):
-		return "Has a supervisor"
-	if not working.any(func(e: Employee) -> bool: return e.is_expert()):
-		return "Needs an expert"
-	return ""
-
-
-## Promotes the most experienced expert at `building` to supervisor (design doc §9.2).
-func promote(building: Building) -> Employee:
-	if not promote_problem(building).is_empty():
-		return null
-	var best: Employee = null
-	for employee in staff_at(building):
-		if employee.is_expert() and (best == null or employee.experience() > best.experience()):
-			best = employee
-	best.is_supervisor = true
-	best.salary_per_minute += Employee.SUPERVISOR_RAISE
-	_update_running_cost()
-	staff_changed.emit(building)
-	return best
-
-
-## Hires staff until every counter / lane of `building` is staffed.
-func staff_fully(building: Building) -> void:
-	while hire(building) != null:
-		pass
 
 
 ## Why a building can't go here, as a short hint for the player, or "" if it can.
@@ -653,18 +408,16 @@ func demolish_refund(building: Building) -> float:
 
 
 ## Demolishes `building`, also during operation (design doc §7.6): refunds half the build price,
-## dismisses its staff, sends its passengers elsewhere and frees the cells it needed.
+## and frees the cells it needed. Flights at it are cancelled by the schedule's next step.
 func demolish(building: Building) -> bool:
 	if not buildings.has(building):
 		return false
 	economy.refund(demolish_refund(building))
-	staff = staff.filter(func(e: Employee) -> bool: return e.workplace != building)
 	for cell in building.get_cells():
 		grid.set_content(cell, null)
 	buildings.erase(building)
 	if Building.ground_surface_of(building.type) != 0:
 		grid.set_surface_rect(building.get_rect(), 0)
-	passenger_flow.remove_building(building)
 	building_removed.emit(building)
 	layout_changed.emit()
 	return true
@@ -676,7 +429,7 @@ func demolish(building: Building) -> bool:
 func paint_walkway(cells: Array[Vector2i], walkway: bool) -> String:
 	var changing: Array[Vector2i] = []
 	for cell in cells:
-		# Walkway and taxiway never share a cell: passengers don't cross the planes' way.
+		# Walkway and taxiway never share a cell: people don't cross the planes' way.
 		if grid.is_inside(cell) and grid.is_walkway(cell) != walkway and owns_cell(cell) and not grid.is_taxiway(cell):
 			changing.append(cell)
 	if changing.is_empty():
@@ -768,9 +521,8 @@ func reset(with_runway: bool = true, new_seed: int = -1) -> void:
 	_next_building_id = 1
 	zone_map.recompute(grid, buildings)
 	area_map.recompute(grid, buildings)
-	staff.clear()
-	passenger_flow = PassengerFlow.new()
-	passenger_flow.schedule.plane_arriving.connect(plane_arriving.emit)
+	schedule = FlightSchedule.new()
+	schedule.plane_arriving.connect(plane_arriving.emit)
 	reseed(new_seed if new_seed >= 0 else int(rng.randi()))
 	economy = Economy.new()
 	reputation = Reputation.new()
@@ -805,21 +557,8 @@ func save_state() -> Dictionary:
 			"cost": building.type.build_cost,
 			"cell": [building.origin_cell.x, building.origin_cell.y],
 			"rotation": building.rotation_steps,
-			"level": building.level,
-			"upgrade_left": building.upgrade_seconds_left,
-			"fast_track": building.fast_track,
-		})
-	var saved_staff: Array[Dictionary] = []
-	for employee in staff:
-		saved_staff.append({
-			"name": employee.name,
-			"building_id": employee.workplace.id,
-			"served": employee.served,
-			"training_left": employee.training_left,
-			"supervisor": employee.is_supervisor,
 		})
 	return {
-		"staff": saved_staff,
 		"next_building_id": _next_building_id,
 		"map_size": [grid.size.x, grid.size.y],
 		"walkways": GridSave.encode(grid, AirportGrid.WALKWAY_BIT),
@@ -827,7 +566,6 @@ func save_state() -> Dictionary:
 		"money": economy.balance,
 		"over_limit": economy.over_limit_seconds,
 		"average_profit": economy.average_profit_per_minute,
-		"satisfaction": passenger_flow.satisfaction.save_state(),
 		"reputation": reputation.save_state(),
 		"airlines": airlines.save_state(),
 		"progression": progression.save_state(),
@@ -836,7 +574,7 @@ func save_state() -> Dictionary:
 		"clock_elapsed": clock.elapsed,
 		"timetable": timetable.save_state(),
 		"demand": demand.save_state(),
-		"flow": passenger_flow.save_state(),
+		"schedule": schedule.save_state(),
 		"manager": {"x": manager_position.x, "z": manager_position.z, "yaw": manager_yaw} if manager_position != NOBODY_THERE else {},
 		# As text: JSON keeps numbers as decimals, which can't hold a 64-bit dice state exactly.
 		"seed": str(game_seed),
@@ -894,9 +632,6 @@ func load_state(data: Dictionary) -> int:
 			building.id = saved_id
 			by_saved_id[saved_id] = building
 			highest_id = maxi(highest_id, saved_id)
-		building.level = clampi(int(entry.get("level", 1)), 1, type.upgrades.size() + 1)
-		building.upgrade_seconds_left = float(entry.get("upgrade_left", 0.0)) if building.next_upgrade() != null else 0.0
-		building.fast_track = bool(entry.get("fast_track", false))
 	_loading = false
 	# Buildings without a saved ID (hand-made data) get fresh ones above every saved ID.
 	_next_building_id = maxi(int(data.get("next_building_id", 1)), highest_id + 1)
@@ -913,43 +648,20 @@ func load_state(data: Dictionary) -> int:
 			load_refund += displaced.type.build_cost
 			load_refunded.append(String(displaced.type.id))
 		_loading = false
-	if data.has("staff"):
-		for entry: Dictionary in data["staff"]:
-			var workplace: Building = by_saved_id.get(int(entry.get("building_id", 0)))
-			if workplace == null or not needs_staff(workplace):
-				continue
-			var employee := Employee.new()
-			employee.name = str(entry.get("name", "Employee"))
-			employee.workplace = workplace
-			employee.salary_per_minute = SALARIES[workplace.type.role]
-			employee.training_left = float(entry.get("training_left", 0.0))
-			employee.is_supervisor = bool(entry.get("supervisor", false))
-			if employee.is_supervisor:
-				employee.salary_per_minute += Employee.SUPERVISOR_RAISE
-			var served: Dictionary = entry.get("served", {})
-			for role in served:
-				employee.served[int(role)] = int(served[role])
-			staff.append(employee)
-	else:
-		# Saves from before staff existed: every counter gets an employee, so nothing stops working.
-		for building in buildings:
-			if needs_staff(building):
-				staff_fully(building)
 	economy.balance = float(data.get("money", Economy.STARTING_MONEY))
 	economy.over_limit_seconds = float(data.get("over_limit", 0.0))
 	economy.average_profit_per_minute = float(data.get("average_profit", 0.0))
 	if load_refund > 0.0:
 		economy.refund(load_refund)
-	passenger_flow.satisfaction.load_state(data.get("satisfaction", {}))
 	reputation.load_state(data.get("reputation", {}))
 	airlines.load_state(data.get("airlines", {}))
 	walkways_changed.emit()
 	# Also recomputes the zones, after buildings and walkways are all in place.
 	layout_changed.emit()
-	# Flights and passengers on their way (saves before version 3 have none), after the layout
-	# so the stations exist.
-	if data.has("flow"):
-		passenger_flow.load_state(data["flow"], by_saved_id, shift)
+	# Flights on their way (saves before version 3 have none), after the layout so the plane
+	# network exists. Saves before 2026-11-14 kept the schedule inside the passenger flow ("flow").
+	var saved_schedule: Variant = data.get("schedule", (data.get("flow", {}) as Dictionary).get("schedule", {}) if data.get("flow") is Dictionary else {})
+	schedule.load_state(saved_schedule if saved_schedule is Dictionary else {}, by_saved_id)
 	return skipped
 
 
@@ -1031,18 +743,54 @@ func _on_layout_changed() -> void:
 	area_map.recompute(grid, buildings)
 	zones_changed.emit()
 	plane_network.rebuild(grid, buildings)
-	passenger_flow.on_layout_changed()
+	_update_usable()
 	_update_running_cost()
+
+
+# Gates and cargo terminals that can have flights: connected on every side they need (a walkway in
+# front on the right zone side, a stand behind that leads to a runway).
+func _update_usable() -> void:
+	_usable_gates.clear()
+	_usable_cargo_terminals.clear()
+	for building in buildings:
+		var role := building.type.role
+		if (role == BuildingType.Role.GATE or role == BuildingType.Role.CARGO_TERMINAL) \
+				and connection_problem(building.type, building.origin_cell, building.rotation_steps).is_empty():
+			(_usable_gates if role == BuildingType.Role.GATE else _usable_cargo_terminals).append(building)
+
+
+## Gates that can have flights right now. Cached: recalculated after layout changes (asked often).
+func usable_gates() -> Array[Building]:
+	return _usable_gates
+
+
+## Cargo terminals that can have flights right now (cached like usable_gates()).
+func usable_cargo_terminals() -> Array[Building]:
+	return _usable_cargo_terminals
+
+
+## Gates are numbered in the order they were built, starting at 1 (0 for a building that is no gate).
+func gate_number(gate: Building) -> int:
+	var number := 0
+	for building in buildings:
+		if building.type.role == BuildingType.Role.GATE:
+			number += 1
+			if building == gate:
+				return number
+	return 0
+
+
+## One line about the airport's state for the HUD (both views).
+func status_text() -> String:
+	if _usable_gates.is_empty() and _usable_cargo_terminals.is_empty():
+		return "No gate in use yet: connect a gate to a walkway, a stand and a taxiway to the runway."
+	return "Flights departed: %d" % reputation.departures
 
 
 func _update_running_cost() -> void:
 	var cost := 0.0
 	for building in buildings:
 		cost += building.running_cost_per_minute()
-	_salaries_per_minute = 0.0
-	for employee in staff:
-		_salaries_per_minute += employee.salary_per_minute
-	cost += _salaries_per_minute
 	var walkway_cells := grid.count_flag(AirportGrid.WALKWAY_BIT)
 	var taxiway_cells := grid.count_flag(AirportGrid.TAXIWAY_BIT)
 	_running_cost_per_minute = cost + walkway_cells * Economy.WALKWAY_RUNNING_COST_PER_CELL \
@@ -1118,7 +866,6 @@ func add_starting_runway() -> Array[Building]:
 				for cell in building.get_cells():
 					grid.set_content(cell, null)
 				buildings.erase(building)
-				passenger_flow.remove_building(building)
 				building_removed.emit(building)
 				removed.append(building)
 	if place_building(type, spot, 0, false) == null:

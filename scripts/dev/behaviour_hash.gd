@@ -23,7 +23,6 @@ static func compute(map_size: Vector2i = Vector2i.ZERO) -> String:
 	var previous_seed: int = Airport.game_seed
 	Airport.reseed(SEED)
 	ShowcaseAirport.build(180.0, map_size, false)
-	Airport.passenger_flow.max_passengers = Benchmark.PASSENGER_LIMIT
 	for i in STEPS:
 		Airport.step(Airport.SIM_STEP)
 	var result := hash_state(Airport.save_state())
@@ -67,11 +66,6 @@ static func _canonical_layers(state: Dictionary) -> Dictionary:
 			moved["cell"] = [int(cell[0]) - shift.x, int(cell[1]) - shift.y]
 			buildings.append(moved)
 		result["buildings"] = buildings
-	var flow: Variant = state.get("flow")
-	if flow is Dictionary and (flow as Dictionary).get("passengers") is Dictionary:
-		var moved_flow: Dictionary = (flow as Dictionary).duplicate()
-		moved_flow["passengers"] = _passengers_on_reference(moved_flow["passengers"], shift)
-		result["flow"] = moved_flow
 	return result
 
 
@@ -85,18 +79,6 @@ static func _dense_on_reference(chunks: Array, shift: Vector2i) -> PackedByteArr
 		if moved.x >= 0 and moved.y >= 0 and moved.x < reference.x and moved.y < reference.y:
 			dense[moved.y * reference.x + moved.x] = 1
 	return dense
-
-
-# The saved passengers with their path cells moved onto the reference map.
-static func _passengers_on_reference(packed: Dictionary, shift: Vector2i) -> Dictionary:
-	var reference := HASH_AREA
-	var width := int(packed.get("grid_width", reference.x))
-	if width == reference.x and shift == Vector2i.ZERO:
-		return packed
-	var records := PassengerSave.decode(packed)
-	for record in records:
-		record["path"] = PassengerSave.remap_path(record["path"], width, reference, -shift)
-	return PassengerSave.encode(records, reference.x)
 
 
 static func _strip(value: Variant) -> Variant:

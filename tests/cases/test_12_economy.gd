@@ -68,26 +68,22 @@ func test_running_costs() -> void:
 	Airport.place_building(type_of(&"check_in"), at(Vector2i(10, 10)), 0)
 	var after_building := Airport.economy.balance
 	check_eq(Airport.running_cost_per_minute(), 6.0, "one check-in building costs €6 per minute")
-	Airport.hire(Airport.buildings[0])
-	check_eq(Airport.running_cost_per_minute(), 14.0, "plus €8 salary for one agent")
 	sim_seconds(60)
-	check(is_equal_approx(Airport.economy.balance, after_building - 14.0), "one minute later €14 less: %s" % Airport.economy.balance)
-	check(is_equal_approx(Airport.economy.profit_per_minute(), -14.0), "profit per minute -€14: %s" % Airport.economy.profit_per_minute())
+	check(is_equal_approx(Airport.economy.balance, after_building - 6.0), "one minute later €6 less: %s" % Airport.economy.balance)
+	check(is_equal_approx(Airport.economy.profit_per_minute(), -6.0), "profit per minute -€6: %s" % Airport.economy.profit_per_minute())
 
 
 func test_flights_earn_money() -> void:
 	ShowcaseAirport.build(0.0)
-	var flight := first_flight()
-	# Just before the doors close, then just after: the difference is the fees minus 0.4 s of costs.
-	sim_seconds(flight.departure_time - Airport.passenger_flow.time - 0.2)
+	var flight := first_flight(1)
+	# Just before the doors close, then just after: the difference is the fee minus 0.4 s of costs.
+	sim_seconds(flight.departure_time - Airport.sim_time - 0.2)
 	var before := Airport.economy.balance
 	var running := Airport.running_cost_per_minute()
 	sim_seconds(0.4)
 	check(flight.phase == Flight.Phase.DEPARTING, "doors closed")
-	var expected := before + flight.boarded * flight.fee_per_passenger + Economy.FLIGHT_FEE - running * 0.4 / 60.0
-	# An arriving passenger leaving (€5) or a shop customer may pay in the same moment.
-	var other_income := Airport.economy.balance - expected
-	check(other_income > -0.5 and other_income < 30.0, "fees for %d passengers + flight: %s vs %s" % [flight.boarded, Airport.economy.balance, expected])
+	var expected := before + Economy.FLIGHT_FEE - running * 0.4 / 60.0
+	check(is_equal_approx(Airport.economy.balance, expected), "the flight fee: %s vs %s" % [Airport.economy.balance, expected])
 
 
 func test_showcase_makes_a_profit() -> void:

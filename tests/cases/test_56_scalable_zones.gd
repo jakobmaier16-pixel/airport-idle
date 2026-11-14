@@ -1,9 +1,9 @@
 extends TestCase
 ## ZoneMap and AreaMap cost follows the used cells (walkways, taxiways, buildings), not the map size.
 
-# Showcase results of the zone and area maps, re-recorded for the real-scale showcase (PR 6B, 2026-11-14; they were the old dense implementation's results before). They change only when the showcase layout does.
-const SHOWCASE_ZONE_HASH := "a6a620b1ebe4effd86049361be24f9d8e302690dfe90b2060be11d87159826ad"
-const SHOWCASE_AREA_HASH := "bafa0d0fbde6310743536667272fbfd38796c1bbcd2623c28de4fa55da74513a"
+# Showcase results of the zone and area maps, re-recorded for the real-scale showcase (PR 6B, 2026-11-14; they were the old dense implementation's results before). Re-recorded again by the strip-to-core PR 1 (the showcase lost its shops, lounge, baggage claim and transfer corridor). They change only when the showcase layout does.
+const SHOWCASE_ZONE_HASH := "a0dd6197531d72ef43cb07f63e8a0f6bb3da8a91a8fbc743971a55391da2457f"
+const SHOWCASE_AREA_HASH := "4a7ad156d09ee164b2afd4dbec430bbe2426207db663ba21d1c0fbf20fef4a40"
 const BIG := Vector2i(2200, 1600)
 # The part of the map the zone hashes cover: the real-scale showcase, in reference-map cells (128 x 128).
 const SHOWCASE_AREA := Vector2i(128, 128)

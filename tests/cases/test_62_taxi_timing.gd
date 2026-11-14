@@ -175,11 +175,11 @@ func test_routes_are_made_by_the_rebuild_not_lazily() -> void:
 
 func test_gate_choice_prefers_the_shortest_route_then_the_lowest_id() -> void:
 	ShowcaseAirport.build(0.0)
-	var schedule := Airport.passenger_flow.schedule
-	var gates := Airport.passenger_flow.usable_gates()
+	var schedule := Airport.schedule
+	var gates := Airport.usable_gates()
 	var slot := TimetableSlot.new()
 	slot.plane_class = TimetableSlot.PlaneClass.NARROW
-	slot.departure_time = Airport.passenger_flow.time + 1000.0
+	slot.departure_time = Airport.sim_time + 1000.0
 	var best: Building = null
 	var best_time := INF
 	for gate in gates:
@@ -197,7 +197,7 @@ func test_gate_choice_prefers_the_shortest_route_then_the_lowest_id() -> void:
 
 func test_planning_windows_cover_the_longest_taxi() -> void:
 	ShowcaseAirport.build(0.0)
-	var schedule := Airport.passenger_flow.schedule
+	var schedule := Airport.schedule
 	check(schedule.fill_window() >= schedule.longest_lead() + FlightSchedule.APPROACH_TIME, "a flight exists before its plane has to land")
 	check(schedule.fill_window() >= FlightSchedule.ARRIVALS_START, "and before its passengers arrive")
 	check(schedule.first_departure_delay() > schedule.fill_window(), "slots are planned beyond that window")
@@ -207,7 +207,7 @@ func test_planning_windows_cover_the_longest_taxi() -> void:
 func test_a_day_on_the_showcase() -> void:
 	Airport.reseed(Benchmark.SEED)
 	ShowcaseAirport.build(180.0)
-	var schedule := Airport.passenger_flow.schedule
+	var schedule := Airport.schedule
 	var built_before := Airport.plane_network.routes_built
 	var checked: Dictionary[Flight, bool] = {}
 	# Flights made during the warm-up were checked when they were made (they are older than the loop).
@@ -221,7 +221,7 @@ func test_a_day_on_the_showcase() -> void:
 	var steps := int(5760.0 / Airport.SIM_STEP)  # one game day
 	for i in steps:
 		Airport.step(Airport.SIM_STEP)
-		var now := Airport.passenger_flow.time
+		var now := Airport.sim_time
 		for flight in schedule.flights:
 			if not checked.has(flight):
 				checked[flight] = true
@@ -264,7 +264,7 @@ func test_a_day_on_the_showcase() -> void:
 
 func test_removing_the_taxiway_cancels_cleanly_and_laying_it_again_resumes() -> void:
 	ShowcaseAirport.build(0.0)
-	var schedule := Airport.passenger_flow.schedule
+	var schedule := Airport.schedule
 	check(first_flight(0, 2400.0) != null, "a flight is planned")
 	sim_seconds(60.0)
 	# Cut the parallel taxiway while planes are about.
@@ -274,7 +274,7 @@ func test_removing_the_taxiway_cancels_cleanly_and_laying_it_again_resumes() -> 
 		check(Airport.plane_network.route_to_stand(stand) == null, "no route to stand %d" % stand.id)
 	sim_seconds(30.0)
 	check(not schedule.flights.any(func(f: Flight) -> bool: return f.is_active() and f.phase != Flight.Phase.SCHEDULED), "nothing flies to unreachable stands")
-	check_eq(Airport.passenger_flow.usable_gates().size(), 0, "no gate gets flights")
+	check_eq(Airport.usable_gates().size(), 0, "no gate gets flights")
 	var built := Airport.plane_network.routes_built
 	sim_seconds(300.0)
 	check_eq(Airport.plane_network.routes_built, built, "and the simulation makes no routes meanwhile")
@@ -336,7 +336,7 @@ func test_rebuild_time_of_a_big_airport() -> void:
 
 func test_takeoff_start_is_saved_and_old_saves_still_load() -> void:
 	ShowcaseAirport.build(0.0)
-	var schedule := Airport.passenger_flow.schedule
+	var schedule := Airport.schedule
 	var flight: Flight = null
 	for i in 20000:
 		Airport.step(Airport.SIM_STEP)
@@ -353,7 +353,7 @@ func test_takeoff_start_is_saved_and_old_saves_still_load() -> void:
 	var data := JSON.parse_string(JSON.stringify(Airport.save_state())) as Dictionary
 	Airport.load_state(data)
 	var restored: Flight = null
-	for candidate in Airport.passenger_flow.schedule.flights:
+	for candidate in Airport.schedule.flights:
 		if candidate.number == number:
 			restored = candidate
 	check(restored != null and restored.takeoff_booked, "the flight is back, with its take-off booked")
@@ -363,7 +363,7 @@ func test_takeoff_start_is_saved_and_old_saves_still_load() -> void:
 		var entry := {"scheduled": true, "number": "XX 1", "gate": restored.gate.id, "stand": restored.stand.id,
 			"departure_time": 500.0, "takeoff_booked": true, "phase": int(Flight.Phase.DEPARTING)}
 		var by_id: Dictionary[int, Building] = {restored.gate.id: restored.gate, restored.stand.id: restored.stand}
-		var old := Airport.passenger_flow.schedule._load_flight(entry, restored.gate, by_id)
+		var old := Airport.schedule._load_flight(entry, restored.gate, by_id)
 		check(old.takeoff_at >= 500.0, "an old save's take-off start is made up from its times (%.1f)" % old.takeoff_at)
 
 
@@ -373,14 +373,14 @@ func test_plane_follows_its_route_at_taxi_speed() -> void:
 	ShowcaseAirport.build(0.0)
 	await start_game()
 	var layer := main.get_node("Planes") as PlaneLayer
-	var schedule := Airport.passenger_flow.schedule
+	var schedule := Airport.schedule
 	var flight: Flight = null
 	for i in 6000:
 		Airport.step(Airport.SIM_STEP)
 		for candidate in schedule.flights:
 			var route := schedule.route_of(candidate)
 			if candidate.phase == Flight.Phase.ARRIVING and route != null \
-					and candidate.departs_at() - Airport.passenger_flow.time + candidate.arrival_delay < FlightSchedule.lead_of(route) - route.roll_in_time - 2.0:
+					and candidate.departs_at() - Airport.sim_time + candidate.arrival_delay < FlightSchedule.lead_of(route) - route.roll_in_time - 2.0:
 				flight = candidate
 		if flight != null:
 			break
@@ -388,7 +388,7 @@ func test_plane_follows_its_route_at_taxi_speed() -> void:
 	if flight == null:
 		return
 	var route := schedule.route_of(flight)
-	var now := Airport.passenger_flow.time
+	var now := Airport.sim_time
 	var previous := (layer._pose(flight, now) as Transform3D).origin
 	var moved := 0.0
 	var fastest := 0.0
@@ -445,7 +445,7 @@ func _link_far_stand() -> void:
 func test_a_far_stand_built_mid_day_still_gets_its_planes_down_in_time() -> void:
 	Airport.reseed(Benchmark.SEED)
 	ShowcaseAirport.build(0.0)
-	var schedule := Airport.passenger_flow.schedule
+	var schedule := Airport.schedule
 	sim_seconds(1500.0)
 	_build_far_stand()
 	var lead_before := schedule.longest_lead()
@@ -460,11 +460,11 @@ func test_a_far_stand_built_mid_day_still_gets_its_planes_down_in_time() -> void
 	check(schedule.longest_lead() > lead_before + 5.0, "it needs a longer lead: %.0f s -> %.0f s" % [lead_before, schedule.longest_lead()])
 	# A slot that is already planned, closer than the far plane's lead: only the far gate is free, but
 	# its plane could not land in time, so it must not get the flight.
-	var now := Airport.passenger_flow.time
+	var now := Airport.sim_time
 	var slot := TimetableSlot.new()
 	slot.plane_class = TimetableSlot.PlaneClass.NARROW
 	slot.departure_time = now + FlightSchedule.lead_of(route) + FlightSchedule.APPROACH_TIME - 5.0
-	var gates := Airport.passenger_flow.usable_gates()
+	var gates := Airport.usable_gates()
 	check(gates.has(gate), "the far gate is usable")
 	for other in gates:
 		if other != gate:
@@ -479,7 +479,7 @@ func test_a_far_stand_built_mid_day_still_gets_its_planes_down_in_time() -> void
 	var used_far := 0
 	for i in int(2400.0 / Airport.SIM_STEP):
 		Airport.step(Airport.SIM_STEP)
-		var t := Airport.passenger_flow.time
+		var t := Airport.sim_time
 		for flight in schedule.flights:
 			if seen.has(flight):
 				continue
@@ -515,8 +515,8 @@ func test_takeoff_start_of_an_old_save_uses_the_real_taxi_time() -> void:
 	entry["takeoff_booked"] = true
 	entry["phase"] = int(Flight.Phase.DEPARTING)
 	entry.erase("takeoff_at")
-	check_eq(Airport.load_state(saved), 0, "the save loads")
-	var flight: Flight = Airport.passenger_flow.schedule.flights.filter(func(f: Flight) -> bool: return f.number == str(entry["number"]))[0]
-	var route := Airport.passenger_flow.schedule.route_of(flight)
+	check_eq(Airport.load_state(saved), REMOVED_TYPES.size(), "the save loads (but for the removed types)")
+	var flight: Flight = Airport.schedule.flights.filter(func(f: Flight) -> bool: return f.number == str(entry["number"]))[0]
+	var route := Airport.schedule.route_of(flight)
 	check(route != null and route.taxi_out_time > 5.0, "its stand has a real route after loading")
 	check_eq(flight.takeoff_at, flight.departs_at() + route.taxi_out_time, "the start is the push-back plus the real taxi out time")

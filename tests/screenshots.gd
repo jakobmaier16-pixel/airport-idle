@@ -55,7 +55,6 @@ func _ready() -> void:
 	await _shot("stats_money")
 	hud().show_stats_tab(Hud.StatsTab.AIRLINES)
 	await _shot("stats_airlines")
-	hud().show_stats_tab(Hud.StatsTab.STATIONS)
 	hud().hide_stats()
 
 	hud().show_airlines()
@@ -76,9 +75,9 @@ func _ready() -> void:
 	await show_whole_map()
 	# A plane taxiing in from the runway, and one taking off (design doc §7.5a).
 	for i in 3000:
-		var taxiing := Airport.passenger_flow.schedule.flights.any(func(f: Flight) -> bool:
-			var left := f.departs_at() - Airport.passenger_flow.time
-			var route := Airport.passenger_flow.schedule.route_of(f)
+		var taxiing := Airport.schedule.flights.any(func(f: Flight) -> bool:
+			var left := f.departs_at() - Airport.sim_time
+			var route := Airport.schedule.route_of(f)
 			return f.phase == Flight.Phase.ARRIVING and route != null \
 				and left < FlightSchedule.lead_of(route) - route.roll_in_time - 3.0)
 		if taxiing:
@@ -87,8 +86,8 @@ func _ready() -> void:
 	build_camera().center_on(Airport.grid.cell_to_world(at(Vector2i(32, 52))))
 	await _shot("plane_taxiing")
 	for i in 3000:
-		var leaving := Airport.passenger_flow.schedule.flights.any(func(f: Flight) -> bool:
-			return f.phase == Flight.Phase.DEPARTING and Airport.passenger_flow.time - f.departs_at() > 11.0)
+		var leaving := Airport.schedule.flights.any(func(f: Flight) -> bool:
+			return f.phase == Flight.Phase.DEPARTING and Airport.sim_time - f.departs_at() > 11.0)
 		if leaving:
 			break
 		Airport.step(Airport.SIM_STEP)
@@ -110,10 +109,10 @@ func _ready() -> void:
 	await _shot("placing_invalid")
 	await press(ui("ToolPanel/ToolBar/CancelButton"))
 
-	# Demolish tool with the shop selected.
+	# Demolish tool with a check-in selected.
 	await press(ui("BuildMenu/PaintButtons/DemolishToolButton"))
-	var shop: Building = Airport.buildings.filter(func(b: Building) -> bool: return b.type.role == BuildingType.Role.SHOP)[0]
-	tap(screen_of_cell(shop.origin_cell + Vector2i(1, 1)))
+	var check_in: Building = Airport.buildings.filter(func(b: Building) -> bool: return b.type.role == BuildingType.Role.CHECK_IN)[0]
+	tap(screen_of_cell(check_in.origin_cell + Vector2i(1, 1)))
 	await _shot("demolish_selected")
 	get_tree().quit()
 

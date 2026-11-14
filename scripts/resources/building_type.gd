@@ -12,15 +12,16 @@ enum ZoneRule {
 	ANY, ## Landside or airside (e.g. cafés exist on both sides).
 }
 
-## What a side of the building must touch for passengers to get in or out (design doc §7.1b).
+## What a side of the building must touch to count as connected (design doc §7.1b).
 enum Access {
-	NONE, ## Passengers don't use this side.
+	NONE, ## Nothing is needed on this side.
 	WALKWAY, ## Needs at least one free walkway cell along this side.
 	STAND, ## Needs an aircraft stand along this side (gate to aircraft).
 }
 
-## What the building does in the passenger flow (design doc §8.4).
-## New roles go at the end: saves and .tres files store the number.
+## What the building is for. New roles go at the end: .tres files store the number.
+## SHOP, BAGGAGE_CLAIM, TRANSFER_SECURITY and LOUNGE are unused since 2026-11-14 (docs/removed_features.md);
+## their numbers stay so the others never move.
 enum Role { NONE, ENTRANCE, CHECK_IN, SECURITY, GATE, AIRCRAFT_STAND, SHOP, BAGGAGE_CLAIM, TRANSFER_SECURITY, CAR_PARK, LOUNGE, RUNWAY, CARGO_TERMINAL }
 
 ## How big a plane a stand takes, by wingspan (TimetableSlot.WINGSPAN_M).
@@ -30,7 +31,7 @@ enum StandClass { NARROW, WIDE }
 @export var id: StringName
 ## Name shown in the build menu.
 @export var display_name: String
-## Build menu category, e.g. "Terminal", "Airside", "Shops".
+## Build menu category, e.g. "Terminal", "Airside", "Landside".
 @export var category: String = "Terminal"
 ## Second menu level inside a category (landside pieces: "Roads", "Curb", ...); "" = directly in the category.
 @export var sub_category: String = ""
@@ -54,28 +55,6 @@ enum StandClass { NARROW, WIDE }
 @export var build_cost: float = 0.0
 ## Staff, maintenance and utilities in euros per minute.
 @export var running_cost_per_minute: float = 0.0
-
-@export_group("Passenger service")
-## Passengers served at the same time (counters, lanes). 0 = no service.
-@export var service_slots: int = 0
-## Average seconds to serve one passenger (compressed game time).
-@export var service_time: float = 0.0
-
-@export_group("Shop")
-## Customers inside at the same time (shops and cafés, design doc §8.6).
-@export var customer_capacity: int = 0
-## Seconds a customer stays inside (random between min and max).
-@export var visit_seconds_min: float = 0.0
-@export var visit_seconds_max: float = 0.0
-## What a customer spends in euros (random between min and max); the airport earns a share.
-@export var spend_min: float = 0.0
-@export var spend_max: float = 0.0
-## Run by the airport itself (lounge): the airport keeps the whole amount, a fixed price.
-@export var airport_run: bool = false
-
-@export_group("Upgrades")
-## Upgrade levels in order (design doc §7.8). Empty = the station can't be upgraded.
-@export var upgrades: Array[StationUpgrade] = []
 
 @export_group("Landside piece visuals")
 ## The 3D model of a landside piece (.glb with `<piece>`, `<piece>_markings` and `<piece>_lodfar`).

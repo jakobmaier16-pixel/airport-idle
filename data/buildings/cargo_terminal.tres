@@ -1,13 +1,6 @@
 [gd_resource type="Resource" script_class="BuildingType" format=3]
 
 [ext_resource type="Script" path="res://scripts/resources/building_type.gd" id="1_type"]
-[ext_resource type="Script" path="res://scripts/resources/station_upgrade.gd" id="2_upgrade"]
-
-[sub_resource type="Resource" id="Upgrade_handlers"]
-script = ExtResource("2_upgrade")
-title = "+2 handler places"
-cost = 5000.0
-extra_slots = 2
 
 [resource]
 script = ExtResource("1_type")
@@ -23,7 +16,5 @@ role = 12
 unlocked_at = 1
 build_cost = 12000.0
 running_cost_per_minute = 15.0
-service_slots = 4
-upgrades = [SubResource("Upgrade_handlers")]
 color = Color(0.62, 0.55, 0.42, 1)
 height = 4.0

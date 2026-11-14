@@ -116,8 +116,8 @@ func _refresh() -> void:
 
 func _update_list() -> void:
 	var airlines := Airport.airlines
-	var gates := Airport.passenger_flow.usable_gates().size()
-	var terminals := Airport.passenger_flow.usable_cargo_terminals().size()
+	var gates := Airport.usable_gates().size()
+	var terminals := Airport.usable_cargo_terminals().size()
 	var cargo := 0
 	for airline in airlines.signed:
 		if airline.type.cargo:

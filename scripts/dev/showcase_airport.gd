@@ -21,8 +21,8 @@ static func build(warm_up_seconds: float = 180.0, map_size: Vector2i = Vector2i.
 	# Build on an unlimited test budget, so nothing in the showcase fails for lack of money.
 	# The player gets the normal starting money at the end.
 	Airport.economy.balance = 1.0e9
-	# An International airport (design doc §14.1): the whole map, transfer security and long-haul
-	# flights are unlocked, and it is on its way to Hub.
+	# An International airport (design doc §14.1): the whole map and long-haul flights are
+	# unlocked, and it is on its way to Hub.
 	Airport.progression.tier = Progression.Tier.INTERNATIONAL
 	Airport.progression.passengers = 15000
 	Airport.progression.transfers = 400
@@ -35,7 +35,7 @@ static func build(warm_up_seconds: float = 180.0, map_size: Vector2i = Vector2i.
 	Airport.paint_walkway(_cells(Vector2i(18, 21), Vector2i(28, 7)), true)
 	Airport.paint_walkway(_cells(Vector2i(6, 31), Vector2i(82, 3)), true)
 
-	# Passenger route: Entrance -> Check-in -> Security -> Gate -> Stand (flights use both gates).
+	# Terminal: Entrance -> Check-in -> Security -> Gate -> Stand (flights use the gates).
 	Airport.place_building(catalog.find(&"entrance"), _at(Vector2i(30, 19)), 0)
 	Airport.place_building(catalog.find(&"check_in"), _at(Vector2i(20, 22)), 2)
 	Airport.place_building(catalog.find(&"check_in"), _at(Vector2i(39, 22)), 2)
@@ -57,20 +57,7 @@ static func build(warm_up_seconds: float = 180.0, map_size: Vector2i = Vector2i.
 	Airport.paint_taxiway(_cells(Vector2i(71, 62), Vector2i(2, 17)), true)
 	Airport.paint_taxiway(_cells(Vector2i(93, 66), Vector2i(2, 13)), true)
 
-	# Arrivals: baggage claim on the border next to security, out into the landside hall (§8.8).
-	Airport.place_building(catalog.find(&"baggage_claim"), _at(Vector2i(37, 27)), 0)
-
-	# Transfers (§8.9): transfer security beside gate 2; a small corridor loop leads from its back
-	# exit (row 37) round to the gates' walkway again.
-	Airport.paint_walkway(_cells(Vector2i(47, 34), Vector2i(7, 4)), true)
-	Airport.place_building(catalog.find(&"transfer_security"), _at(Vector2i(47, 34)), 0)
-
-	# Airside shopping between the gates (design doc §8.6).
-	Airport.place_building(catalog.find(&"shop"), _at(Vector2i(22, 34)), 0)
-	Airport.place_building(catalog.find(&"cafe"), _at(Vector2i(33, 34)), 0)
-	# Lounge for business travellers next to the café, a car park beside the landside hall, and
-	# a fast track at security (design doc §11.8).
-	Airport.place_building(catalog.find(&"lounge"), _at(Vector2i(37, 34)), 0)
+	# A car park beside the landside hall.
 	Airport.place_building(catalog.find(&"car_park"), _at(Vector2i(46, 21)), 3)
 
 	# Landside pieces (design doc §4): roads, curb, car park, sidewalks and props. Decorative only.
@@ -78,13 +65,6 @@ static func build(warm_up_seconds: float = 180.0, map_size: Vector2i = Vector2i.
 		ShowcaseLandside.build()
 
 	Airport.end_batch()
-
-	# Station upgrades (design doc §7.8): security fully upgraded (3 lanes, faster scanners) for
-	# the morning rush.
-	Airport.start_upgrade(_first(BuildingType.Role.SECURITY))
-	_first(BuildingType.Role.SECURITY).upgrade_seconds_left = 0.0
-	_first(BuildingType.Role.SECURITY).level = 3
-	Airport.buy_fast_track(_first(BuildingType.Role.SECURITY))
 
 	# Airlines (§10.1): the starter deal, two more and a long-haul airline, together as many
 	# flights as the three gates can take (60 per hour), and an open offer to negotiate.
@@ -99,12 +79,6 @@ static func build(warm_up_seconds: float = 180.0, map_size: Vector2i = Vector2i.
 	airlines.signed[1].contract_left = Airlines.RENEWAL_NOTICE + 300.0
 	airlines.offers.append(AirlineOffer.new(Airlines.CATALOG.find(&"sunkiss"), 10, 13.0))
 
-	# Staff for every counter and lane, with a mix of new and experienced employees (§9.1).
-	for building in Airport.buildings:
-		Airport.staff_fully(building)
-	for employee in Airport.staff:
-		employee.served[employee.workplace.type.role] = Airport.rng.randi() % 200
-
 	# The showcase is a test fixture: start with fresh money, as if it had been there all along.
 	Airport.economy = Economy.new()
 	# The morning rush has just started when the player looks (after the warm-up: about 08:00).
@@ -113,16 +87,12 @@ static func build(warm_up_seconds: float = 180.0, map_size: Vector2i = Vector2i.
 		# The timetable's first slot opens its flight a little after the start: wait for it, so
 		# the warm-up always shows a first flight on its way (at most about 10 game hours).
 		for i in int(2400.0 / Airport.SIM_STEP):
-			if not Airport.passenger_flow.schedule.flights.is_empty():
+			if not Airport.schedule.flights.is_empty():
 				break
 			Airport.step(Airport.SIM_STEP)
 	for i in int(warm_up_seconds / Airport.SIM_STEP):
 		Airport.step(Airport.SIM_STEP)
 
-	# A big upgrade under construction right when the player looks (check-in to level 3).
-	var check_in := _first(BuildingType.Role.CHECK_IN)
-	check_in.level = 2
-	Airport.start_upgrade(check_in)
 	Airport.economy.balance = Economy.STARTING_MONEY
 
 

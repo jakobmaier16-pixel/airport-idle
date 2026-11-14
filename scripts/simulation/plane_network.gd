@@ -10,7 +10,7 @@ const TOUCHDOWN_ZONE_M: float = 300.0
 const LIFTOFF_MARGIN_M: float = 100.0
 
 var _grid: AirportGrid
-# Sparse, like WalkwayNetwork: one AStar2D (point id = y * map width + x) with only the paved cells,
+# Sparse: one AStar2D (point id = y * map width + x) with only the paved cells,
 # linked the way AStarGrid2D (no diagonals) visits neighbours, so paths and ties are unchanged.
 var _paths: AStar2D = AStar2D.new()
 # Connected-area id by cell id; a cell without an entry is not paved for planes.

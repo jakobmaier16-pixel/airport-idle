@@ -11,7 +11,7 @@ const NIGHT_HOURS: Array[int] = [21, 22, 23]
 
 # The game hour a real-seconds time falls in.
 func _hour_of(time: float) -> int:
-	return int(Airport.clock.hour_at(time - Airport.passenger_flow.time))
+	return int(Airport.clock.hour_at(time - Airport.sim_time))
 
 
 # Plans tomorrow: the clock is at 23:00 of day 1, so day 2 is made whole. Returns day 2's slots.
@@ -48,7 +48,7 @@ func test_a_new_airport_plans_today() -> void:
 	check(Airport.timetable.generated_days.has(1), "day 1 is planned on the first step")
 	var pending := Airport.timetable.pending()
 	check(pending.size() > 10, "slots for the rest of the day: %d" % pending.size())
-	var now := Airport.passenger_flow.time
+	var now := Airport.sim_time
 	check(pending.all(func(s: TimetableSlot) -> bool: return s.departure_time >= now + FlightSchedule.FIRST_DEPARTURE_DELAY - 0.2), "none of them has already begun")
 	for i in range(1, pending.size()):
 		check(pending[i - 1].departure_time <= pending[i].departure_time, "in departure order")
@@ -69,10 +69,6 @@ func test_a_day_follows_the_demand_curve() -> void:
 	check(_sum(counts, [0, 1, 2, 3, 4]) > 0, "a hub plans night flights too: %s" % [counts])
 	for slot in slots:
 		check(slot.state == TimetableSlot.State.PENDING, "planned, not yet flown")
-		match slot.plane_class:
-			TimetableSlot.PlaneClass.NARROW: check_eq(slot.seats, FlightSchedule.SEATS, "narrow-body seats")
-			TimetableSlot.PlaneClass.WIDE: check_eq(slot.seats, FlightSchedule.SEATS * 2, "wide-body seats")
-			TimetableSlot.PlaneClass.CARGO: check_eq(slot.seats, 0, "freighters carry freight")
 
 
 func test_no_slots_in_curfew_hours() -> void:
@@ -114,7 +110,7 @@ func test_a_full_day_of_flights() -> void:
 	var all: Array[Flight] = []
 	for i in int(5760.0 / Airport.SIM_STEP):  # one game day
 		Airport.step(Airport.SIM_STEP)
-		for flight in Airport.passenger_flow.schedule.flights:
+		for flight in Airport.schedule.flights:
 			if not seen.has(flight):
 				seen[flight] = true
 				all.append(flight)
@@ -131,8 +127,6 @@ func test_a_full_day_of_flights() -> void:
 		check_eq(by_hour[hour], 0, "no flight departs in curfew hour %d" % hour)
 	for flight in all:
 		check(not Airport.timetable.in_curfew(flight.departure_time), "%s is outside the curfew" % flight.number)
-		check(flight.booked <= flight.seats, "%s: bookings %d within %d seats" % [flight.number, flight.booked, flight.seats])
-		check(flight.boarded <= flight.seats, "%s: boarded %d within %d seats" % [flight.number, flight.boarded, flight.seats])
 	var slots := Airport.timetable.slots
 	var filled := slots.filter(func(s: TimetableSlot) -> bool: return s.state == TimetableSlot.State.FILLED).size()
 	check(filled > 25, "filled slots: %d" % filled)
@@ -142,7 +136,7 @@ func test_a_dropped_slot_is_not_flown() -> void:
 	# No gate at all: every slot that comes up is dropped, and no flight appears.
 	Airport.progression.tier = Progression.Tier.HUB
 	sim_seconds(900.0)
-	check(Airport.passenger_flow.schedule.flights.is_empty(), "nothing flies without a gate")
+	check(Airport.schedule.flights.is_empty(), "nothing flies without a gate")
 	var dropped := Airport.timetable.slots.filter(func(s: TimetableSlot) -> bool: return s.state == TimetableSlot.State.DROPPED)
 	check(dropped.size() > 3, "the slots that came up were dropped: %d" % dropped.size())
 
@@ -198,7 +192,7 @@ func test_example_v8_loads() -> void:
 	check_eq(loaded.timetable.slots.size(), (saved["timetable"]["slots"] as Array).size(), "its slots are back")
 	for i in int(60.0 / AirportWorld.SIM_STEP):
 		loaded.step(AirportWorld.SIM_STEP)
-	check(loaded.passenger_flow.passengers.size() > 0, "it keeps running")
+	check(loaded.sim_time > 0.0, "it keeps running")
 	loaded.dispose()
 
 

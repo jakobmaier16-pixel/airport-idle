@@ -1,5 +1,5 @@
 extends TestCase
-## Cargo: terminal, handlers, freighters, cargo airlines (design doc §10.3).
+## Cargo: terminal, freighters, cargo airlines (design doc §10.3).
 
 
 func _terminal() -> Building:
@@ -13,7 +13,7 @@ func _flights_seen(seconds: float) -> Array[Flight]:
 	var seen: Array[Flight] = []
 	for i in int(seconds / Airport.SIM_STEP):
 		Airport.step(Airport.SIM_STEP)
-		for flight in Airport.passenger_flow.schedule.flights:
+		for flight in Airport.schedule.flights:
 			if not seen.has(flight):
 				seen.append(flight)
 	return seen
@@ -26,8 +26,6 @@ func test_terminal_rules() -> void:
 	var terminal := Airport.place_building(type, at(Vector2i(20, 35)), 0)
 	check(terminal != null, "built")
 	check_eq(Airport.connection_problem(type, terminal.origin_cell, 0), "Needs an aircraft stand behind", "needs a stand")
-	check(Airport.needs_staff(terminal), "needs handlers")
-	check_eq(Airport.hire(terminal).salary_per_minute, 9.0, "€9 per minute")
 
 
 func test_freighters_fly_from_the_cargo_terminal() -> void:
@@ -41,8 +39,6 @@ func test_freighters_fly_from_the_cargo_terminal() -> void:
 		if flight.cargo:
 			freighters += 1
 			check(flight.gate == terminal, "freighters only at the cargo terminal")
-			check_eq(flight.booked, 0, "no passengers")
-			check(flight.inbound_types.is_empty(), "nobody on board")
 	check(freighters >= 2, "freighters came: %d" % freighters)
 
 
@@ -60,41 +56,18 @@ func test_cargo_pays_per_tonne() -> void:
 
 func test_handlers_load_the_freight() -> void:
 	ShowcaseAirport.build(0.0)
-	var terminal := _terminal()
 	var done: Array[Flight] = []
 	for i in 40000:  # up to a game day: until a freighter has left
 		Airport.step(Airport.SIM_STEP)
-		for flight in Airport.passenger_flow.schedule.flights:
+		for flight in Airport.schedule.flights:
 			if flight.cargo and flight.phase == Flight.Phase.DEPARTING and not done.has(flight):
 				done.append(flight)
 		if not done.is_empty():
 			break
 	check(not done.is_empty(), "a freighter left")
 	for flight in done:
-		check(is_equal_approx(flight.tonnes_handled, flight.tonnes), "all %d t loaded with four handlers" % roundi(flight.tonnes))
+		check(is_equal_approx(flight.tonnes_handled, flight.tonnes), "all %d t loaded" % roundi(flight.tonnes))
 		check(flight.airport_delay() < 1.0, "on time")
-	var handler: Employee = Airport.staff_at(terminal)[0]
-	check(handler.served.get(BuildingType.Role.CARGO_TERMINAL, 0) > 0, "handlers gain experience")
-
-
-func test_too_few_handlers_delay_the_freighter() -> void:
-	ShowcaseAirport.build(0.0)
-	var terminal := _terminal()
-	while Airport.staff_at(terminal).size() > 1:
-		Airport.dismiss(terminal)
-	Airport.staff_at(terminal)[0].served.clear()  # a new handler: slow
-	var late: Flight = null
-	for i in 40000:  # up to a game day
-		Airport.step(Airport.SIM_STEP)
-		for flight in Airport.passenger_flow.schedule.flights:
-			if flight.cargo and flight.phase == Flight.Phase.DEPARTING:
-				late = flight
-		if late != null:
-			break
-	check(late != null, "a freighter left")
-	if late != null:
-		check(late.airport_delay() > 5.0, "it waited for its freight: %.0f s" % late.airport_delay())
-		check(late.airport_delay() <= FlightSchedule.CARGO_MAX_HOLD + 0.2, "but not longer than a minute")
 
 
 func test_cargo_airlines_need_a_terminal() -> void:
@@ -111,25 +84,3 @@ func test_cargo_airlines_need_a_terminal() -> void:
 			seen_cargo = seen_cargo or offer.type.cargo
 			airlines.offers.erase(offer)
 	check(seen_cargo, "with one, cargo airlines make offers")
-
-
-func test_no_transfers_onto_freighters() -> void:
-	ShowcaseAirport.build(0.0)
-	var flow := Airport.passenger_flow
-	flow.transfer_share_override = 1.0
-	var inbound: Flight = first_flight_with_connection()  # there is something to connect to
-	check(inbound != null, "a flight with a connection is planned")
-	if inbound == null:
-		return
-	for i in 300:
-		var connection := flow._connecting_flight(inbound)
-		check(connection == null or not connection.cargo, "passengers never connect to a freighter")
-
-
-func test_panel_shows_handling() -> void:
-	ShowcaseAirport.build(0.0)
-	await start_game()
-	hud().show_station(_terminal())
-	await frames(1)
-	var info := (ui("StationPanel/Content/InfoLabel") as Label).text
-	check(info.contains("Handling:") and info.contains("handler places"), "panel: '%s'" % info)

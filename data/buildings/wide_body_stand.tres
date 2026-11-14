@@ -17,7 +17,5 @@ stand_class = 1
 unlocked_at = 2
 build_cost = 60000.0
 running_cost_per_minute = 70.0
-service_slots = 0
-service_time = 0.0
 color = Color(0.27, 0.28, 0.32, 1)
 height = 0.05

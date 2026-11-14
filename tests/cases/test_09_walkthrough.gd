@@ -1,9 +1,9 @@
 extends TestCase
 ## End-to-end walkthrough: builds a complete airport only through the touch UI, like a player,
-## then checks that passengers flow and depart. If this passes, the core loop works.
+## then checks that planes land, taxi to their stands and depart. If this passes, the core loop works.
 
 
-func test_build_airport_by_touch_and_fly_passengers() -> void:
+func test_build_airport_by_touch_and_fly_planes() -> void:
 	Airport.reset()  # a real new game: an empty field with the starting runway
 	# Real-scale stands cost EUR 18,000 each: the starting money pays for one, so the player is
 	# given what the second gate and stand need.
@@ -25,40 +25,31 @@ func test_build_airport_by_touch_and_fly_passengers() -> void:
 	check(await place("Gate", at(Vector2i(42, 34))), "gate 2")
 	check(await place("Stand", at(Vector2i(6, 39))), "stand 1")
 	check(await place("Stand", at(Vector2i(38, 39))), "stand 2")
-	check(not Airport.passenger_flow.route_problem.is_empty(), "stands without a taxiway get no planes")
+	check(Airport.usable_gates().is_empty(), "stands without a taxiway get no planes")
 	# Taxiways from both stands down to the runway (design doc §7.5a).
 	# The taxiway brush is 24 m wide, so each strip costs about €11k: top up the budget.
 	Airport.economy.balance += 25000.0
 	await paint("TaxiwayButton", at(Vector2i(15, 62)), at(Vector2i(16, 80)))
 	await paint("TaxiwayButton", at(Vector2i(43, 62)), at(Vector2i(44, 80)))
-	check(not Airport.passenger_flow.route_problem.is_empty(), "without a baggage claim arrivals have no way out")
-	check(await place("Baggage claim", at(Vector2i(37, 27))), "baggage claim on the border")
 
-	check_eq(Airport.buildings.size(), 10, "all buildings placed (and the runway)")
+	check_eq(Airport.buildings.size(), 9, "all buildings placed (and the runway)")
 	await frames(1)
 	var layer := main.get_node("Buildings")
-	var unconnected: Array = layer._hints.values().filter(func(l: Label3D) -> bool: return l.visible and l.text != "Needs staff")
+	var unconnected: Array = layer._hints.values().filter(func(l: Label3D) -> bool: return l.visible)
 	check_eq(unconnected.size(), 0, "every building connected")
-	check(Airport.passenger_flow.route_problem.is_empty(), "complete route: %s" % Airport.passenger_flow.route_problem)
+	check_eq(Airport.usable_gates().size(), 2, "both gates can have flights")
 
-	# Staff the counters like a manager: walk over, tap the station, press Hire until it's full.
+	# Tapping a building in the manager view opens its panel: name, zone, close.
 	await close_build_view()
-	for building in Airport.buildings:
-		if not Airport.needs_staff(building):
-			continue
-		var size := Building.rotated_size(building.type.footprint, building.rotation_steps)
-		var center := Airport.grid.block_center(building.origin_cell, size)
-		await stand_and_look(Airport.grid.world_to_cell(center + Vector3(0.0, 0.0, 8.0)), building)
-		tap(manager_camera().unproject_position(center + Vector3(0.0, 1.5, 0.0)))
-		await frames(1)
-		check(hud().shown_station == building, "%s panel opened by tap" % building.type.display_name)
-		var hire := ui("StationPanel/Content/StaffButtons/HireButton") as Button
-		for i in 6:
-			if hire.disabled:
-				break
-			await press(hire)
-			await frames(1)
-		check_eq(Airport.staff_at(building).size(), building.service_slots(), "%s fully staffed" % building.type.display_name)
+	var security: Building = Airport.buildings.filter(func(b: Building) -> bool: return b.type.role == BuildingType.Role.SECURITY)[0]
+	await stand_and_look(at(Vector2i(32, 33)), security)
+	tap(manager_camera().unproject_position(Airport.grid.block_center(security.origin_cell, Vector2i(5, 3)) + Vector3(0.0, 1.5, 0.0)))
+	await frames(1)
+	check(hud().shown_station == security, "security panel opened by tap")
+	check((ui("StationPanel/Content/TitleLabel") as Label).text.contains("Security"), "the panel names the building")
+	check((ui("StationPanel/Content/InfoLabel") as Label).text.contains("Border"), "and its zone")
+	await press(ui("StationPanel/Content/CloseButton"))
+	check(hud().shown_station == null, "the panel closes")
 
 	# Sign a second airline (design doc §10.1): wait for an offer, open it, lower the fee until
 	# they surely agree, and answer in the tone they like.
@@ -84,28 +75,16 @@ func test_build_airport_by_touch_and_fly_passengers() -> void:
 	await press(ui("AirlinesPanel/Content/CloseButton"))
 	await open_build_view()
 
-	# Flights depart within the next 6 minutes.
-	sim_seconds(360)
-	await frames(2)
-	check(Airport.passenger_flow.departed_count > 15, "passengers departed: %d" % Airport.passenger_flow.departed_count)
-	check(Airport.passenger_flow.arrived_count > 15, "arriving passengers left the airport: %d" % Airport.passenger_flow.arrived_count)
-	check(main.get_node("Planes").plane_count() > 0, "the next planes are at their stands")
+	# Planes land, taxi to their stands and depart within the next 6 minutes.
+	var seen_at_stand := false
+	for i in 36:
+		sim_seconds(10.0)
+		await frames(1)
+		seen_at_stand = seen_at_stand or main.get_node("Planes").plane_count() > 0
+	check(seen_at_stand, "a plane was drawn at or on its way to a stand")
+	check(Airport.reputation.departures > 0, "flights departed: %d" % Airport.reputation.departures)
 	var status := (ui("InfoPanel/StatusLabel") as Label).text
-	check(status.begins_with("Passengers:"), "status shows passenger numbers: '%s'" % status)
+	check(status.begins_with("Flights departed:"), "status shows the departures: '%s'" % status)
 
 	await close_build_view()
 	check(manager_camera().current, "back to the manager view with a working airport")
-
-	# Manage a station: tap security and upgrade it to a third lane, once the airport has earned
-	# enough for it (how fast depends on which airline made the offer).
-	var security: Building = Airport.buildings.filter(func(b: Building) -> bool: return b.type.role == BuildingType.Role.SECURITY)[0]
-	for minute in 10:
-		if Airport.economy.can_afford(security.next_upgrade().cost):
-			break
-		sim_seconds(60)
-	check(Airport.economy.can_afford(security.next_upgrade().cost), "the airport earned enough for the upgrade: %s" % Economy.format(Airport.economy.balance))
-	await stand_and_look(at(Vector2i(32, 33)), security)
-	tap(manager_camera().unproject_position(Airport.grid.block_center(security.origin_cell, Vector2i(5, 3)) + Vector3(0.0, 1.5, 0.0)))
-	await frames(1)
-	await press(ui("StationPanel/Content/UpgradeButton"))
-	check_eq(security.service_slots(), 3, "security upgraded to 3 lanes through the panel")

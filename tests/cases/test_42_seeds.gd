@@ -5,30 +5,25 @@ extends TestCase
 
 # A short summary of a running airport: if any random choice differed, this differs too.
 func _fingerprint() -> String:
-	var flow := Airport.passenger_flow
-	var positions := 0.0
-	for passenger in flow.passengers:
-		positions += passenger.position.x * 3.0 + passenger.position.z
-	var names: PackedStringArray = []
-	for employee in Airport.staff:
-		names.append(employee.name)
-	return "departed %d, missed %d, in airport %d, money %.2f, positions %.3f, staff %s" % [
-		flow.departed_count, flow.missed_count, flow.passengers.size(), Airport.economy.balance,
-		positions, ",".join(names)]
+	var flights: PackedStringArray = []
+	for flight in Airport.schedule.flights:
+		flights.append("%s %.1ft" % [flight.number, flight.tonnes])
+	return "departed %d, money %.2f, flights %s, slots %d" % [
+		Airport.reputation.departures, Airport.economy.balance, ",".join(flights), Airport.timetable.slots.size()]
 
 
-# Builds the showcase airport with dice started from `seed_value` and runs it for 5 minutes.
+# Builds the showcase airport with dice started from `seed_value` and runs it for 15 minutes.
 func _play(seed_value: int) -> String:
 	Airport.reseed(seed_value)
 	build_reference_airport()
-	sim_seconds(300.0)
+	sim_seconds(900.0)
 	return _fingerprint()
 
 
 func test_same_seed_same_game() -> void:
 	var first := _play(1234)
 	var second := _play(1234)
-	check(Airport.passenger_flow.departed_count > 0, "the airport was busy (passengers departed)")
+	check(Airport.reputation.departures > 0, "the airport was busy (flights departed)")
 	check_eq(second, first, "the same seed plays exactly the same game")
 
 
@@ -64,8 +59,7 @@ func test_dice_continue_after_loading() -> void:
 	for i in 5:
 		rolls_after_loading.append(Airport.rng.randi())
 	check_eq(rolls_after_loading, next_rolls, "the dice continue exactly where they were")
-	check(Airport.passenger_flow.rng == Airport.rng and Airport.airlines.rng == Airport.rng \
-		and Airport.passenger_flow.schedule.rng == Airport.rng,
+	check(Airport.airlines.rng == Airport.rng and Airport.schedule.rng == Airport.rng,
 		"every part of the simulation rolls the same dice after loading")
 
 
@@ -77,4 +71,4 @@ func test_old_save_without_seed_loads() -> void:
 	data.erase("rng_state")
 	Airport.load_state(data)
 	check_eq(Airport.buildings.size(), building_count, "a save from before seeds still loads completely")
-	check(Airport.passenger_flow.rng == Airport.rng, "it gets fresh shared dice")
+	check(Airport.schedule.rng == Airport.rng, "it gets fresh shared dice")

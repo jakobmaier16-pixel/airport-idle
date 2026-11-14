@@ -96,6 +96,6 @@ func test_an_old_save_without_demand_starts_at_the_base_without_catching_up() ->
 
 
 func test_the_hud_line_names_demand_and_trend() -> void:
-	var text := Hud.demand_text(Airport.demand, 3.0)
+	var text := Hud.demand_text(Airport.demand)
 	check(text.begins_with("Demand: "), "starts with the name: " + text)
-	check(text.contains("flights/day") and text.contains("% full"), "flights and load factor: " + text)
+	check(text.contains("flights/day"), "flights: " + text)

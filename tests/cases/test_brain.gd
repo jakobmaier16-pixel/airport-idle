@@ -29,7 +29,7 @@ func test_fresh_brain_runs_on_its_own() -> void:
 		brain.step(AirportWorld.SIM_STEP)
 	check(brain.clock.game_seconds > start_seconds, "the fresh brain's clock advanced")
 	check_eq(brain.buildings.size(), 1, "the fresh brain holds its building")
-	check(brain.passenger_flow.world == brain, "the parts point at their own brain")
+	check(brain.schedule.world == brain, "the parts point at their own brain")
 	check(Airport.buildings.is_empty(), "the running game's airport is untouched")
 	brain.dispose()
 
@@ -75,7 +75,7 @@ func test_reset_gives_a_fresh_brain_and_signals_fire_once() -> void:
 	Airport.reset(false)
 	Airport.reset(false)
 	check(Airport.brain != old_brain, "reset created a fresh brain")
-	check(old_brain.passenger_flow.world == null, "the old brain was disposed")
+	check(old_brain.schedule.world == null, "the old brain was disposed")
 	Airport.place_building(type_of(&"check_in"), at(Vector2i(20, 20)), 0)
 	check_eq(placed[0], 1, "building_placed fires exactly once after resets")
 	var relayed: Array[int] = [0]
@@ -90,7 +90,7 @@ func test_same_seed_gives_identical_games() -> void:
 	for run in 2:
 		Airport.reseed(1234)  # the reset inside build() takes its new seed from these dice
 		ShowcaseAirport.build(0.0)
-		sim_seconds(120.0)
-		results.append([Airport.economy.balance, Airport.progression.passengers, Airport.passenger_flow.passengers.size(), Airport.passenger_flow.departed_count])
-	check(results[0][1] > 0 or results[0][2] > 0, "the showcase airport had passengers (%s)" % [results[0]])
+		sim_seconds(600.0)
+		results.append([Airport.economy.balance, Airport.reputation.departures, Airport.schedule.flights.size(), Airport.timetable.slots.size()])
+	check(results[0][1] > 0, "the showcase airport had departures (%s)" % [results[0]])
 	check_eq(results[0], results[1], "two fresh brains with the same seed end the same")

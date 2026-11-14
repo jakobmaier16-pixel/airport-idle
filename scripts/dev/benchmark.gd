@@ -1,27 +1,24 @@
 class_name Benchmark
 extends Node
 ## Device benchmark (tech_architecture.md §15), test builds only ("Bench" in the build menu).
-## Builds a busy airport with about 1,000 passengers, runs it for a while in the top-down view and
-## then in first person at the security queue, and shows frame time, heartbeat time and memory
-## against the performance budget.
+## Builds the showcase airport with its planes landing, taxiing and taking off, runs it for a while
+## in the top-down view and then in first person at a gate looking at its stand, and shows frame
+## time, heartbeat time and memory against the performance budget. (Until 2026-11-14 it filled the
+## airport with 1,000 passengers; see docs/removed_features.md.)
 ## The player's save stays safe: it is written before the benchmark starts, saving is off while
 ## it runs, and closing the results loads it again.
 
 ## The same airport and the same dice every run, so results from different days compare.
 const SEED: int = 2026
-const TARGET_PASSENGERS: int = 1000
-## The passenger cap while the benchmark runs (the normal cap is lower, see PassengerFlow).
-const PASSENGER_LIMIT: int = 1100
-## Most passengers added per frame, so filling up doesn't freeze the screen.
-const SPAWN_PER_FRAME: int = 40
 ## Budget (tech_architecture.md §15), in milliseconds. Judged on the 95th percentile: 95 % of
 ## all frames (or heartbeats) must stay within it; single spikes are reported but don't fail.
 const PHONE_WORK_BUDGET_MS: float = 8.0
 const TABLET_WORK_BUDGET_MS: float = 12.0
 const HEARTBEAT_BUDGET_MS: float = 2.0
-const TYPES: Array[PassengerType] = [FlightSchedule.FAMILY, FlightSchedule.LOW_COST, FlightSchedule.BUSINESS]
-## The first-person run stands this many meters in front of security, looking at its queue.
-const QUEUE_VIEW_DISTANCE: float = 14.0
+## The first-person run stands this many meters behind a gate (on the apron), looking at its stand.
+const STAND_VIEW_DISTANCE: float = 30.0
+## The wait for planes ends when this many flights are on their way (or after `fill_seconds`).
+const PLANES_WANTED: int = 2
 
 enum Phase { FILL, TOP_DOWN, FIRST_PERSON, DONE }
 
@@ -55,30 +52,18 @@ static func prepare_airport() -> void:
 	SaveGame.enabled = false
 	Airport.reseed(SEED)
 	ShowcaseAirport.build(180.0, Vector2i.ZERO, false)
-	Airport.passenger_flow.max_passengers = PASSENGER_LIMIT
 	# The timetable opens its first flights a little after the start: wait until there are enough
 	# upcoming departures to fill the airport with.
 	for i in int(2400.0 / Airport.SIM_STEP):
-		if Airport.passenger_flow.schedule.flights.size() >= 4:
+		if Airport.schedule.flights.size() >= 4:
 			break
 		Airport.step(Airport.SIM_STEP)
 
 
-## Adds up to `max_new` passengers for upcoming flights until the airport holds the target.
-## Returns how many were added.
-static func top_up(max_new: int) -> int:
-	var flow := Airport.passenger_flow
-	var flights := flow.schedule.flights.filter(func(f: Flight) -> bool:
-		return not f.cargo and f.departure_time - flow.time >= FlightSchedule.MIN_CONNECTION)
-	if flights.is_empty():
-		return 0
-	var added := 0
-	while added < max_new and flow.passengers.size() < TARGET_PASSENGERS:
-		var flight: Flight = flights[Airport.rng.randi() % flights.size()]
-		if not flow.spawn_passenger(flight, TYPES[Airport.rng.randi() % TYPES.size()]):
-			break
-		added += 1
-	return added
+## How many flights have a plane on its way or at a stand right now.
+static func planes_active() -> int:
+	return Airport.schedule.flights.filter(func(f: Flight) -> bool:
+		return f.phase >= Flight.Phase.ARRIVING and f.phase < Flight.Phase.DEPARTED).size()
 
 
 ## Loads the player's save again and reloads the scene.
@@ -119,18 +104,16 @@ func _ready() -> void:
 
 func _process(delta: float) -> void:
 	_phase_left -= delta
-	var passengers := Airport.passenger_flow.passengers.size()
+	var planes := planes_active()
 	match phase:
 		Phase.FILL:
-			top_up(SPAWN_PER_FRAME)
-			_status.text = "Benchmark: filling the airport… %d passengers\nPlease don't touch the screen." % passengers
-			if passengers >= TARGET_PASSENGERS * 0.95 or _phase_left <= 0.0:
+			_status.text = "Benchmark: waiting for planes… %d on their way\nPlease don't touch the screen." % planes
+			if planes >= PLANES_WANTED or _phase_left <= 0.0:
 				_start(Phase.TOP_DOWN)
 		Phase.TOP_DOWN, Phase.FIRST_PERSON:
-			top_up(SPAWN_PER_FRAME)
 			_record(delta)
-			_status.text = "Benchmark: %s · %d s left · %d passengers\nPlease don't touch the screen." % [
-				_phase_name(phase), ceili(maxf(_phase_left, 0.0)), passengers]
+			_status.text = "Benchmark: %s · %d s left · %d planes\nPlease don't touch the screen." % [
+				_phase_name(phase), ceili(maxf(_phase_left, 0.0)), planes]
 			if _phase_left <= 0.0:
 				_start(Phase.FIRST_PERSON if phase == Phase.TOP_DOWN else Phase.DONE)
 
@@ -140,34 +123,40 @@ func _start(next: Phase) -> void:
 	_phase_left = fill_seconds if next == Phase.FILL else phase_seconds
 	match next:
 		Phase.TOP_DOWN:
-			# The whole airport at once: the most figures on screen.
+			# The whole airport at once: every plane and building in view.
 			main.set_view(main.View.BUILD)
 			var camera: BuildCamera = main.get_node("BuildCamera")
 			camera.view_height = 1000.0  # clamped to the farthest zoom
 			camera.center_on(Vector3.ZERO)
 		Phase.FIRST_PERSON:
 			main.set_view(main.View.MANAGER)
-			_stand_at_security()
+			_stand_at_gate()
 		Phase.DONE:
 			_finish()
 	if next in [Phase.TOP_DOWN, Phase.FIRST_PERSON]:
 		_runs[next] = {
 			"frame": [], "work": [], "gpu": [], "heartbeat": [],
-			"passengers": 0, "figures": 0, "frames": 0, "seconds": 0.0,
+			"planes": 0, "frames": 0, "seconds": 0.0,
 		}
 
 
-# The busiest spot: in front of security, looking at its queue.
-func _stand_at_security() -> void:
+# The first gate (and its stand): the manager stands on the apron behind it, looking at the stand.
+func _stand_at_gate() -> void:
 	for building in Airport.buildings:
-		if building.type.role != BuildingType.Role.SECURITY:
+		if building.type.role != BuildingType.Role.GATE:
 			continue
-		var station := Airport.passenger_flow.station_for(building)
+		var stand := Airport.stand_behind(building)
 		var size := Building.rotated_size(building.type.footprint, building.rotation_steps)
 		var center := Airport.grid.block_center(building.origin_cell, size)
+		# The gate's front faces up, right, down, left on screen for each clockwise step; the stand lies behind it.
+		var front: Vector2i = [Vector2i(0, -1), Vector2i(1, 0), Vector2i(0, 1), Vector2i(-1, 0)][building.rotation_steps]
+		var behind := Vector3(-front.x, 0.0, -front.y)
 		var manager: Manager = main.get_node("Manager")
-		manager.global_position = center + station.outward * QUEUE_VIEW_DISTANCE
-		(main.get_node("ManagerCamera") as ManagerCamera).face(center + Vector3.UP * 1.5)
+		manager.global_position = center + behind * STAND_VIEW_DISTANCE
+		var target := center
+		if stand != null:
+			target = Airport.grid.block_center(stand.origin_cell, Building.rotated_size(stand.type.footprint, stand.rotation_steps))
+		(main.get_node("ManagerCamera") as ManagerCamera).face(target + Vector3.UP * 3.0)
 		return
 
 
@@ -182,8 +171,7 @@ func _record(delta: float) -> void:
 	(run["gpu"] as Array).append(RenderingServer.viewport_get_measured_render_time_gpu(viewport))
 	for usec in Airport.last_heartbeats_usec:
 		(run["heartbeat"] as Array).append(usec / 1000.0)
-	run["passengers"] += Airport.passenger_flow.passengers.size()
-	run["figures"] += _figures_drawn()
+	run["planes"] += planes_active()
 	run["frames"] += 1
 	run["seconds"] += delta
 	_peak_memory = maxf(_peak_memory, Performance.get_monitor(Performance.MEMORY_STATIC))
@@ -193,13 +181,6 @@ func _record(delta: float) -> void:
 ## How many heartbeats were measured in the run of `which` phase (0 before it ran).
 func heartbeat_samples(which: Phase) -> int:
 	return (_runs[which]["heartbeat"] as Array).size() if _runs.has(which) else 0
-
-
-func _figures_drawn() -> int:
-	var layer := main.get_node_or_null("Passengers")
-	if layer == null or layer.get_child_count() == 0:
-		return 0
-	return (layer.get_child(0) as MultiMeshInstance3D).multimesh.visible_instance_count
 
 
 func _finish() -> void:
@@ -224,8 +205,8 @@ func _finish() -> void:
 		var heartbeat_ok := heartbeat_95 <= HEARTBEAT_BUDGET_MS
 		all_pass = all_pass and work_ok and heartbeat_ok
 		lines.append("")
-		lines.append("%s · %d s · %d passengers · %d figures drawn" % [
-			_phase_name(run_phase), roundi(run["seconds"]), int(run["passengers"]) / frames, int(run["figures"]) / frames])
+		lines.append("%s · %d s · %d planes on average" % [
+			_phase_name(run_phase), roundi(run["seconds"]), int(run["planes"]) / frames])
 		lines.append("  Frames per second   %.1f" % (frames / maxf(run["seconds"], 0.001)))
 		lines.append("  Work per frame      %s   %s" % [_spread(run["work"]), "PASS" if work_ok else "FAIL"])
 		if (run["gpu"] as Array).any(func(ms: float) -> bool: return ms > 0.0):
@@ -257,7 +238,7 @@ func _spread(samples: Array) -> String:
 
 
 func _phase_name(which: Phase) -> String:
-	return "Top-down (whole map)" if which == Phase.TOP_DOWN else "First person (at security)"
+	return "Top-down (whole map)" if which == Phase.TOP_DOWN else "First person (at a gate)"
 
 
 ## Background of the results screen: solid, so the game doesn't show through the numbers.

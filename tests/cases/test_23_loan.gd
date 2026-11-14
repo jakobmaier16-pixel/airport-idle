@@ -36,9 +36,9 @@ func test_over_the_limit_the_bank_restructures() -> void:
 	check(Airport.economy.balance > -50.0, "the debt is gone: %s" % Airport.economy.balance)
 	check_eq(sold_names.size(), 1, "the player is told once")
 	check(not sold_names.is_empty() and sold_names[0].size() > 0, "and told what was sold")
-	check(Airport.stars() <= Airport.reputation.stars(Airport.passenger_flow.satisfaction.average) + 0.01, "rating includes the penalty")
+	check(Airport.stars() <= Airport.reputation.stars() + 0.01, "rating includes the penalty")
 	check(Airport.reputation.penalty > 0.9, "reputation suffers")
-	check(Airport.passenger_flow.route_problem.is_empty(), "passengers still have a route: '%s'" % Airport.passenger_flow.route_problem)
+	check(not Airport.usable_gates().is_empty(), "a gate still works")
 
 
 func test_restructuring_keeps_the_essentials() -> void:
@@ -47,13 +47,13 @@ func test_restructuring_keeps_the_essentials() -> void:
 	Airport.restructure()
 	var roles := _roles()
 	for role in [BuildingType.Role.ENTRANCE, BuildingType.Role.CHECK_IN, BuildingType.Role.SECURITY,
-			BuildingType.Role.GATE, BuildingType.Role.AIRCRAFT_STAND, BuildingType.Role.BAGGAGE_CLAIM]:
+			BuildingType.Role.GATE, BuildingType.Role.AIRCRAFT_STAND]:
 		check_eq(roles.count(role), 1, "one %s left" % BuildingType.Role.keys()[role])
-	check_eq(roles.count(BuildingType.Role.SHOP), 0, "shops sold first")
+	check_eq(roles.count(BuildingType.Role.NONE), 0, "pieces without a role sold first")
 	check_eq(Airport.economy.balance, 0.0, "the rest is written off")
-	check(Airport.passenger_flow.route_problem.is_empty(), "the small airport still works: '%s'" % Airport.passenger_flow.route_problem)
+	check(not Airport.usable_gates().is_empty(), "the small airport still works")
 	sim_seconds(400)
-	check(Airport.passenger_flow.departed_count > 0, "and flights still leave")
+	check(Airport.reputation.departures > 0, "and flights still leave")
 
 
 func test_penalty_fades() -> void:

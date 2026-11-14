@@ -15,7 +15,5 @@ back_access = 1
 role = 1
 build_cost = 2000.0
 running_cost_per_minute = 10.0
-service_slots = 0
-service_time = 0.0
 color = Color(0.85, 0.75, 0.55, 1)
 height = 3.0
