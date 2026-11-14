@@ -18,6 +18,9 @@ signal drag_cancelled
 signal tapped(position: Vector2)
 ## Zoom gesture. factor > 1 means "zoom in" (fingers moved apart, wheel up, trackpad spread).
 signal pinched(factor: float)
+## Where the zoom happens on screen (pixels): the midpoint of the two fingers, or the mouse for
+## wheel and trackpad. Set just before `pinched` is emitted, so listeners can zoom about that point.
+var pinch_center: Vector2 = Vector2.ZERO
 ## The midpoint between the two pinching fingers moved (two-finger pan).
 signal pinch_moved(relative: Vector2)
 ## Manager view (`independent_drags`): every finger drags on its own, identified by `index`, so
@@ -107,15 +110,18 @@ func _unhandled_input(event: InputEvent) -> void:
 	elif event is InputEventMouseButton and event.is_pressed():
 		# Mac only: mouse wheel zooms.
 		var button := (event as InputEventMouseButton).button_index
+		pinch_center = (event as InputEventMouseButton).position
 		if button == MOUSE_BUTTON_WHEEL_UP:
 			pinched.emit(WHEEL_ZOOM_STEP)
 		elif button == MOUSE_BUTTON_WHEEL_DOWN:
 			pinched.emit(1.0 / WHEEL_ZOOM_STEP)
 	elif event is InputEventMagnifyGesture:
 		# Mac only: trackpad pinch.
+		pinch_center = (event as InputEventMagnifyGesture).position
 		pinched.emit((event as InputEventMagnifyGesture).factor)
 	elif event is InputEventPanGesture:
 		# Mac only: two-finger trackpad scroll behaves like the mouse wheel.
+		pinch_center = (event as InputEventPanGesture).position
 		pinched.emit(exp(-(event as InputEventPanGesture).delta.y * TRACKPAD_SCROLL_ZOOM_SPEED))
 
 
@@ -186,6 +192,8 @@ func _on_finger_moved(index: int, position: Vector2) -> void:
 				var second := _positions[_pinch_indices[1]]
 				var distance := first.distance_to(second)
 				if _pinch_distance > 0.0 and distance > 0.0:
+					# The zoom happens around where the fingers were; the pan follows below.
+					pinch_center = _pinch_center
 					pinched.emit(distance / _pinch_distance)
 				_pinch_distance = distance
 				var center := (first + second) * 0.5

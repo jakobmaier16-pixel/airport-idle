@@ -12,7 +12,11 @@ next, and what it needs from the other lane. Short. Details live in PRs, issues 
   centre; gate shows "Needs an aircraft stand behind" but still places; building on the landside
   teleports the camera; landside look poor in the game (road/zebra z-fighting, fence holes, raised
   grass blocks).
-- **Next:** strip the game to the core (decisions 2026-11-14), then fix the bugs above in what remains.
+- **Strip to core: done** (#52, #53, cleanup in `task/camera-ui-fixes`): see `removed_features.md`.
+- **Fixed in `task/camera-ui-fixes`:** zoom about the fingers (max zoom fits the map, no forced centring),
+  gate hint is information (valid colour, "Gate works once a stand is behind it") with a "No stand" marker,
+  "Plane taxiway" label. Landside camera teleport: not reproducible in tests (see PR).
+- **Next:** planes turning / driving over grass, taxiway brush over the road (other builder), landside look.
 
 ## Visual lane
 - (Visual lead: add your section here at the end of your next session.)

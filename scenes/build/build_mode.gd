@@ -9,6 +9,10 @@ extends Node3D
 ## With no tool active, tapping a cell highlights it.
 
 enum Tool { NONE, PLACE, PAINT, DEMOLISH }
+## The hint while a valid preview has nothing missing. Any other hint on a valid preview is
+## information (what the building still needs), not an error; the HUD shows it in another colour.
+const DRAG_HINT: String = "Drag the building to move it"
+
 enum PaintKind { WALKWAY, REMOVE_WALKWAY, TAXIWAY }
 
 ## Emitted whenever the tool, its validity or its hint changes (so the HUD can update).
@@ -286,8 +290,8 @@ func _set_preview_origin(origin_cell: Vector2i) -> void:
 	var hint := problem
 	if can_place:
 		# Unconnected is allowed (connect it later), but say what's missing.
-		var missing := Airport.connection_problem(_placing_type, _placing_origin, _placing_rotation)
-		hint = "Drag the building to move it" if missing.is_empty() else missing + " (can be added later)"
+		var missing := Airport.connection_hint(_placing_type, _placing_origin, _placing_rotation)
+		hint = DRAG_HINT if missing.is_empty() else missing
 	tool_changed.emit(Tool.PLACE, can_place, hint)
 
 

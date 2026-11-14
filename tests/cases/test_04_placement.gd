@@ -80,7 +80,7 @@ func test_zone_rules_and_hints() -> void:
 	var hint := ui("ToolPanel/HintLabel") as Label
 	await pick_building("Gate")  # Gate
 	build_mode()._set_preview_origin(at(Vector2i(10, 10)))
-	check(hint.text.begins_with("Needs a walkway"), "a gate can go anywhere, hint names what's missing: '%s'" % hint.text)
+	check(hint.text.begins_with("Gate works once a walkway"), "a gate can go anywhere, hint names what's missing: '%s'" % hint.text)
 	await press(ui("ToolPanel/ToolBar/CancelButton"))
 	check_eq(Airport.check_placement(type_of(&"security"), at(Vector2i(20, 29)), 0), "", "security on the border, front landside")
 

@@ -37,7 +37,7 @@ func test_demolished_stand_stops_its_gate() -> void:
 	Airport.demolish(stand)
 	sim_seconds(1)
 	var gate := _building(BuildingType.Role.GATE, 0)
-	check_eq(Airport.connection_problem(gate.type, gate.origin_cell, gate.rotation_steps), "Needs an aircraft stand behind", "gate lost its stand")
+	check_eq(Airport.connection_problem(gate.type, gate.origin_cell, gate.rotation_steps), "No stand", "gate lost its stand")
 	check(Airport.schedule.flights.all(func(f: Flight) -> bool: return f.gate != gate), "no flights at that gate")
 
 

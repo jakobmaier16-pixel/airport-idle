@@ -180,6 +180,15 @@ Save format 11 drops all their saved data; buildings of removed types are droppe
   panel with tabs and a message log in the HUD.
 - **Files:** `goals.gd`, goal / milestone / stats nodes in `hud.tscn` and `hud.gd`. Game design §6.1.
 
+### HUD and save leftovers (PR 1 + 2)
+- **HUD:** money, profit and loan rows, the star rating row, the stations tab with queues, staff / team /
+  upgrade / fast-track buttons, the airlines panel button, goal line, milestone and stats panels, message log.
+  The station panel shows only name, zone and area. The status line shows the clock and flights.
+- **Data:** `data/airlines/`, `data/journeys/`, `data/passengers/`, the building types shop, cafe, lounge,
+  baggage claim, transfer security, cargo terminal (and the older de-icing pad); their `Role` numbers stay.
+- **Save:** format 11 drops the keys listed in `SaveGame` (`money`, `staff`, `flow`, `goals_hidden`, ...);
+  old saves still load.
+
 ### Old timetable (rng based)
 - **What:** `FlightSchedule` planned flights every `INTERVAL` from the demand and rush factor, picked gates
   and airlines with `Airport.rng`. Replaced by `Timetable`: one fixed turnaround per usable gate every

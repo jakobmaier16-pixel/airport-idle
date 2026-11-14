@@ -268,9 +268,21 @@ func _taxiway_changes(cells: Array[Vector2i], taxiway: bool) -> Array[Vector2i]:
 	return changing
 
 
-## What a building at this spot still needs to be connected, as a short hint, or "" if nothing.
-## Unconnected buildings are allowed (build first, connect after; design doc §7.1b).
+## What a building at this spot still needs to be connected, as a short marker ("No stand"), or ""
+## if nothing. Unconnected buildings are allowed (build first, connect after; design doc §7.1b).
 func connection_problem(type: BuildingType, origin_cell: Vector2i, rotation_steps: int) -> String:
+	return _connection_gap(type, origin_cell, rotation_steps)[0]
+
+
+## The same as a hint for the placement preview: "Gate works once a stand is behind it", or "".
+## A hint, not an error: the spot is still allowed.
+func connection_hint(type: BuildingType, origin_cell: Vector2i, rotation_steps: int) -> String:
+	return _connection_gap(type, origin_cell, rotation_steps)[1]
+
+
+# [marker, hint] of the first thing missing, or ["", ""].
+func _connection_gap(type: BuildingType, origin_cell: Vector2i, rotation_steps: int) -> Array[String]:
+	var name := type.display_name
 	for front in [true, false]:
 		var access: BuildingType.Access = type.front_access if front else type.back_access
 		if access == BuildingType.Access.NONE:
@@ -278,22 +290,22 @@ func connection_problem(type: BuildingType, origin_cell: Vector2i, rotation_step
 		var side := "in front" if front else "behind"
 		var row := Building.outside_row(type.footprint, origin_cell, rotation_steps, front)
 		if access == BuildingType.Access.WALKWAY and not row.any(grid.is_walkable):
-			return "Needs a walkway %s" % side
+			return ["No walkway %s" % side, "%s works once a walkway is %s it" % [name, side if not front else "in front of"]]
 		# Airside buildings can be placed anywhere; they work once the walk from the entrance
 		# through security reaches them (the zone map marks those walkways airside).
 		if access == BuildingType.Access.WALKWAY and type.zone_rule == BuildingType.ZoneRule.AIRSIDE \
 				and not row.any(func(c: Vector2i) -> bool: return grid.is_walkable(c) and grid.get_zone(c) == AirportGrid.Zone.AIRSIDE):
-			return "Not connected: build security and a walkway behind it to reach the airside"
+			return ["Not connected", "%s works once security and a walkway behind it reach the airside" % name]
 		if access == BuildingType.Access.STAND and not row.any(_is_aircraft_stand):
-			return "Needs an aircraft stand %s" % side
+			return ["No stand", "%s works once a stand is %s it" % [name, side if not front else "in front of"]]
 		if access == BuildingType.Access.STAND:
 			var stand := grid.get_content(row.filter(_is_aircraft_stand)[0]) as Building
 			if not _stand_reaches_runway(stand.type, stand.origin_cell, stand.rotation_steps):
-				return "Its stand needs a taxiway to a runway"
+				return ["Stand has no taxiway", "%s works once its stand has a taxiway to a runway" % name]
 	# Stands need a taxiway (or a runway right beside them) leading to a runway (§7.5a).
 	if type.role == BuildingType.Role.AIRCRAFT_STAND and not _stand_reaches_runway(type, origin_cell, rotation_steps):
-		return "Needs a taxiway to a runway"
-	return ""
+		return ["No taxiway", "%s works once a taxiway leads to a runway" % name]
+	return ["", ""]
 
 
 ## Removes everything: buildings and zones, and lays the starting runway (unless `with_runway` is

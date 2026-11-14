@@ -225,7 +225,7 @@ From the prototype audit (keep / refactor / rewrite):
 | Verdict | Parts |
 |---|---|
 | **Keep** | touch input, both cameras and the manager, the heartbeat, data files, the clock, the passenger figure batch, small systems (reputation, satisfaction, tiers, staff records), the test and export tools |
-| **Keep, parked** | airlines and negotiation, the goal line: not in the slice, untouched until Phase 3 |
+| **Keep, parked** | (nothing: airlines, goals, tiers, money, passengers, staff were removed 2026-11-14, see [removed_features.md](removed_features.md)) |
 | **Removed** (2026-11-13) | weather (with de-icing), security incidents, VIP visits, the first-landing cutscene: removed to focus on fundamentals; they may return later, rebuilt on the new foundation |
 | **Refactor** | the central airport object (split into the brain and small services), saving, money, building and plane drawing, the build tools, the main scene, the ground |
 | **Rewrite** | zones (automatic), the passenger flow (recipes), the flight schedule (daily timetable), the HUD (separate panels), building behaviour from data instead of a fixed list of building kinds |

@@ -99,25 +99,23 @@ scenes/<feature>/     one folder per feature: <name>.tscn + <name>.gd side by si
   camera/             manager_camera (first person) and build_camera (top-down)
   build/              build view logic: placing buildings (preview, rotate, place / cancel)
   buildings/          building visuals: BuildingLayer draws every simulated building
-  passengers/         PassengerLayer: draws passengers near the camera (one MultiMesh)
   planes/             PlaneLayer + PlaneVisual: planes taxiing in, parked, pushing back
   day_night/          DayNight: sun and ambient light by the time of day
   ground/             map ground, sized from the grid
-  ui/                 HUD, view button, joystick, safe area container, AirlinesPanel, StarRating
+  ui/                 HUD, view button, joystick, safe area container, tap feedback
 scripts/autoload/     global singletons:
                         Airport       -> thin host (airport_host.gd): owns the AirportWorld brain
                                          (scripts/simulation/airport_brain.gd), steps it, forwards x and signals
                         SaveGame      -> autosave / load of the airport (user://savegame.json)
                         TouchGestures -> touch / mouse / trackpad -> drag, tap, pinch signals
 scripts/simulation/   pure simulation data classes (no nodes, no visuals): AirportGrid, Building,
-                      PassengerFlow, Passenger, Station, WalkwayNetwork, FlightSchedule, Flight,
-                      Economy, Employee, Satisfaction, Reputation, Airlines (+ Airline, AirlineOffer),
-                      Progression (tiers), Goals, Clock, Seasons.
+                      ZoneMap, AreaMap, Timetable (+ TimetableSlot), FlightSchedule, Flight,
+                      PlaneNetwork, PlaneRoute, CentrelineGraph, TaxiProfile, Clock.
+                      Passengers, money, airlines, goals etc. were removed 2026-11-14
+                      (docs/removed_features.md).
                       Advance everything with `Airport.step(delta)`.
 scripts/resources/    custom Resource classes (data definitions), e.g. BuildingType
 data/buildings/       one BuildingType .tres per building (edit footprint, name, look in the Inspector)
-data/passengers/      one PassengerType .tres per passenger type (families, low-cost, business)
-data/airlines/        one AirlineType .tres per fictional airline, plus catalog.tres
 tests/                automated walkthrough tests (excluded from the app export):
   test_case.gd        base class with player helpers (tap, drag, pinch, place, paint, sim_seconds)
   cases/              test files, run in name order
@@ -164,7 +162,7 @@ UI controls (buttons) consume their touches first, so taps on buttons never reac
   **Every new feature must be added to the showcase** (a test checks every building type is in it).
   The tests and screenshots use the same layout. The "Demo" button (debug builds) reloads it.
 - **Randomness is seeded** (tech_architecture.md §3): simulation code rolls only `Airport.rng`
-  (shared with PassengerFlow, FlightSchedule and Airlines), never the global
+  (shared with the brain's FlightSchedule and Timetable), never the global
   `randf()` / `randi()`. Purely visual effects (e.g. lightning flashes) may use the global ones.
   Every test runs with a fixed seed from its name; a failure prints a replay line
   (`tools/run_tests.sh --only=<test> --seed=<n>`). `--seed=<n>` runs every test with that seed:
@@ -227,7 +225,7 @@ UI controls (buttons) consume their touches first, so taps on buttons never reac
   players have them: never regenerate or edit them. When the save format changes, add a converter
   to `SaveGame.migrations`, bump `SaveGame.FORMAT_VERSION`, and add an example save of the new
   version next to the old ones. Enums stored as numbers in saves (`AirportGrid.Zone`,
-  `BuildingType.Role`, `Progression.Tier`) only get new values at the end.
+  `BuildingType.Role`) only get new values at the end.
   A save that can't be loaded is put aside as a `.bak` file, never overwritten.
 - Changing a building's size or zone rule can make old saves invalid: such buildings are skipped
   on load (with a warning). Bump `SaveGame.FORMAT_VERSION` only if the file format itself changes.

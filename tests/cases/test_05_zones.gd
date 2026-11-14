@@ -73,7 +73,7 @@ func test_airside_building_before_security_is_not_connected() -> void:
 	check_eq(Airport.check_placement(gate, at(Vector2i(14, 34)), 0), "", "a gate can be placed anywhere")
 	var placed := Airport.place_building(gate, at(Vector2i(14, 34)), 0)
 	check(placed != null, "gate placed before security")
-	check(Airport.connection_problem(gate, at(Vector2i(14, 34)), 0).begins_with("Not connected"), "hint: not connected")
+	check(Airport.connection_problem(gate, at(Vector2i(14, 34)), 0).begins_with("Not connected"), "marker: not connected")
 	Airport.place_building(type_of(&"security"), at(Vector2i(30, 28)), 0)
 	check(not Airport.connection_problem(gate, at(Vector2i(14, 34)), 0).begins_with("Not connected"), "connected once security and the walkway exist")
 
