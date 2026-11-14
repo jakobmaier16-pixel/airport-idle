@@ -92,6 +92,60 @@ func stand_and_look(cell: Vector2i, building: Building) -> void:
 	await frames(1)
 
 
+## The part of the screen the HUD may use: the screen minus the SafeArea container's margins
+## (the notch, the home indicator and the padding).
+func safe_rect() -> Rect2:
+	var area := hud().get_node("SafeArea") as Control
+	var left := area.get_theme_constant(&"margin_left")
+	var top := area.get_theme_constant(&"margin_top")
+	var right := area.get_theme_constant(&"margin_right")
+	var bottom := area.get_theme_constant(&"margin_bottom")
+	return Rect2(Vector2(left, top), screen_size() - Vector2(left + right, top + bottom))
+
+
+## True if every pixel of `control` is inside the safe area.
+func in_safe_area(control: Control) -> bool:
+	return safe_rect().grow(0.5).encloses(control.get_global_rect())
+
+
+## Every visible button of the HUD's safe area (controls shown right now).
+func visible_buttons() -> Array[Button]:
+	var result: Array[Button] = []
+	for node in hud().get_node("SafeArea").find_children("*", "Button", true, false):
+		if (node as Button).is_visible_in_tree():
+			result.append(node)
+	return result
+
+
+## Rebuilds the game after a test world was entered (the real reload would reload the test runner):
+## the old main scene goes, a new one starts with the airport the world built.
+func restart_main() -> void:
+	if main != null:
+		main.queue_free()
+		main = null
+		await frames(1)
+	await start_game()
+
+
+## Enters a test world straight away (not through the list) and starts the game in it.
+func enter_world(id: StringName) -> void:
+	TestWorlds.reload = func() -> void: pass
+	TestWorlds.enter(TestWorlds.find(id), get_tree())
+	await restart_main()
+
+
+## Opens the world list with the Worlds button and taps the world's entry, like a player.
+func pick_world(id: StringName) -> void:
+	TestWorlds.reload = func() -> void: pass
+	await press(ui("TopButtons/WorldsButton"))
+	# The list sits in a scroll container, which lays its entries out a frame or two later.
+	await frames(3)
+	var entry := hud().get_node("WorldList").find_child("World_%s" % id, true, false) as Button
+	check(entry != null and entry.is_visible_in_tree(), "the list has an entry for %s" % id)
+	await press(entry)
+	await restart_main()
+
+
 func screen_size() -> Vector2:
 	return get_tree().root.get_visible_rect().size
 

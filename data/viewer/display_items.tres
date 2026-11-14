@@ -1,0 +1,316 @@
+[gd_resource type="Resource" script_class="DisplayCatalog" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/display_catalog.gd" id="1_catalog"]
+[ext_resource type="Script" path="res://scripts/resources/display_item.gd" id="2_item"]
+[ext_resource type="Material" path="res://assets/materials/grass.tres" id="m_grass"]
+[ext_resource type="Material" path="res://assets/materials/asphalt.tres" id="m_asphalt"]
+[ext_resource type="Material" path="res://assets/materials/concrete.tres" id="m_concrete"]
+[ext_resource type="Material" path="res://assets/materials/paving.tres" id="m_paving"]
+[ext_resource type="Material" path="res://assets/materials/terrazzo_dark.tres" id="m_terrazzo_dark"]
+[ext_resource type="Material" path="res://assets/materials/wood_oak.tres" id="m_wood_oak"]
+[ext_resource type="Material" path="res://assets/materials/hedge.tres" id="m_hedge"]
+[ext_resource type="Material" path="res://assets/materials/bark.tres" id="m_bark"]
+[ext_resource type="Material" path="res://assets/materials/foliage.tres" id="m_foliage"]
+[ext_resource type="Material" path="res://assets/materials/metal_dark.tres" id="m_metal_dark"]
+[ext_resource type="Material" path="res://assets/materials/metal_light.tres" id="m_metal_light"]
+[ext_resource type="Material" path="res://assets/materials/glass.tres" id="m_glass"]
+[ext_resource type="PackedScene" path="res://assets/models/terminal/terminal_canopy.glb" id="s_terminal_canopy"]
+[ext_resource type="PackedScene" path="res://assets/models/terminal/terminal_ceiling_bay.glb" id="s_terminal_ceiling_bay"]
+[ext_resource type="PackedScene" path="res://assets/models/terminal/terminal_column.glb" id="s_terminal_column"]
+[ext_resource type="PackedScene" path="res://assets/models/terminal/terminal_corner_inner.glb" id="s_terminal_corner_inner"]
+[ext_resource type="PackedScene" path="res://assets/models/terminal/terminal_corner_outer.glb" id="s_terminal_corner_outer"]
+[ext_resource type="PackedScene" path="res://assets/models/terminal/terminal_door_sign_1.glb" id="s_terminal_door_sign_1"]
+[ext_resource type="PackedScene" path="res://assets/models/terminal/terminal_door_sign_2.glb" id="s_terminal_door_sign_2"]
+[ext_resource type="PackedScene" path="res://assets/models/terminal/terminal_door_sign_3.glb" id="s_terminal_door_sign_3"]
+[ext_resource type="PackedScene" path="res://assets/models/terminal/terminal_door_sign_4.glb" id="s_terminal_door_sign_4"]
+[ext_resource type="PackedScene" path="res://assets/models/terminal/terminal_door_sign_5.glb" id="s_terminal_door_sign_5"]
+[ext_resource type="PackedScene" path="res://assets/models/terminal/terminal_door_sign_6.glb" id="s_terminal_door_sign_6"]
+[ext_resource type="PackedScene" path="res://assets/models/terminal/terminal_door_sign_7.glb" id="s_terminal_door_sign_7"]
+[ext_resource type="PackedScene" path="res://assets/models/terminal/terminal_door_sign_8.glb" id="s_terminal_door_sign_8"]
+[ext_resource type="PackedScene" path="res://assets/models/terminal/terminal_exit_sign.glb" id="s_terminal_exit_sign"]
+[ext_resource type="PackedScene" path="res://assets/models/terminal/terminal_facade_closed.glb" id="s_terminal_facade_closed"]
+[ext_resource type="PackedScene" path="res://assets/models/terminal/terminal_facade_door.glb" id="s_terminal_facade_door"]
+[ext_resource type="PackedScene" path="res://assets/models/terminal/terminal_facade_glass.glb" id="s_terminal_facade_glass"]
+[ext_resource type="PackedScene" path="res://assets/models/terminal/terminal_fire_cabinet.glb" id="s_terminal_fire_cabinet"]
+[ext_resource type="PackedScene" path="res://assets/models/terminal/terminal_floor_bay.glb" id="s_terminal_floor_bay"]
+[ext_resource type="PackedScene" path="res://assets/models/terminal/terminal_join.glb" id="s_terminal_join"]
+[ext_resource type="PackedScene" path="res://assets/models/terminal/terminal_roof_bay.glb" id="s_terminal_roof_bay"]
+[ext_resource type="PackedScene" path="res://assets/models/landside/decal_drain_grate.glb" id="s_decal_drain_grate"]
+[ext_resource type="PackedScene" path="res://assets/models/landside/decal_oil_stain.glb" id="s_decal_oil_stain"]
+[ext_resource type="PackedScene" path="res://assets/models/landside/decal_patch.glb" id="s_decal_patch"]
+[ext_resource type="PackedScene" path="res://assets/models/landside/decal_tyre_marks.glb" id="s_decal_tyre_marks"]
+
+[sub_resource type="Resource" id="Resource_terminal_canopy"]
+script = ExtResource("2_item")
+id = &"terminal_canopy"
+display_name = "Canopy"
+category = "Terminal kit"
+scene = ExtResource("s_terminal_canopy")
+
+[sub_resource type="Resource" id="Resource_terminal_ceiling_bay"]
+script = ExtResource("2_item")
+id = &"terminal_ceiling_bay"
+display_name = "Ceiling bay"
+category = "Terminal kit"
+scene = ExtResource("s_terminal_ceiling_bay")
+
+[sub_resource type="Resource" id="Resource_terminal_column"]
+script = ExtResource("2_item")
+id = &"terminal_column"
+display_name = "Column"
+category = "Terminal kit"
+scene = ExtResource("s_terminal_column")
+
+[sub_resource type="Resource" id="Resource_terminal_corner_inner"]
+script = ExtResource("2_item")
+id = &"terminal_corner_inner"
+display_name = "Corner inner"
+category = "Terminal kit"
+scene = ExtResource("s_terminal_corner_inner")
+
+[sub_resource type="Resource" id="Resource_terminal_corner_outer"]
+script = ExtResource("2_item")
+id = &"terminal_corner_outer"
+display_name = "Corner outer"
+category = "Terminal kit"
+scene = ExtResource("s_terminal_corner_outer")
+
+[sub_resource type="Resource" id="Resource_terminal_door_sign_1"]
+script = ExtResource("2_item")
+id = &"terminal_door_sign_1"
+display_name = "Door sign 1"
+category = "Terminal kit"
+scene = ExtResource("s_terminal_door_sign_1")
+
+[sub_resource type="Resource" id="Resource_terminal_door_sign_2"]
+script = ExtResource("2_item")
+id = &"terminal_door_sign_2"
+display_name = "Door sign 2"
+category = "Terminal kit"
+scene = ExtResource("s_terminal_door_sign_2")
+
+[sub_resource type="Resource" id="Resource_terminal_door_sign_3"]
+script = ExtResource("2_item")
+id = &"terminal_door_sign_3"
+display_name = "Door sign 3"
+category = "Terminal kit"
+scene = ExtResource("s_terminal_door_sign_3")
+
+[sub_resource type="Resource" id="Resource_terminal_door_sign_4"]
+script = ExtResource("2_item")
+id = &"terminal_door_sign_4"
+display_name = "Door sign 4"
+category = "Terminal kit"
+scene = ExtResource("s_terminal_door_sign_4")
+
+[sub_resource type="Resource" id="Resource_terminal_door_sign_5"]
+script = ExtResource("2_item")
+id = &"terminal_door_sign_5"
+display_name = "Door sign 5"
+category = "Terminal kit"
+scene = ExtResource("s_terminal_door_sign_5")
+
+[sub_resource type="Resource" id="Resource_terminal_door_sign_6"]
+script = ExtResource("2_item")
+id = &"terminal_door_sign_6"
+display_name = "Door sign 6"
+category = "Terminal kit"
+scene = ExtResource("s_terminal_door_sign_6")
+
+[sub_resource type="Resource" id="Resource_terminal_door_sign_7"]
+script = ExtResource("2_item")
+id = &"terminal_door_sign_7"
+display_name = "Door sign 7"
+category = "Terminal kit"
+scene = ExtResource("s_terminal_door_sign_7")
+
+[sub_resource type="Resource" id="Resource_terminal_door_sign_8"]
+script = ExtResource("2_item")
+id = &"terminal_door_sign_8"
+display_name = "Door sign 8"
+category = "Terminal kit"
+scene = ExtResource("s_terminal_door_sign_8")
+
+[sub_resource type="Resource" id="Resource_terminal_exit_sign"]
+script = ExtResource("2_item")
+id = &"terminal_exit_sign"
+display_name = "Exit sign"
+category = "Terminal kit"
+scene = ExtResource("s_terminal_exit_sign")
+
+[sub_resource type="Resource" id="Resource_terminal_facade_closed"]
+script = ExtResource("2_item")
+id = &"terminal_facade_closed"
+display_name = "Facade closed"
+category = "Terminal kit"
+scene = ExtResource("s_terminal_facade_closed")
+
+[sub_resource type="Resource" id="Resource_terminal_facade_door"]
+script = ExtResource("2_item")
+id = &"terminal_facade_door"
+display_name = "Facade door"
+category = "Terminal kit"
+scene = ExtResource("s_terminal_facade_door")
+
+[sub_resource type="Resource" id="Resource_terminal_facade_glass"]
+script = ExtResource("2_item")
+id = &"terminal_facade_glass"
+display_name = "Facade glass"
+category = "Terminal kit"
+scene = ExtResource("s_terminal_facade_glass")
+
+[sub_resource type="Resource" id="Resource_terminal_fire_cabinet"]
+script = ExtResource("2_item")
+id = &"terminal_fire_cabinet"
+display_name = "Fire cabinet"
+category = "Terminal kit"
+scene = ExtResource("s_terminal_fire_cabinet")
+
+[sub_resource type="Resource" id="Resource_terminal_floor_bay"]
+script = ExtResource("2_item")
+id = &"terminal_floor_bay"
+display_name = "Floor bay"
+category = "Terminal kit"
+scene = ExtResource("s_terminal_floor_bay")
+
+[sub_resource type="Resource" id="Resource_terminal_join"]
+script = ExtResource("2_item")
+id = &"terminal_join"
+display_name = "Join"
+category = "Terminal kit"
+scene = ExtResource("s_terminal_join")
+
+[sub_resource type="Resource" id="Resource_terminal_roof_bay"]
+script = ExtResource("2_item")
+id = &"terminal_roof_bay"
+display_name = "Roof bay"
+category = "Terminal kit"
+scene = ExtResource("s_terminal_roof_bay")
+
+[sub_resource type="Resource" id="Resource_decal_drain_grate"]
+script = ExtResource("2_item")
+id = &"decal_drain_grate"
+display_name = "Drain grate"
+category = "Decals"
+scene = ExtResource("s_decal_drain_grate")
+
+[sub_resource type="Resource" id="Resource_decal_oil_stain"]
+script = ExtResource("2_item")
+id = &"decal_oil_stain"
+display_name = "Oil stain"
+category = "Decals"
+scene = ExtResource("s_decal_oil_stain")
+
+[sub_resource type="Resource" id="Resource_decal_patch"]
+script = ExtResource("2_item")
+id = &"decal_patch"
+display_name = "Patch"
+category = "Decals"
+scene = ExtResource("s_decal_patch")
+
+[sub_resource type="Resource" id="Resource_decal_tyre_marks"]
+script = ExtResource("2_item")
+id = &"decal_tyre_marks"
+display_name = "Tyre marks"
+category = "Decals"
+scene = ExtResource("s_decal_tyre_marks")
+
+[sub_resource type="Resource" id="Resource_grass"]
+script = ExtResource("2_item")
+id = &"swatch_grass"
+display_name = "Grass"
+category = "Materials"
+material = ExtResource("m_grass")
+swatch_size = Vector3(4, 0.1, 4)
+
+[sub_resource type="Resource" id="Resource_asphalt"]
+script = ExtResource("2_item")
+id = &"swatch_asphalt"
+display_name = "Asphalt"
+category = "Materials"
+material = ExtResource("m_asphalt")
+swatch_size = Vector3(4, 0.1, 4)
+
+[sub_resource type="Resource" id="Resource_concrete"]
+script = ExtResource("2_item")
+id = &"swatch_concrete"
+display_name = "Concrete"
+category = "Materials"
+material = ExtResource("m_concrete")
+swatch_size = Vector3(4, 0.1, 4)
+
+[sub_resource type="Resource" id="Resource_paving"]
+script = ExtResource("2_item")
+id = &"swatch_paving"
+display_name = "Paving"
+category = "Materials"
+material = ExtResource("m_paving")
+swatch_size = Vector3(4, 0.1, 4)
+
+[sub_resource type="Resource" id="Resource_terrazzo_dark"]
+script = ExtResource("2_item")
+id = &"swatch_terrazzo_dark"
+display_name = "Terrazzo (dark)"
+category = "Materials"
+material = ExtResource("m_terrazzo_dark")
+swatch_size = Vector3(4, 0.1, 4)
+
+[sub_resource type="Resource" id="Resource_wood_oak"]
+script = ExtResource("2_item")
+id = &"swatch_wood_oak"
+display_name = "Oak wood"
+category = "Materials"
+material = ExtResource("m_wood_oak")
+swatch_size = Vector3(2, 0.1, 2)
+
+[sub_resource type="Resource" id="Resource_hedge"]
+script = ExtResource("2_item")
+id = &"swatch_hedge"
+display_name = "Hedge"
+category = "Materials"
+material = ExtResource("m_hedge")
+swatch_size = Vector3(2, 1.1, 0.6)
+
+[sub_resource type="Resource" id="Resource_bark"]
+script = ExtResource("2_item")
+id = &"swatch_bark"
+display_name = "Bark"
+category = "Materials"
+material = ExtResource("m_bark")
+swatch_size = Vector3(0.6, 2.5, 0.6)
+
+[sub_resource type="Resource" id="Resource_foliage"]
+script = ExtResource("2_item")
+id = &"swatch_foliage"
+display_name = "Foliage"
+category = "Materials"
+material = ExtResource("m_foliage")
+swatch_size = Vector3(2, 2, 2)
+
+[sub_resource type="Resource" id="Resource_metal_dark"]
+script = ExtResource("2_item")
+id = &"swatch_metal_dark"
+display_name = "Metal (dark)"
+category = "Materials"
+material = ExtResource("m_metal_dark")
+swatch_size = Vector3(2, 2, 0.1)
+
+[sub_resource type="Resource" id="Resource_metal_light"]
+script = ExtResource("2_item")
+id = &"swatch_metal_light"
+display_name = "Metal (light)"
+category = "Materials"
+material = ExtResource("m_metal_light")
+swatch_size = Vector3(2, 2, 0.1)
+
+[sub_resource type="Resource" id="Resource_glass"]
+script = ExtResource("2_item")
+id = &"swatch_glass"
+display_name = "Glass"
+category = "Materials"
+material = ExtResource("m_glass")
+swatch_size = Vector3(2, 2, 0.05)
+
+[resource]
+script = ExtResource("1_catalog")
+items = Array[ExtResource("2_item")]([SubResource("Resource_terminal_canopy"), SubResource("Resource_terminal_ceiling_bay"), SubResource("Resource_terminal_column"), SubResource("Resource_terminal_corner_inner"), SubResource("Resource_terminal_corner_outer"), SubResource("Resource_terminal_door_sign_1"), SubResource("Resource_terminal_door_sign_2"), SubResource("Resource_terminal_door_sign_3"), SubResource("Resource_terminal_door_sign_4"), SubResource("Resource_terminal_door_sign_5"), SubResource("Resource_terminal_door_sign_6"), SubResource("Resource_terminal_door_sign_7"), SubResource("Resource_terminal_door_sign_8"), SubResource("Resource_terminal_exit_sign"), SubResource("Resource_terminal_facade_closed"), SubResource("Resource_terminal_facade_door"), SubResource("Resource_terminal_facade_glass"), SubResource("Resource_terminal_fire_cabinet"), SubResource("Resource_terminal_floor_bay"), SubResource("Resource_terminal_join"), SubResource("Resource_terminal_roof_bay"), SubResource("Resource_decal_drain_grate"), SubResource("Resource_decal_oil_stain"), SubResource("Resource_decal_patch"), SubResource("Resource_decal_tyre_marks"), SubResource("Resource_grass"), SubResource("Resource_asphalt"), SubResource("Resource_concrete"), SubResource("Resource_paving"), SubResource("Resource_terrazzo_dark"), SubResource("Resource_wood_oak"), SubResource("Resource_hedge"), SubResource("Resource_bark"), SubResource("Resource_foliage"), SubResource("Resource_metal_dark"), SubResource("Resource_metal_light"), SubResource("Resource_glass")])

@@ -18,6 +18,11 @@ var _materials: Dictionary[BuildingType, StandardMaterial3D] = {}
 var _front_material: StandardMaterial3D
 ## Draws the landside pieces (roads, sidewalks, props, ...); set in the main scene.
 @export var landside: LandsideLayer
+## Turned off in the asset viewer: a single building alone on the field is never "connected".
+var hints_enabled: bool = true:
+	set(value):
+		hints_enabled = value
+		_update_hints()
 var _hints: Dictionary[Building, Label3D] = {}
 var _visuals: Dictionary[Building, BuildingVisual] = {}
 # Connection problem per building, recalculated when the layout changes.
@@ -98,7 +103,7 @@ func _update_hints() -> void:
 		var problem := Airport.connection_problem(building.type, building.origin_cell, building.rotation_steps)
 		_problems[building] = problem
 		_hints[building].text = problem
-		_hints[building].visible = not problem.is_empty()
+		_hints[building].visible = hints_enabled and not problem.is_empty()
 
 
 func _material_for(type: BuildingType) -> StandardMaterial3D:
