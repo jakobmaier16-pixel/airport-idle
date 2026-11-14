@@ -5,11 +5,11 @@
 //
 // Everything about a cell comes from ONE texture, the flag layer of the AirportGrid (see
 // scenes/ground/ground_flag_texture.gd); neighbour cells are read with texelFetch, so no extra
-// data is needed (the taxiway centreline and edge lines and the stand edges are derived from the runs of
-// neighbour bits).
-// Per pixel: 1 flag fetch + 1 material sample (+ 1 atlas sample on a marking; on taxiway pixels a short
-// walk over the neighbour cells, at most 2 x 13 fetches, none when zoomed far out; + 4 neighbour fetches on
-// stand cells). Textures tile in world metres (1 cell = 2 m), albedo only (the ORM and normal
+// data is needed for the stand edges; the taxiway centreline and edge lines come from a second small
+// texture that is worked out on the CPU when the layout changes.
+// Per pixel: 1 flag fetch + 1 material sample (+ 1 atlas sample on a marking; on taxiway pixels 1 more
+// fetch of the CPU-made marks texture, none when zoomed far out; + 4 neighbour fetches on stand cells).
+// Textures tile in world metres (1 cell = 2 m), albedo only (the ORM and normal
 // maps of the .tres materials are for the 3D models; the ground is flat).
 shader_type spatial;
 
@@ -57,12 +57,10 @@ uniform vec2 map_size = vec2(128.0);
 //   bits 6-7 (0xC0): surface under a building, 1 = concrete (stand), 2 = runway asphalt
 // Keep these in step with AirportGrid.ZONE_MASK / WALKWAY_BIT / TAXIWAY_BIT / OWNED_BIT / SURFACE_MASK.
 uniform sampler2D flag_map : filter_nearest, repeat_disable;
+// RG8, one texel per cell: where the taxiway centreline and edge lines go (see the taxiway branch).
+uniform sampler2D taxi_marks : filter_nearest, repeat_disable;
 
 varying vec3 world_position;
-
-// How far (cells) the taxiway markings look along a row or column for the edges of the strip: a strip up to
-// this many cells wide gets a centreline (a taxiway must be 12 wide for planes; one more is tolerated).
-const int TAXI_RUN_MAX = 13;
 
 void vertex() {
 	world_position = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
@@ -117,51 +115,25 @@ void fragment() {
 
 	vec2 in_cell = fract(cell) - 0.5;
 	if (taxiway) {
-		// ONE centreline along the strip and an edge line along each long side, from the run of taxiway
-		// cells through this cell (no extra data: the same flag texture, a short walk over the neighbours,
-		// only on taxiway pixels and only while cells are bigger than a pixel).
-		// The "across" axis is the one where the run is short (a strip is 12 cells wide and long along its
-		// direction): the centre line sits in the middle of that run, so every cell of the strip puts it at
-		// the same place and the cells join up into one line. Where the strip ends in a junction both runs
-		// are long and no line is drawn (the corner or crossing stays plain).
+		// ONE centreline along the strip and an edge line along each long side. Which cells get them
+		// was worked out on the CPU (GroundFlagTexture.marks_image), so this is one more fetch:
+		//   R: 0 = no line, else 14 + (cells after - cells before) along the strip's short axis, i.e. the
+		//      line sits (R - 14) / 2 cells from the cell's middle, the same place for every cell of
+		//      the strip so the cells join up into one line;
+		//   G: bit 0 = the short axis is y, bit 1 / bit 2 = an edge line on the low / high side.
 		float line_dist = 1.0e3;
 		float edge_dist = 1.0e3;
 		if (px < 0.8) {
-			int up = 0;
-			int down = 0;
-			for (int k = 1; k <= TAXI_RUN_MAX; k++) {
-				if (up == k - 1 && (flags_at(cell_i + ivec2(0, -k), limit) & 0x10) != 0) { up = k; }
-				if (down == k - 1 && (flags_at(cell_i + ivec2(0, k), limit) & 0x10) != 0) { down = k; }
-			}
-			bool horizontal = up + down + 1 <= TAXI_RUN_MAX;
-			int a_neg = up;
-			int a_pos = down;
-			if (!horizontal) {
-				int left = 0;
-				int right = 0;
-				for (int k = 1; k <= TAXI_RUN_MAX; k++) {
-					if (left == k - 1 && (flags_at(cell_i + ivec2(-k, 0), limit) & 0x10) != 0) { left = k; }
-					if (right == k - 1 && (flags_at(cell_i + ivec2(k, 0), limit) & 0x10) != 0) { right = k; }
-				}
-				a_neg = left;
-				a_pos = right;
-				if (left + right + 1 > TAXI_RUN_MAX) {
-					a_neg = -1;
-				}
-			}
-			if (a_neg >= 0) {
-				// `across` is the cell's position along the short axis; the middle of the run is
-				// (a_pos - a_neg) / 2 cells from the cell centre.
+			ivec2 marks = ivec2(texelFetch(taxi_marks, cell_i, 0).rg * 255.0 + 0.5);
+			if (marks.x > 0) {
+				bool horizontal = (marks.y & 1) != 0;
 				float across = horizontal ? in_cell.y : in_cell.x;
-				line_dist = abs(across - float(a_pos - a_neg) * 0.5);
-				// Edge lines: in the first and last cell of the run, inset from the border, and only
-				// where the border is grass (not a stand or runway, which have their own markings).
+				line_dist = abs(across - float(marks.x - 14) * 0.5);
 				float edge_inset = taxi_edge_inset_m / cell_size;
-				ivec2 axis_step = horizontal ? ivec2(0, 1) : ivec2(1, 0);
-				if (a_neg == 0 && (flags_at(cell_i - axis_step, limit) >> 6) == 0 && (flags_at(cell_i - axis_step, limit) & 0x08) == 0) {
+				if ((marks.y & 2) != 0) {
 					edge_dist = min(edge_dist, abs(across + 0.5 - edge_inset));
 				}
-				if (a_pos == 0 && (flags_at(cell_i + axis_step, limit) >> 6) == 0 && (flags_at(cell_i + axis_step, limit) & 0x08) == 0) {
+				if ((marks.y & 4) != 0) {
 					edge_dist = min(edge_dist, abs(0.5 - edge_inset - across));
 				}
 			}

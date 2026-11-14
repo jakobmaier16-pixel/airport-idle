@@ -187,3 +187,33 @@ func test_remove_clears_a_12_wide_strip() -> void:
 	check_eq(_taxiway_cells(), 12 * 31 - 12 * 18, "removed a 12 x 18 strip in the middle")
 	check_eq(Airport.grid.is_taxiway(at(Vector2i(30, 70))), false, "centre removed")
 	check_eq(Airport.grid.is_taxiway(at(Vector2i(20, 70))), true, "the ends stay")
+
+
+func test_a_drag_cut_short_by_the_map_edge_is_refused() -> void:
+	await _start()
+	await press(ui("BuildMenu/PaintButtons/TaxiwayButton"))
+	var mode := build_mode()
+	# Along the top edge of the map: the strip would be centred on row 3 and the map cuts it to 9 rows.
+	var start_cell := Vector2i(Airport.grid.size.x / 2, 3)
+	var end_cell := start_cell + Vector2i(30, 0)
+	touch(0, true, screen_of_cell(start_cell))
+	move(0, screen_of_cell(end_cell))
+	check(mode._paint_rect.size.y < 12, "the map cut the strip to %d rows" % mode._paint_rect.size.y)
+	check_eq((mode._paint_material as StandardMaterial3D).albedo_color, mode.invalid_color, "the preview is red")
+	touch(0, false, screen_of_cell(end_cell))
+	var painted := 0
+	for y in 20:
+		for x in range(start_cell.x - 5, start_cell.x + 40):
+			if Airport.grid.is_taxiway(Vector2i(x, y)):
+				painted += 1
+	check_eq(painted, 0, "nothing was painted")
+	await frames(1)
+	check((ui("ToolPanel/HintLabel") as Label).text.contains("Not enough room"), "and the player is told why")
+	# Further from the edge the same drag paints a full 12 cell strip.
+	drag(screen_of_cell(start_cell + Vector2i(0, 20)), screen_of_cell(end_cell + Vector2i(0, 20)))
+	var full := 0
+	for y in range(start_cell.y + 10, start_cell.y + 40):
+		for x in range(start_cell.x - 5, start_cell.x + 40):
+			if Airport.grid.is_taxiway(Vector2i(x, y)):
+				full += 1
+	check_eq(full, 31 * 12, "away from the edge it paints the full strip")

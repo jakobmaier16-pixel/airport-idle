@@ -90,5 +90,6 @@ func _update_cells() -> void:
 		_flags_grid = grid
 		_flags = GroundFlagTexture.new(grid)
 		_material.set_shader_parameter(&"flag_map", _flags.texture)
+		_material.set_shader_parameter(&"taxi_marks", _flags.marks_texture)
 		return
 	_flags.refresh()

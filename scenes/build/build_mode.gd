@@ -364,7 +364,8 @@ func _show_paint_rect() -> void:
 	var grid := Airport.grid
 	# Red where the paint would be refused (it goes over a building), like a building that cannot be placed.
 	if _paint_kind != PaintKind.REMOVE_WALKWAY:
-		_paint_material.albedo_color = invalid_color if _building_in(_paint_rect) != null else _paint_color()
+		var blocked := _building_in(_paint_rect) != null or _taxiway_cut_short(_paint_rect)
+		_paint_material.albedo_color = invalid_color if blocked else _paint_color()
 	_paint_preview.position = grid.block_center(_paint_rect.position, _paint_rect.size) + Vector3(0.0, 0.03, 0.0)
 	_paint_preview.scale = Vector3(_paint_rect.size.x * grid.cell_size, 1.0, _paint_rect.size.y * grid.cell_size)
 
@@ -410,9 +411,16 @@ func _building_in(rect: Rect2i) -> Building:
 	return null
 
 
-# Paints unless a taxiway or walkway would go over a building: then nothing is painted and the player
-# is told. Remove is never refused.
+# True for a taxiway rectangle that the map's edge cut below the 12 cells a taxiway needs (either side).
+func _taxiway_cut_short(rect: Rect2i) -> bool:
+	return _paint_kind == PaintKind.TAXIWAY and minf(rect.size.x, rect.size.y) < BRUSH_CELLS
+
+
+# Paints unless a taxiway or walkway would go over a building, or a taxiway was cut short by the map's
+# edge: then nothing is painted and the player is told. Remove is never refused.
 func _paint_or_refuse(cells: Array[Vector2i], rect: Rect2i) -> String:
+	if _taxiway_cut_short(rect):
+		return "Not enough room: a taxiway is %d cells wide" % BRUSH_CELLS
 	if _paint_kind != PaintKind.REMOVE_WALKWAY and _building_in(rect) != null:
 		return "Can't build %s over a building" % ("a taxiway" if _paint_kind == PaintKind.TAXIWAY else "a walkway")
 	return _apply_paint(cells)
