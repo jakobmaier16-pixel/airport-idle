@@ -18,16 +18,34 @@ func _ready() -> void:
 	manager_camera().face(Airport.grid.cell_to_world(at(Vector2i(22, 23))) + Vector3.UP * 1.5)
 	await _shot("manager_view_hall")
 	await _landside_shots()
-	if "--landside-only" in OS.get_cmdline_user_args():
+	if "--landside-only" in OS.get_cmdline_user_args() and "--realism" not in OS.get_cmdline_user_args():
 		get_tree().quit()
 		return
 	hud().get_node("SafeArea/NoticeBox/NoticePanel").visible = false
 
 	# South of gate 1's stand, looking across the plane to the gate, while it boards (first departure at 210 s, boarding from 120 s).
-	sim_seconds(60)
+	sim_seconds(170 if "--realism" in OS.get_cmdline_user_args() else 60)  # realism: the plane is at its stand
 	manager().global_position = Airport.grid.cell_to_world(at(Vector2i(16, 70)))
 	manager_camera().face(Airport.grid.block_center(at(Vector2i(6, 39)), Vector2i(20, 23)) + Vector3.UP * 2.0)
+	if "--realism" in OS.get_cmdline_user_args():
+		# Realism pass: stand 45 m from the first plane on an apron and look at it.
+		await frames(3)
+		var planes := get_tree().root.find_child("Planes", true, false)
+		var stand_spot := Airport.grid.block_center(at(Vector2i(6, 39)), Vector2i(20, 23))
+		var best: Node3D = null
+		for child in planes.get_children():
+			if child is Node3D and (best == null or (child as Node3D).global_position.distance_to(stand_spot) < best.global_position.distance_to(stand_spot)):
+				best = child
+		if best != null:
+			manager().global_position = best.global_position + Vector3(30.0, 0.0, 40.0)
+			manager_camera().face(best.global_position + Vector3.UP * 3.0)
 	await _shot("manager_at_gate_boarding")
+	if "--realism" in OS.get_cmdline_user_args():
+		await open_build_view()
+		build_camera().center_on(Airport.grid.cell_to_world(at(Vector2i(32, 30))))
+		await _shot("build_view")
+		get_tree().quit()
+		return
 
 	# The long-haul plane at the wide-body stand behind gate 3 (design doc §10.2).
 	manager().global_position = Airport.grid.cell_to_world(at(Vector2i(43, 84)))
@@ -107,6 +125,13 @@ func _landside_shots() -> void:
 	manager().global_position = Airport.grid.cell_to_world(layout.call(3.0, 46.0))
 	manager_camera().face(Airport.grid.cell_to_world(layout.call(60.0, 36.0)) + Vector3.UP * 1.0)
 	await _shot("landside_carpark")
+	# Fence seen from outside, close (6 m) and far (30 m), and the hedge row (realism pass).
+	manager().global_position = Airport.grid.cell_to_world(layout.call(8.0, 30.0))
+	manager_camera().face(Airport.grid.cell_to_world(layout.call(30.0, 36.0)) + Vector3.UP * 1.3)
+	await _shot("landside_fence_near")
+	manager().global_position = Airport.grid.cell_to_world(layout.call(-12.0, 20.0))
+	manager_camera().face(Airport.grid.cell_to_world(layout.call(40.0, 40.0)) + Vector3.UP * 1.0)
+	await _shot("landside_fence_far")
 	await open_build_view()
 	build_camera().view_height = 200.0
 	build_camera().center_on(Airport.grid.cell_to_world(layout.call(72.0, 40.0)))

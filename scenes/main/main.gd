@@ -176,6 +176,8 @@ func _set_view(view: View) -> void:
 	else:
 		_manager_camera.make_current()
 	_build_camera.update_shadows()
+	# Distance haze is for the first-person view; seen from above it would only grey the map out.
+	($WorldEnvironment as WorldEnvironment).environment.fog_enabled = not building
 
 	_manager.input_enabled = not building
 	_hud.joystick.enabled = not building
