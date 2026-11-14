@@ -4,7 +4,7 @@ extends TestCase
 
 const SAVES: Array[String] = [
 	"v1_early", "v1_showcase", "v2_showcase", "v3_showcase", "v4_showcase", "v5_showcase",
-	"v6_showcase", "v7_showcase", "v8_showcase", "v9_showcase",
+	"v6_showcase", "v7_showcase", "v8_showcase", "v9_showcase", "v10_showcase",
 ]
 const SIZE_LIMIT_BYTES: int = 50000
 const BIG := Vector2i(2200, 1600)
@@ -89,7 +89,7 @@ func test_every_example_save_loads() -> void:
 		check(not converted.is_empty(), "%s converts" % name)
 		var brain := AirportWorld.new()
 		brain.load_state(converted)
-		check(brain.buildings.size() > 5, "%s loads (%d buildings)" % [name, brain.buildings.size()])
+		check(brain.buildings.size() > 4, "%s loads (%d buildings)" % [name, brain.buildings.size()])
 		check(brain.grid.count_flag(AirportGrid.WALKWAY_BIT) > 20, "%s has its walkways" % name)
 		brain.dispose()
 
@@ -121,7 +121,7 @@ func test_showcase_save_stays_small() -> void:
 
 
 func test_save_does_not_grow_with_the_map() -> void:
-	var small := _load_v8_into(Vector2i(64, 64))
+	var small := _load_v8_into(SMALL_MAP)
 	var big := _load_v8_into(BIG)
 	# The 64 x 64 airport sits in the middle of the big map and may straddle up to four chunks.
 	check((big.save_state()["walkways"] as Array).size() <= 4, "a few chunks on a big map")
@@ -134,12 +134,12 @@ func test_save_does_not_grow_with_the_map() -> void:
 
 
 func test_loading_into_a_bigger_map_centres_everything() -> void:
-	var small := _load_v8_into(Vector2i(64, 64))
+	var small := _load_v8_into(SMALL_MAP)
 	var started := Time.get_ticks_usec()
 	var big := _load_v8_into(BIG)
 	print("INFO load into %dx%d: %.1f ms" % [BIG.x, BIG.y, (Time.get_ticks_usec() - started) / 1000.0])
-	var shift := (BIG - Vector2i(64, 64)) / 2
-	check_eq(shift, Vector2i(1068, 768), "the shift")
+	var shift := (BIG - SMALL_MAP) / 2
+	check_eq(shift, Vector2i(500, 600), "the shift")
 	check_eq(big.grid.size, BIG, "the map is still the big one")
 	# Buildings: same types, ids, levels, shifted cells, same place in metres.
 	check_eq(big.buildings.size(), small.buildings.size(), "every building is back")
@@ -238,8 +238,8 @@ func test_behaviour_hash_ignores_the_layer_format() -> void:
 	ShowcaseAirport.build()
 	var state := Airport.save_state()
 	var dense := state.duplicate()
-	# The old dense text of formats 1-8, over the 64 x 64 reference map (which holds the showcase).
-	var reference := MapAnchor.REFERENCE_SIZE
+	# The old dense text of formats 1-8, over the area the behaviour hash looks at (which holds the showcase).
+	var reference := BehaviourHash.HASH_AREA
 	var walkways := PackedByteArray()
 	var taxiways := PackedByteArray()
 	walkways.resize(reference.x * reference.y)

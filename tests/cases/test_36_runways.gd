@@ -13,7 +13,10 @@ func test_new_game_has_a_runway() -> void:
 	Airport.reset()
 	var runways := Airport.buildings.filter(func(b: Building) -> bool: return b.type.role == BuildingType.Role.RUNWAY)
 	check_eq(runways.size(), 1, "one runway")
-	check(Airport.owns_cell(at(Vector2i(30, 56))), "the land down to the runway is the airport's")
+	var runway: Building = runways[0]
+	var size := Building.rotated_size(runway.type.footprint, runway.rotation_steps)
+	for corner in [runway.origin_cell, runway.origin_cell + size - Vector2i.ONE]:
+		check(Airport.owns_cell(corner), "the whole runway lies on the airport's own land (%s)" % corner)
 	check_eq(Airport.economy.balance, Economy.STARTING_MONEY, "and it was free")
 
 
@@ -38,7 +41,7 @@ func test_showcase_stands_reach_the_runway() -> void:
 			check_eq(Airport.connection_problem(building.type, building.origin_cell, building.rotation_steps), "", "%s connected" % building.type.display_name)
 			check(not Airport.plane_network.path_to_stand(building).is_empty(), "planes find a way")
 	# Cut the parallel taxiway: the stands lose their way to the runway.
-	Airport.paint_taxiway(cells(at(Vector2i(8, 55)), Vector2i(48, 2)), false)
+	Airport.paint_taxiway(cells(at(Vector2i(6, 79)), Vector2i(100, 2)), false)
 	var stand := _stand()
 	check_eq(Airport.connection_problem(stand.type, stand.origin_cell, stand.rotation_steps), "Needs a taxiway to a runway", "cut off")
 	check(Airport.passenger_flow.usable_gates().is_empty(), "no gate gets flights")

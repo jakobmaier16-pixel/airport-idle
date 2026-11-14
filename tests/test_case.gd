@@ -11,6 +11,14 @@ var current_test: String = ""
 ## Number of buildings in the showcase airport (scripts/dev/showcase_airport.gd).
 const SHOWCASE_BUILDINGS: int = 19
 
+## Building types of the 6 m prototype that save format 10 removes (full refund) when it converts an
+## older save; the new runway is laid on loading. Prices are what format 9 saved when an entry has none.
+const LEGACY_AIRSIDE_PRICES: Dictionary = {"aircraft_stand": 6000.0, "wide_body_stand": 15000.0, "runway": 40000.0}
+const LEGACY_TAXIWAY_PRICE: float = 30.0
+
+## A small map that still holds the 2 km runway (the old 64 x 64 reference map no longer does).
+const SMALL_MAP: Vector2i = Vector2i(1200, 400)
+
 ## The running game (main scene), created by start_game().
 var main: Node = null
 
@@ -199,11 +207,13 @@ func close_build_view() -> void:
 
 ## Shows the area the tests build in: the 64 x 64 reference area (MapAnchor) around the map centre,
 ## centered and as big as the camera allows. (The whole map is far too big to tap cells on.)
-func show_whole_map() -> void:
+## `view_height` (meters, 0 = the reference area) and `centre` show another part, e.g. the taller
+## real-scale airside.
+func show_whole_map(view_height: float = 0.0, centre: Vector3 = Vector3.ZERO) -> void:
 	var camera := build_camera()
 	var reference := Vector2(MapAnchor.REFERENCE_SIZE) * Airport.grid.cell_size
-	camera.view_height = minf(100.0, minf(reference.y, reference.x / (screen_size().x / screen_size().y)))
-	camera.center_on(Vector3.ZERO)
+	camera.view_height = view_height if view_height > 0.0 else minf(100.0, minf(reference.y, reference.x / (screen_size().x / screen_size().y)))
+	camera.center_on(centre)
 	await frames(1)
 
 
@@ -305,3 +315,33 @@ func build_basic_terminal() -> void:
 ## The showcase airport (scripts/dev/showcase_airport.gd), without passengers yet.
 func build_reference_airport() -> void:
 	ShowcaseAirport.build(0.0)
+
+
+# --- Loading saves from before format 10 (the real-scale airside) ---
+
+## Money an example save gets back for its removed stands, runway and taxiway paint: worked out
+## from the file itself, not from SaveGame.
+func legacy_refund_of(saved: Dictionary) -> float:
+	var total := 0.0
+	for entry: Dictionary in saved.get("buildings", []):
+		var type := str(entry.get("type", ""))
+		if LEGACY_AIRSIDE_PRICES.has(type):
+			total += float(entry.get("cost", LEGACY_AIRSIDE_PRICES[type]))
+	var taxiways: Variant = saved.get("taxiways")
+	var cells := 0
+	if taxiways is String:
+		for byte in Marshalls.base64_to_raw(taxiways):
+			cells += 1 if byte != 0 else 0
+	elif taxiways is Array:
+		cells = GridSave.cells_of(taxiways).size()
+	return total + cells * LEGACY_TAXIWAY_PRICE
+
+
+## The building counts of an example save as they are after loading it today: its stands and old
+## runway are gone and one (new) runway is there; everything else is as saved.
+func counts_after_legacy_removal(counts: Dictionary) -> Dictionary:
+	var result := counts.duplicate()
+	for type in LEGACY_AIRSIDE_PRICES:
+		result.erase(type)
+	result["runway"] = 1
+	return result

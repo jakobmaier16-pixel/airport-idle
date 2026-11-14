@@ -5,9 +5,14 @@ extends TestCase
 
 func test_build_airport_by_touch_and_fly_passengers() -> void:
 	Airport.reset()  # a real new game: an empty field with the starting runway
+	# Real-scale stands cost EUR 18,000 each: the starting money pays for one, so the player is
+	# given what the second gate and stand need.
+	Airport.economy.bonus(40000.0)
 	await start_game()
 	await open_build_view()
-	await show_whole_map()
+	# The airside is 20-cell stands and a taxiway down to the runway: taller than the reference
+	# area, so look at the middle of it from higher up.
+	await show_whole_map(170.0, Airport.grid.cell_to_world(at(Vector2i(32, 50))))
 
 	await paint("WalkwayButton", at(Vector2i(18, 21)), at(Vector2i(45, 27)))
 	await paint("WalkwayButton", at(Vector2i(10, 31)), at(Vector2i(53, 33)))
@@ -18,12 +23,12 @@ func test_build_airport_by_touch_and_fly_passengers() -> void:
 	check(await place("Security", at(Vector2i(30, 28))), "security on the border")
 	check(await place("Gate", at(Vector2i(14, 34))), "gate 1")
 	check(await place("Gate", at(Vector2i(42, 34))), "gate 2")
-	check(await place("Stand", at(Vector2i(10, 39))), "stand 1")
+	check(await place("Stand", at(Vector2i(6, 39))), "stand 1")
 	check(await place("Stand", at(Vector2i(38, 39))), "stand 2")
 	check(not Airport.passenger_flow.route_problem.is_empty(), "stands without a taxiway get no planes")
 	# Taxiways from both stands down to the runway (design doc §7.5a).
-	await paint("TaxiwayButton", at(Vector2i(15, 51)), at(Vector2i(16, 56)))
-	await paint("TaxiwayButton", at(Vector2i(43, 51)), at(Vector2i(44, 56)))
+	await paint("TaxiwayButton", at(Vector2i(15, 62)), at(Vector2i(16, 80)))
+	await paint("TaxiwayButton", at(Vector2i(43, 62)), at(Vector2i(44, 80)))
 	check(not Airport.passenger_flow.route_problem.is_empty(), "without a baggage claim arrivals have no way out")
 	check(await place("Baggage claim", at(Vector2i(37, 27))), "baggage claim on the border")
 

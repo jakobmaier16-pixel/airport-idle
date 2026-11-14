@@ -95,10 +95,11 @@ func test_v5_converter_packs_the_passengers() -> void:
 func test_example_v6_loads() -> void:
 	var saved: Dictionary = JSON.parse_string(FileAccess.get_file_as_string(SHOWCASE_V6))
 	check_eq(int(saved["version"]), 6, "an example save of version 6")
+	var legacy: int = saved["buildings"].filter(func(e: Dictionary) -> bool: return LEGACY_AIRSIDE_PRICES.has(str(e["type"]))).size()
 	check_eq(SaveGame.migrate(saved)["version"], SaveGame.FORMAT_VERSION, "converted up to the current version")
 	var loaded := _fresh(saved)
 	check_eq(loaded.passenger_flow.passengers.size(), int(saved["flow"]["passengers"]["count"]), "its passengers are back")
-	check_eq(loaded.buildings.size(), SHOWCASE_BUILDINGS, "its buildings are back")
+	check_eq(loaded.buildings.size(), SHOWCASE_BUILDINGS - legacy + 1, "its buildings are back (without the old airside, plus the new runway)")
 	for i in int(60.0 / AirportWorld.SIM_STEP):
 		loaded.step(AirportWorld.SIM_STEP)
 	check(loaded.passenger_flow.passengers.size() > 0, "it keeps running")

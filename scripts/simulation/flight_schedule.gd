@@ -262,7 +262,11 @@ func _gate_for(slot: TimetableSlot, usable: Array[Building]) -> Building:
 			continue
 		var stand := world.stand_behind(gate)
 		var wide_stand := stand != null and stand.type.wide_body
-		if slot.plane_class == TimetableSlot.PlaneClass.WIDE and not wide_stand:
+		# The stand's class decides (BuildingType.fits): a wide stand takes narrow planes too, a
+		# narrow one never takes a wide-body plane.
+		if stand != null and not stand.type.fits(slot.plane_class):
+			continue
+		if stand == null and slot.plane_class == TimetableSlot.PlaneClass.WIDE:
 			continue
 		var last: float = _last_planned.get(gate, -INF)
 		if last + INTERVAL > slot.departure_time:

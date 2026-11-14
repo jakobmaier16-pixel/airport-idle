@@ -569,9 +569,52 @@ func check_placement(type: BuildingType, origin_cell: Vector2i, rotation_steps: 
 			for cell in Building.outside_row(type.footprint, origin_cell, rotation_steps, front):
 				if not grid.is_inside(cell) or not grid.is_empty(cell):
 					return "Needs a free row in front and behind"
+	var gate_problem := _one_gate_per_stand_problem(type, origin_cell, rotation_steps)
+	if not gate_problem.is_empty():
+		return gate_problem
 	if check_money and not economy.can_afford(type.build_cost):
 		return "Not enough money (%s)" % Economy.format(type.build_cost)
 	return ""
+
+
+# One stand serves exactly one gate (design doc §10.2): a plane parks at the stand its gate's
+# back row touches, so two gates on one stand would fight for it, and a gate touching two stands
+# would not know which one is its own. Gates and cargo terminals (back side = STAND) both count.
+# The rule is checked when either side is placed, so no order of building can break it.
+func _one_gate_per_stand_problem(type: BuildingType, origin_cell: Vector2i, rotation_steps: int) -> String:
+	if type.back_access == BuildingType.Access.STAND:
+		var row := Building.outside_row(type.footprint, origin_cell, rotation_steps, false)
+		var stands: Dictionary[Building, bool] = {}
+		for cell in row:
+			if _is_aircraft_stand(cell):
+				stands[grid.get_content(cell) as Building] = true
+		if stands.size() > 1:
+			return "A gate must face one stand only"
+		for stand in stands:
+			if not _gates_touching(stand.origin_cell, Building.rotated_size(stand.type.footprint, stand.rotation_steps)).is_empty():
+				return "This stand already has a gate"
+	elif type.role == BuildingType.Role.AIRCRAFT_STAND:
+		var gates := _gates_touching(origin_cell, Building.rotated_size(type.footprint, rotation_steps))
+		if gates.size() > 1:
+			return "A stand serves one gate: two gates would reach it"
+		for gate in gates:
+			if stand_behind(gate) != null:
+				return "That gate already has a stand"
+	return ""
+
+
+# The gates (stand-side buildings) whose back row touches the stand rectangle at `origin` x `size`.
+func _gates_touching(origin: Vector2i, size: Vector2i) -> Array[Building]:
+	var rect := Rect2i(origin, size)
+	var result: Array[Building] = []
+	for building in buildings:
+		if building.type.back_access != BuildingType.Access.STAND:
+			continue
+		for cell in Building.outside_row(building.type.footprint, building.origin_cell, building.rotation_steps, false):
+			if rect.has_point(cell):
+				result.append(building)
+				break
+	return result
 
 
 func can_place(type: BuildingType, origin_cell: Vector2i, rotation_steps: int, check_money: bool = true) -> bool:
@@ -852,7 +895,10 @@ func load_state(data: Dictionary) -> int:
 	# Saves from before runways existed (design doc §7.5a) get the starting runway.
 	if not buildings.any(func(b: Building) -> bool: return b.type.role == BuildingType.Role.RUNWAY):
 		_loading = true
-		add_starting_runway()
+		for displaced in add_starting_runway():
+			skipped += 1
+			load_refund += displaced.type.build_cost
+			load_refunded.append(String(displaced.type.id))
 		_loading = false
 	if data.has("staff"):
 		for entry: Dictionary in data["staff"]:
@@ -945,7 +991,28 @@ func stand_behind(gate: Building) -> Building:
 	return null
 
 
+# While a batch is open (begin_batch / end_batch), layout changes only note that work is due.
+var _batch_depth: int = 0
+var _batch_pending: bool = false
+
+
+## Several layout changes in one go (the showcase, tools): the zones, networks and stations are
+## worked out once at `end_batch()` instead of after every building. Batches nest.
+func begin_batch() -> void:
+	_batch_depth += 1
+
+
+func end_batch() -> void:
+	_batch_depth = maxi(_batch_depth - 1, 0)
+	if _batch_depth == 0 and _batch_pending:
+		_batch_pending = false
+		_on_layout_changed()
+
+
 func _on_layout_changed() -> void:
+	if _batch_depth > 0:
+		_batch_pending = true
+		return
 	# Zones first: everything below (walkway areas, stations) reads them.
 	zone_map.recompute(grid, buildings)
 	area_map.recompute(grid, buildings)
@@ -988,9 +1055,11 @@ func _stand_reaches_runway(type: BuildingType, origin_cell: Vector2i, rotation_s
 	return plane_network.reaches_runway(paved)
 
 
-## The runway every new airport starts with (design doc §7.5a), as an offset in cells from the map
-## centre to the runway's origin cell; it lies in the south part of the starting land.
-const DEFAULT_RUNWAY_ORIGIN: Vector2i = Vector2i(-26, 25)
+## The runway every new airport starts with (design doc §7.5a): 1,000 x 23 cells (2 km), centred
+## on the map's middle line, as an offset in cells from the map centre to the runway's origin cell.
+## It lies in the south part of the starting land (rows 49 to 71 below the middle; the land ends at 200),
+## leaving room above it for stands, a parallel taxiway and the terminal.
+const DEFAULT_RUNWAY_ORIGIN: Vector2i = Vector2i(-500, 49)
 
 
 ## Where the manager starts (first person, design doc §15): where they were when the game was
@@ -1013,10 +1082,51 @@ func manager_start() -> Array:
 	return [Vector3.ZERO, 0.0]
 
 
-## Lays the runway a new airport starts with, on airside (design doc §7.5a).
-func add_starting_runway() -> void:
+## Lays the runway a new airport starts with, on airside (design doc §7.5a), at the default spot or,
+## if a building stands there (a migrated save), at the nearest free spot inside the owned land:
+## first moved up and down, then sideways. If there is none, the buildings in the default band are
+## removed to make room. Returns those removed buildings: the caller pays their full price back and
+## tells the player. Never fails silently.
+func add_starting_runway() -> Array[Building]:
 	var type := CATALOG.find(&"runway")
-	place_building(type, MapAnchor.centre_of(grid.size) + DEFAULT_RUNWAY_ORIGIN, 0, false)
+	var removed: Array[Building] = []
+	if buildings.any(func(b: Building) -> bool: return b.type.role == BuildingType.Role.RUNWAY):
+		return removed
+	var home := MapAnchor.centre_of(grid.size) + DEFAULT_RUNWAY_ORIGIN
+	var spot: Variant = _free_runway_spot(type, home)
+	if spot == null:
+		# Nothing is free: the runway goes to the default spot (kept inside the land) and what stands there leaves.
+		var land := progression.owned_land(grid.size)
+		spot = Vector2i(clampi(home.x, land.position.x, maxi(land.end.x - type.footprint.x, land.position.x)),
+			clampi(home.y, land.position.y, maxi(land.end.y - type.footprint.y, land.position.y)))
+		var band := Rect2i(spot, type.footprint)
+		for building in buildings.duplicate():
+			if Rect2i(building.origin_cell, Building.rotated_size(building.type.footprint, building.rotation_steps)).intersects(band):
+				for cell in building.get_cells():
+					grid.set_content(cell, null)
+				buildings.erase(building)
+				passenger_flow.remove_building(building)
+				building_removed.emit(building)
+				removed.append(building)
+	if place_building(type, spot, 0, false) == null:
+		push_warning("The starting runway could not be placed at %s." % [spot])
+	return removed
+
+
+# The nearest origin to `home` where a runway fits inside the owned land without touching a building,
+# or null. Rows first (up and down), then columns in steps of 50 cells.
+func _free_runway_spot(type: BuildingType, home: Vector2i) -> Variant:
+	var land := progression.owned_land(grid.size)
+	var rects: Array[Rect2i] = []
+	for building in buildings:
+		rects.append(Rect2i(building.origin_cell, Building.rotated_size(building.type.footprint, building.rotation_steps)))
+	for dx in [0, -50, 50, -100, 100, -150, 150, -200, 200]:
+		for step in range(0, land.size.y + 1):
+			for dy in ([0] if step == 0 else [step, -step]):
+				var rect := Rect2i(home + Vector2i(dx, dy), type.footprint)
+				if land.encloses(rect) and not rects.any(func(r: Rect2i) -> bool: return r.intersects(rect)):
+					return rect.position
+	return null
 
 
 func _is_aircraft_stand(cell: Vector2i) -> bool:

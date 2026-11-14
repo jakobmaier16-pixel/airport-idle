@@ -1,10 +1,12 @@
 extends TestCase
 ## ZoneMap and AreaMap cost follows the used cells (walkways, taxiways, buildings), not the map size.
 
-# Showcase results of the old dense implementation (recorded before the refactor).
-const SHOWCASE_ZONE_HASH := "a9e1b5a6c095cb4b12fdce65db0e3ea7f8603f338858a0131724fa4fbeb4f64b"
-const SHOWCASE_AREA_HASH := "46af9c9c4390a8ce0fabb2b700ce6787ef7b755da98a72a0285d5807a15e1e52"
+# Showcase results of the zone and area maps, re-recorded for the real-scale showcase (PR 6B, 2026-11-14; they were the old dense implementation's results before). They change only when the showcase layout does.
+const SHOWCASE_ZONE_HASH := "a6a620b1ebe4effd86049361be24f9d8e302690dfe90b2060be11d87159826ad"
+const SHOWCASE_AREA_HASH := "bafa0d0fbde6310743536667272fbfd38796c1bbcd2623c28de4fa55da74513a"
 const BIG := Vector2i(2200, 1600)
+# The part of the map the zone hashes cover: the real-scale showcase, in reference-map cells (128 x 128).
+const SHOWCASE_AREA := Vector2i(128, 128)
 
 
 # The game's airport laid out on a map of another size: the same walkways, taxiways and buildings
@@ -13,21 +15,25 @@ func _move() -> Vector2i:
 	return -MapAnchor.shift_for(Airport.grid.size)  # to the 64 x 64 reference map
 
 
-func _buildings_on(size: Vector2i) -> Array[Building]:
+# `with_runway` false leaves the runway out: a 1,000 x 23 rectangle makes every comparison of all used
+# cells slow (the random-edit test below recomputes 120 times); its cost is measured in test_43.
+func _buildings_on(size: Vector2i, with_runway: bool = true) -> Array[Building]:
 	var delta := _move() + MapAnchor.shift_for(size)
 	var result: Array[Building] = []
 	for building in Airport.brain.buildings:
+		if not with_runway and building.type.role == BuildingType.Role.RUNWAY:
+			continue
 		result.append(Building.new(building.type, building.origin_cell + delta, building.rotation_steps))
 	return result
 
 
-func _clone(size: Vector2i) -> AirportGrid:
+func _clone(size: Vector2i, with_runway: bool = true) -> AirportGrid:
 	var delta := _move() + MapAnchor.shift_for(size)
 	var copy := AirportGrid.new(size, Airport.grid.cell_size)
-	for cell in Airport.grid.get_nonempty_cells():
+	for cell in Airport.grid.get_cells_with_flag(AirportGrid.WALKWAY_BIT | AirportGrid.TAXIWAY_BIT):
 		copy.set_walkway(cell + delta, Airport.grid.is_walkway(cell))
 		copy.set_taxiway(cell + delta, Airport.grid.is_taxiway(cell))
-	for building in _buildings_on(size):
+	for building in _buildings_on(size, with_runway):
 		for cell in building.get_cells():
 			copy.set_content(cell, building)
 	return copy
@@ -47,7 +53,7 @@ func _zones_of(grid: AirportGrid) -> Array:
 
 # The zones of the airport's grid as the old dense bytes of the 64 x 64 reference map.
 func _reference_zone_bytes() -> PackedByteArray:
-	var reference := MapAnchor.REFERENCE_SIZE
+	var reference := SHOWCASE_AREA
 	var bytes := PackedByteArray()
 	bytes.resize(reference.x * reference.y)
 	for y in reference.y:
@@ -80,9 +86,9 @@ func test_showcase_unchanged() -> void:
 func test_big_map_costs_the_same_as_a_small_one() -> void:
 	await start_game()
 	build_reference_airport()
-	var small := _clone(Vector2i(64, 64))
+	var small := _clone(SMALL_MAP)
 	var big := _clone(BIG)
-	var small_buildings := _buildings_on(Vector2i(64, 64))
+	var small_buildings := _buildings_on(SMALL_MAP)
 	var big_buildings := _buildings_on(BIG)
 	var small_zones := ZoneMap.new()
 	var big_zones := ZoneMap.new()
@@ -97,12 +103,12 @@ func test_big_map_costs_the_same_as_a_small_one() -> void:
 	var t2 := Time.get_ticks_usec()
 	var small_ms := (t1 - t0) / 1000.0
 	var big_ms := (t2 - t1) / 1000.0
-	print("INFO recompute 64x64: %.2f ms, %dx%d: %.2f ms" % [small_ms, BIG.x, BIG.y, big_ms])
+	print("INFO recompute 1200x400: %.2f ms, %dx%d: %.2f ms" % [small_ms, BIG.x, BIG.y, big_ms])
 	check(small_zones.last_work_cells > 0 and small_areas.last_work_cells > 0, "the counters count something")
 	check_eq(big_zones.last_work_cells, small_zones.last_work_cells, "zone work does not depend on the map size")
 	check_eq(big_areas.last_work_cells, small_areas.last_work_cells, "area work does not depend on the map size")
 	check_eq(_zones_of(big), _zones_of(small), "same zones on both maps")
-	check_eq(JSON.stringify(_reference_areas(big_areas.areas(), BIG)), JSON.stringify(_reference_areas(small_areas.areas(), Vector2i(64, 64))), "same areas on both maps")
+	check_eq(JSON.stringify(_reference_areas(big_areas.areas(), BIG)), JSON.stringify(_reference_areas(small_areas.areas(), SMALL_MAP)), "same areas on both maps")
 	# The old dense version needed about 2,300 ms + 2,500 ms for the big map. Generous bounds.
 	check(big_ms < 400.0, "big map recompute is fast (%.1f ms)" % big_ms)
 	check(big_ms < small_ms * 10.0 + 100.0, "big map is not much slower than the small one")
@@ -114,8 +120,8 @@ func test_big_map_costs_the_same_as_a_small_one() -> void:
 func test_repeated_recompute_equals_fresh() -> void:
 	await start_game()
 	build_reference_airport()
-	var grid := _clone(Vector2i(64, 64))
-	var buildings := _buildings_on(Vector2i(64, 64))
+	var grid := _clone(SMALL_MAP, false)
+	var buildings := _buildings_on(SMALL_MAP, false)
 	var types := AirportWorld.CATALOG.types
 	var zones := ZoneMap.new()
 	var areas := AreaMap.new()
@@ -125,7 +131,7 @@ func test_repeated_recompute_equals_fresh() -> void:
 	var removed := 0
 	for round in 120:
 		for edit in dice.randi_range(1, 6):
-			var cell := Vector2i(dice.randi_range(0, 63), dice.randi_range(0, 63))
+			var cell := MapAnchor.cell(Vector2i(dice.randi_range(0, 127), dice.randi_range(0, 111)), grid.size)
 			match dice.randi_range(0, 9):
 				0, 1, 2:
 					if grid.is_empty(cell):
@@ -168,7 +174,7 @@ func test_repeated_recompute_equals_fresh() -> void:
 
 func _clone_grid(source: AirportGrid, buildings: Array[Building]) -> AirportGrid:
 	var copy := AirportGrid.new(source.size, source.cell_size)
-	for cell in source.get_nonempty_cells():
+	for cell in source.get_cells_with_flag(AirportGrid.WALKWAY_BIT | AirportGrid.TAXIWAY_BIT):
 		copy.set_walkway(cell, source.is_walkway(cell))
 		copy.set_taxiway(cell, source.is_taxiway(cell))
 	for building in buildings:

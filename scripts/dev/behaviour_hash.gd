@@ -9,6 +9,10 @@ const SEED: int = Benchmark.SEED
 const STEPS: int = 600
 ## Save fields that depend on the time of the run, never on the simulation.
 const WALL_CLOCK_KEYS: Array[String] = ["saved_at"]
+## The part of the map the hash looks at, in cells of the 64 x 64 reference map (MapAnchor): 256 x 256
+## cells from the reference corner, which holds the whole real-scale benchmark airport (the stands
+## and taxiways reach about 105 cells east and south of it).
+const HASH_AREA: Vector2i = Vector2i(256, 256)
 
 
 ## SHA-256 (hex) of the canonical JSON of the save state after STEPS steps on the benchmark
@@ -39,7 +43,7 @@ static func canonical_json(state: Dictionary) -> String:
 # The hash must not depend on how a save stores the map, nor on how big the map is.
 # - Format 9 saves walkways and taxiways as chunk lists; they are turned back into the dense base64
 #   text of formats 1-8, so the hash stays what it was before the format change.
-# - Every cell is moved to where it is on the 64 x 64 reference map (relative to the map centre), and
+# - Every cell is moved to where it is on the reference map (relative to the map centre; HASH_AREA of it is hashed), and
 #   "map_size" is written as that map's size. The same airport built at the same place relative to
 #   the centre therefore hashes the same on a map of any size (see MapAnchor). World positions
 #   (metres) need no change: the world origin is the map centre on every size.
@@ -50,7 +54,7 @@ static func _canonical_layers(state: Dictionary) -> Dictionary:
 		return result
 	var size := Vector2i(int(map_size[0]), int(map_size[1]))
 	var shift := MapAnchor.shift_for(size)  # reference cell + shift = cell on this map
-	var reference := MapAnchor.REFERENCE_SIZE
+	var reference := HASH_AREA
 	result["map_size"] = [reference.x, reference.y]
 	for key in ["walkways", "taxiways"]:
 		if state.get(key) is Array:
@@ -73,7 +77,7 @@ static func _canonical_layers(state: Dictionary) -> Dictionary:
 
 # The cells of a saved layer on the reference map, as the old dense 0/1 bytes.
 static func _dense_on_reference(chunks: Array, shift: Vector2i) -> PackedByteArray:
-	var reference := MapAnchor.REFERENCE_SIZE
+	var reference := HASH_AREA
 	var dense := PackedByteArray()
 	dense.resize(reference.x * reference.y)
 	for cell in GridSave.cells_of(chunks):
@@ -85,7 +89,7 @@ static func _dense_on_reference(chunks: Array, shift: Vector2i) -> PackedByteArr
 
 # The saved passengers with their path cells moved onto the reference map.
 static func _passengers_on_reference(packed: Dictionary, shift: Vector2i) -> Dictionary:
-	var reference := MapAnchor.REFERENCE_SIZE
+	var reference := HASH_AREA
 	var width := int(packed.get("grid_width", reference.x))
 	if width == reference.x and shift == Vector2i.ZERO:
 		return packed

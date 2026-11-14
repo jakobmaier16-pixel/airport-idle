@@ -5,7 +5,9 @@ extends RefCounted
 ## (see SaveGame); the tests and screenshots use the same layout.
 ## **When a feature is added, add it here too**, so the newest feature is visible after an update.
 ## The layout is written in cells of the 64 x 64 reference map and placed around the middle of the
-## real map by `MapAnchor`, so it works on every map size.
+## real map by `MapAnchor`, so it works on every map size that holds the 1,000-cell runway.
+## Real scale (1 cell = 2 m): stands are 20 x 23 (narrow) and 35 x 40 (wide-body) cells, each served
+## by exactly one gate, with a parallel taxiway between the stands and the runway.
 
 ## Builds the showcase into an empty airport. `warm_up_seconds` lets the airport run for a while
 ## first, so it's already busy when the player looks at it: after the default 3 minutes the first
@@ -24,9 +26,12 @@ static func build(warm_up_seconds: float = 180.0, map_size: Vector2i = Vector2i.
 	Airport.progression.transfers = 400
 	Airport.land_changed.emit()
 
+	# One layout update for the whole layout instead of one per building (the real-scale runway
+	# makes each update expensive).
+	Airport.begin_batch()
 	# Walkways: a landside hall and an airside walkway along the gates.
 	Airport.paint_walkway(_cells(Vector2i(18, 21), Vector2i(28, 7)), true)
-	Airport.paint_walkway(_cells(Vector2i(10, 31), Vector2i(44, 3)), true)
+	Airport.paint_walkway(_cells(Vector2i(6, 31), Vector2i(82, 3)), true)
 
 	# Passenger route: Entrance -> Check-in -> Security -> Gate -> Stand (flights use both gates).
 	Airport.place_building(catalog.find(&"entrance"), _at(Vector2i(30, 19)), 0)
@@ -34,19 +39,21 @@ static func build(warm_up_seconds: float = 180.0, map_size: Vector2i = Vector2i.
 	Airport.place_building(catalog.find(&"check_in"), _at(Vector2i(39, 22)), 2)
 	Airport.place_building(catalog.find(&"security"), _at(Vector2i(30, 28)), 0)
 	Airport.place_building(catalog.find(&"gate"), _at(Vector2i(14, 34)), 0)
-	Airport.place_building(catalog.find(&"gate"), _at(Vector2i(42, 34)), 0)
-	Airport.place_building(catalog.find(&"aircraft_stand"), _at(Vector2i(10, 39)), 0)
-	Airport.place_building(catalog.find(&"aircraft_stand"), _at(Vector2i(38, 39)), 0)
+	Airport.place_building(catalog.find(&"gate"), _at(Vector2i(64, 34)), 0)
+	Airport.place_building(catalog.find(&"aircraft_stand"), _at(Vector2i(6, 39)), 0)
+	Airport.place_building(catalog.find(&"aircraft_stand"), _at(Vector2i(62, 39)), 0)
 	# Long-haul (§10.2): gate 3 in the middle with a wide-body stand behind it.
 	Airport.place_building(catalog.find(&"gate"), _at(Vector2i(27, 34)), 0)
-	Airport.place_building(catalog.find(&"wide_body_stand"), _at(Vector2i(22, 39)), 0)
-	# Cargo (§10.3): a cargo terminal with its own stand in the east, on the parallel taxiway.
-	Airport.place_building(catalog.find(&"cargo_terminal"), _at(Vector2i(52, 38)), 0)
-	Airport.place_building(catalog.find(&"aircraft_stand"), _at(Vector2i(50, 43)), 0)
-	# Taxiways (§7.5a): a parallel taxiway along the runway, and short links down from the stands.
-	Airport.paint_taxiway(_cells(Vector2i(8, 55), Vector2i(48, 2)), true)
-	Airport.paint_taxiway(_cells(Vector2i(15, 51), Vector2i(2, 4)), true)
-	Airport.paint_taxiway(_cells(Vector2i(43, 51), Vector2i(2, 4)), true)
+	Airport.place_building(catalog.find(&"wide_body_stand"), _at(Vector2i(26, 39)), 0)
+	# Cargo (§10.3): a cargo terminal with its own stand in the east.
+	Airport.place_building(catalog.find(&"cargo_terminal"), _at(Vector2i(88, 38)), 0)
+	Airport.place_building(catalog.find(&"aircraft_stand"), _at(Vector2i(84, 43)), 0)
+	# Taxiways (§7.5a): a parallel taxiway along the runway (the wide-body stand touches it), and
+	# links up to the narrow stands.
+	Airport.paint_taxiway(_cells(Vector2i(6, 79), Vector2i(100, 2)), true)
+	Airport.paint_taxiway(_cells(Vector2i(15, 62), Vector2i(2, 17)), true)
+	Airport.paint_taxiway(_cells(Vector2i(71, 62), Vector2i(2, 17)), true)
+	Airport.paint_taxiway(_cells(Vector2i(93, 66), Vector2i(2, 13)), true)
 
 	# Arrivals: baggage claim on the border next to security, out into the landside hall (§8.8).
 	Airport.place_building(catalog.find(&"baggage_claim"), _at(Vector2i(37, 27)), 0)
@@ -63,6 +70,8 @@ static func build(warm_up_seconds: float = 180.0, map_size: Vector2i = Vector2i.
 	# a fast track at security (design doc §11.8).
 	Airport.place_building(catalog.find(&"lounge"), _at(Vector2i(37, 34)), 0)
 	Airport.place_building(catalog.find(&"car_park"), _at(Vector2i(46, 21)), 3)
+
+	Airport.end_batch()
 
 	# Station upgrades (design doc §7.8): security fully upgraded (3 lanes, faster scanners) for
 	# the morning rush.

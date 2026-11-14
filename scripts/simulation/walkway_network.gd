@@ -28,7 +28,7 @@ func rebuild(grid: AirportGrid) -> void:
 	_areas = {}
 	var width := grid.size.x
 	var ids := PackedInt32Array()
-	for cell in grid.get_nonempty_cells():
+	for cell in grid.get_cells_with_flag(AirportGrid.WALKWAY_BIT):
 		if grid.is_walkable(cell):
 			ids.append(cell.y * width + cell.x)
 	# Row by row, like the dense scan this replaced: area ids come out the same.

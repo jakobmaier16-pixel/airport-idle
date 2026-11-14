@@ -7,7 +7,7 @@ extends Node
 
 ## Bump when the save format changes in a way older code can't read, and add a converter to
 ## `migrations` for the old version (tech_architecture.md §13). Keep every old converter.
-const FORMAT_VERSION: int = 9
+const FORMAT_VERSION: int = 10
 ## Wait this long after a change before saving, so a burst of changes is saved once.
 const SAVE_DELAY: float = 1.0
 ## Money and the running airport are also saved this often while playing (seconds).
@@ -41,6 +41,9 @@ var format_version: int = FORMAT_VERSION
 var load_problem: String = ""
 ## Where a save that couldn't be loaded was put aside ("" if none). It is never overwritten.
 var backup_path: String = ""
+
+## Money paid back by the last `migrate()` for the removed old stands, runway and taxiways (0 if none).
+var legacy_refund: float = 0.0
 
 # Stamp of the export that wrote the loaded save.
 var _saved_build: String = ""
@@ -115,6 +118,7 @@ func load_game() -> void:
 		_put_aside("newer", "Your saved airport is from a newer version of the game. It was kept as a backup, and a new airport starts.")
 		return
 	var data := migrate(parsed)
+	var removed_refund := legacy_refund
 	if data.is_empty():
 		_put_aside("unconvertible", "Your saved airport couldn't be converted to this version. It was kept as a backup, and a new airport starts.")
 		return
@@ -127,6 +131,9 @@ func load_game() -> void:
 		# Nothing is lost silently: tell the player what was paid back.
 		load_problem = "%d building(s) could not be restored (%s). %s was refunded." % [
 			skipped, ", ".join(Airport.load_refunded), Economy.format(Airport.load_refund)]
+	if removed_refund > 0.0:
+		var notice := "Old stands and runway were removed: %s refunded." % Economy.format(removed_refund)
+		load_problem = notice if load_problem.is_empty() else load_problem + " " + notice
 	if data.has("saved_at"):
 		apply_offline_time(Time.get_unix_time_from_system() - float(data["saved_at"]))
 
@@ -134,6 +141,7 @@ func load_game() -> void:
 ## Converts `data` from its version to `format_version`, one step at a time (tech_architecture.md
 ## §13). Returns the converted save, or an empty Dictionary if a converter is missing.
 func migrate(data: Dictionary) -> Dictionary:
+	legacy_refund = 0.0
 	var version := int(data.get("version", 0))
 	while version < format_version:
 		if not migrations.has(version):
@@ -147,7 +155,7 @@ func migrate(data: Dictionary) -> Dictionary:
 
 ## The converters this build ships (tests put them back after swapping in their own).
 func default_migrations() -> Dictionary[int, Callable]:
-	return {1: _v1_to_v2, 2: _v2_to_v3, 3: _v3_to_v4, 4: _v4_to_v5, 5: _v5_to_v6, 6: _v6_to_v7, 7: _v7_to_v8, 8: _v8_to_v9}
+	return {1: _v1_to_v2, 2: _v2_to_v3, 3: _v3_to_v4, 4: _v4_to_v5, 5: _v5_to_v6, 6: _v6_to_v7, 7: _v7_to_v8, 8: _v8_to_v9, 9: _v9_to_v10}
 
 
 ## Version 1 -> 2: buildings get permanent IDs (their old list position + 1) and staff point to
@@ -251,6 +259,37 @@ func _v8_to_v9(data: Dictionary) -> Dictionary:
 	for key in ["walkways", "taxiways"]:
 		if data.get(key) is String:
 			data[key] = GridSave.from_dense(Marshalls.base64_to_raw(data[key]), size)
+	return data
+
+
+## Version 9 -> 10: real-scale airside (game_design §16). Stands, the runway and the taxiway paint
+## of the 6-metre prototype are removed; the new ones are 1 cell = 2 m (stands 20 x 23 and 35 x 40,
+## runway 1,000 x 23). Their saved prices (taxiway paint: its price per cell) are paid back in full,
+## added to the saved money, and the runway is laid again on load (a save without one gets the new
+## one). Gates and the rest of the airport stay; flights with a removed stand are cancelled by the
+## schedule's first tick. `legacy_refund` tells the player how much came back.
+const LEGACY_AIRSIDE_TYPES: Array[String] = ["aircraft_stand", "wide_body_stand", "runway"]
+## What a legacy building cost when its save entry has no price (the prices of format 9).
+const LEGACY_AIRSIDE_PRICES: Dictionary[String, float] = {"aircraft_stand": 6000.0, "wide_body_stand": 15000.0, "runway": 40000.0}
+const V9_TAXIWAY_PRICE_PER_CELL: float = 30.0
+
+
+func _v9_to_v10(data: Dictionary) -> Dictionary:
+	var refund := 0.0
+	var kept: Array = []
+	for entry: Dictionary in data.get("buildings", []):
+		var type := str(entry.get("type", ""))
+		if type in LEGACY_AIRSIDE_TYPES:
+			refund += float(entry.get("cost", LEGACY_AIRSIDE_PRICES[type]))
+		else:
+			kept.append(entry)
+	data["buildings"] = kept
+	if data.get("taxiways") is Array:
+		refund += GridSave.cells_of(data["taxiways"]).size() * V9_TAXIWAY_PRICE_PER_CELL
+		data["taxiways"] = []
+	if refund > 0.0:
+		data["money"] = float(data.get("money", Economy.STARTING_MONEY)) + refund
+	legacy_refund += refund
 	return data
 
 
