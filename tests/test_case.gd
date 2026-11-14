@@ -241,9 +241,9 @@ func pick_building(display_name: String) -> bool:
 		return false
 	var row := ui("BuildMenu/BuildingButtons")
 	if _menu_button(row, display_name) == null:
-		# Back to the list of categories (one "‹" per menu level), then down to the building.
-		while _menu_button(row, type.category + " ›") == null and _menu_button(row, "‹") != null:
-			await press(_menu_button(row, "‹"))
+		# Back to the list of categories (one "‹ Back" per menu level), then down to the building.
+		while _menu_button(row, type.category + " ›") == null and _menu_button(row, "‹ Back") != null:
+			await press(_menu_button(row, "‹ Back"))
 		await press(_menu_button(row, type.category + " ›"))
 		if not type.sub_category.is_empty():
 			await press(_menu_button(row, type.sub_category + " ›"))
