@@ -16,6 +16,7 @@ next, and what it needs from the other lane. Short. Details live in PRs, issues 
 - **Fixed in `task/camera-ui-fixes`:** zoom about the fingers (max zoom fits the map, no forced centring),
   gate hint is information (valid colour, "Gate works once a stand is behind it") with a "No stand" marker,
   "Plane taxiway" label. Landside camera teleport: not reproducible in tests (see PR).
+- **Realism pass (`task/realism-pass`):** landside z-fighting fixed (layer lifted 2 cm), fence cut-out + MSAA, AgX/fog/sun 40 deg environment, muted grass, textured hedge; before/after in `docs/screenshots/realism_pass/`.
 - **Next:** planes turning / driving over grass, taxiway brush over the road (other builder), landside look.
 
 ## Visual lane

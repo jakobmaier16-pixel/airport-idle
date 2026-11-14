@@ -21,6 +21,10 @@ uniform sampler2D paving_tex : source_color, filter_linear_mipmap_anisotropic, r
 // Markings atlas, 1024 x 1024; only strips of it are used (rows given in pixels, y from the top).
 uniform sampler2D markings_tex : source_color, filter_linear, repeat_enable;
 uniform float grass_tile_m = 8.0;
+// Natural grass: the albedo texture is a little too saturated and bright next to the PBR models
+// (realism pass); this pulls it towards a muted field green.
+uniform float grass_saturation = 0.78;
+uniform float grass_brightness = 0.92;
 uniform float asphalt_tile_m = 4.0;
 uniform float concrete_tile_m = 5.0;
 uniform float paving_tile_m = 2.0;
@@ -111,6 +115,7 @@ void fragment() {
 		color = textureGrad(paving_tex, world / paving_tile_m, dx / paving_tile_m, dy / paving_tile_m).rgb;
 	} else {
 		color = textureGrad(grass_tex, world / grass_tile_m, dx / grass_tile_m, dy / grass_tile_m).rgb;
+		color = mix(vec3(dot(color, vec3(0.299, 0.587, 0.114))), color, grass_saturation) * grass_brightness;
 	}
 
 	vec2 in_cell = fract(cell) - 0.5;

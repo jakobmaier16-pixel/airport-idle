@@ -12,6 +12,12 @@
 [ext_resource type="Script" path="res://scenes/planes/plane_layer.gd" id="10_plane_layer"]
 
 [sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_sky"]
+sky_top_color = Color(0.33, 0.46, 0.68, 1)
+sky_horizon_color = Color(0.72, 0.78, 0.85, 1)
+sky_curve = 0.18
+ground_bottom_color = Color(0.3, 0.33, 0.3, 1)
+ground_horizon_color = Color(0.72, 0.78, 0.85, 1)
+sun_angle_max = 25.0
 
 [sub_resource type="Sky" id="Sky_main"]
 sky_material = SubResource("ProceduralSkyMaterial_sky")
@@ -20,7 +26,16 @@ sky_material = SubResource("ProceduralSkyMaterial_sky")
 background_mode = 2
 sky = SubResource("Sky_main")
 ambient_light_source = 3
-tonemap_mode = 2
+ambient_light_energy = 1.0
+tonemap_mode = 4
+tonemap_exposure = 1.0
+fog_enabled = true
+fog_light_color = Color(0.72, 0.78, 0.85, 1)
+fog_density = 0.0008
+fog_sky_affect = 0.3
+adjustment_enabled = true
+adjustment_contrast = 1.05
+adjustment_saturation = 1.05
 
 [node name="Main" type="Node3D"]
 script = ExtResource("7_main")
@@ -29,12 +44,14 @@ script = ExtResource("7_main")
 environment = SubResource("Environment_main")
 
 [node name="Sun" type="DirectionalLight3D" parent="."]
-transform = Transform3D(0.81915206, -0.46984634, 0.32898995, 0, 0.57357645, 0.81915206, -0.57357645, -0.6710101, 0.46984634, 0, 10, 0)
-light_color = Color(1, 0.98, 0.94, 1)
+transform = Transform3D(0.819, -0.3685, 0.439, 0, 0.765, 0.643, -0.573, -0.5266, 0.627, 0, 10, 0)
+light_color = Color(1, 0.97, 0.91, 1)
+light_energy = 1.25
 shadow_enabled = true
 directional_shadow_mode = 1
 directional_shadow_blend_splits = true
-directional_shadow_max_distance = 50.0
+directional_shadow_split_1 = 0.12
+directional_shadow_max_distance = 150.0
 
 [node name="Ground" parent="." instance=ExtResource("1_ground")]
 

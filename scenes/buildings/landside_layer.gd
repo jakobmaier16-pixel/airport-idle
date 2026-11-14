@@ -25,6 +25,11 @@ const FENCE_END_M: float = 60.0
 const FENCE_FADE_MARGIN_M: float = 10.0
 ## Pieces without a stand-in are drawn up to here (manager view only).
 const SMALL_PROP_END_M: float = 80.0
+## The whole layer sits this far (metres) above the ground plane. The models put road surface and paint at
+## y = 0 and the Blender previews put the grass 1 cm below it; in the game both are at 0 and the road
+## z-fought with the ground (grass poking through the asphalt in stair steps). Everything moves together,
+## so the pieces keep their own relative offsets (paint 1 mm above its surface, kerb 15 cm).
+const GROUND_LIFT_M: float = 0.02
 ## MultiMeshes are split by map area, so a visibility range works per area and not for the whole map.
 const CHUNK_CELLS: int = 24
 ## Parts lower than this (metres) cast no shadow.
@@ -61,6 +66,10 @@ class Group extends RefCounted:
 	var use_colors: bool
 	var transforms: Dictionary[Building, Array] = {}
 	var colors: Dictionary[Building, Color] = {}
+
+
+func _ready() -> void:
+	position.y = GROUND_LIFT_M
 
 
 func _process(_delta: float) -> void:
@@ -283,7 +292,12 @@ static func _load_parts(model: PackedScene) -> Array:
 		for surface in part.mesh.get_surface_count():
 			var material := part.mesh.surface_get_material(surface)
 			if material != null:
-				part.mesh.surface_set_material(surface, _shared_material(material.resource_name, part.kind))
+				var wanted := material.resource_name
+				# A hedge is a box in the model: a leafy texture (triplanar, no UVs needed) keeps it from
+				# reading as a flat green block until the visual lane reshapes it.
+				if wanted == "foliage" and model.resource_path.ends_with("/hedge_2m.glb"):
+					wanted = "hedge"
+				part.mesh.surface_set_material(surface, _shared_material(wanted, part.kind))
 		parts.append(part)
 	root.free()
 	return parts
