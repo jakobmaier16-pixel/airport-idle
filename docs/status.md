@@ -15,7 +15,9 @@ next, and what it needs from the other lane. Short. Details live in PRs, issues 
 - **Device test 2 (build 4b4da9c):** core works; main complaint: in-game look far below the Blender
   previews. Code lane did the technical part (#62); model-limited items are on #51.
 - **New way of working (decisions 2026-11-14, late night):** many small projects, each in its own
-  small test world; board: `docs/worlds.md`. In progress: world list and asset viewer.
+  small test world; board: `docs/worlds.md`. Merged: world list and asset viewer (#68): test builds
+  open with the world list; the viewer shows 85 items one at a time (all building types, ground,
+  planes, the 21 terminal kit models, decals, material swatches). Test worlds never touch the save.
 - **Next:** Jakob's first pass through the asset viewer (verdict per asset), then the Building rules
   world. Still open from the realism pass: check lighting, fence and the car park from far away on the phone.
   Small follow-ups: HUD `next_flight_text()` per frame (throttle), weak countdown assertion in test_11,
