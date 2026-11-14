@@ -4,6 +4,14 @@ Every decision Jakob makes goes here **immediately**, newest first, with the dat
 (translated to English where needed). Both leads read this file at the start of every session.
 `game_design.md` holds the resulting design; this file is the trail of what Jakob said and when.
 
+## 2026-11-14 (night, device test 2)
+- **Landside pieces stay as they are** (35 placeable pieces). The lead's proposal to draw roads,
+  sidewalks and car parks like the taxiway tool is **rejected**.
+- **Main complaint: the in-game quality is far worse than the visual lane's Blender previews.**
+  The gap between preview and game must close; realism in the game is the priority.
+- Device test 2 results: first landing, push-back arc, zoom ok; gate hint, taxiway tool and landside
+  building ok after an app restart (build menu could get stuck → fixed). Landside look unchanged.
+
 ## 2026-11-14 (evening)
 - **The clock goes out for now (option c).** Reason: the clock ran 15× faster than the planes, which
   move at real speed (Jakob likes that speed), so a landing took ~9 game minutes. Until time is
