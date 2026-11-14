@@ -1,0 +1,13 @@
+[gd_resource type="ORMMaterial3D" format=3]
+
+[ext_resource type="Texture2D" path="res://assets/textures/terrazzo_dark/terrazzo_dark_albedo.png" id="1_albedo"]
+[ext_resource type="Texture2D" path="res://assets/textures/terrazzo_dark/terrazzo_dark_orm.png" id="2_orm"]
+
+[resource]
+resource_name = "terrazzo_dark"
+albedo_texture = ExtResource("1_albedo")
+orm_texture = ExtResource("2_orm")
+roughness = 1.0
+metallic = 0.0
+ao_enabled = true
+uv1_scale = Vector3(0.5, 0.5, 1)
