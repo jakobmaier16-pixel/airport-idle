@@ -1,5 +1,8 @@
 # Roadmap
 
+> **History since 2026-11-14.** Work is now planned as small projects in test worlds: see
+> `docs/worlds.md`. Everything below is the state before that change and is no longer updated.
+
 > Updated by the lead after every merged pull request. Order and steps: tech_architecture.md §17.
 > Nothing is built unless it is in **Now** (master_plan.md §6).
 

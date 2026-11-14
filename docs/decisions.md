@@ -4,6 +4,25 @@ Every decision Jakob makes goes here **immediately**, newest first, with the dat
 (translated to English where needed). Both leads read this file at the start of every session.
 `game_design.md` holds the resulting design; this file is the trail of what Jakob said and when.
 
+## 2026-11-14 (late night): a new way of working
+- **Many small projects instead of one big world.** Jakob: what we did so far had no basis to succeed;
+  the answers are good, the execution is a grade 6 (fail). From now on we work on very many small
+  projects that are tested and fixed one by one. Only after a real breakthrough do we build a further
+  test world that joins several projects.
+- **Several test worlds, never one overloaded one.** A test must not start in 12 places at once and
+  then hold up the fixing.
+- **A world to look at every single asset:** plants, signs, whole buildings, a hall in cross-section,
+  every floor / wall / ceiling.
+- **A world for the buildings' functions together:** there we first set the rules: how a building
+  must and may be placed and what it requires.
+- **Three separate parts:** the content (his list was only an example: movable things, contours,
+  buildings with size / look / moving functions, decoration, interior, exterior ...), then the game
+  functions (the idle loop), then the controls (what the player taps, where information is found).
+- The lead checked the approach on Jakob's request: it is sound (an asset viewer and small test
+  levels are standard practice in game studios). The lead's own additions are marked "(proposal)" in
+  `docs/worlds.md` and CLAUDE.md until Jakob confirms them: stations per asset, acceptance only in the
+  game on the device, splitting a world that needs more than about five check points.
+
 ## 2026-11-14 (night, device test 2)
 - **Landside pieces stay as they are** (35 placeable pieces). The lead's proposal to draw roads,
   sidewalks and car parks like the taxiway tool is **rejected**.
