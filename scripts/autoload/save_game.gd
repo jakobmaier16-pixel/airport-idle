@@ -205,16 +205,10 @@ func _v4_to_v5(data: Dictionary) -> Dictionary:
 	return data
 
 
-## Version 5 -> 6: the passengers are saved as one compressed block (see PassengerSave) with their
-## paths as grid cells. The old list is packed; paths are turned from positions into cells of the
-## saved map size, and only the part still ahead is kept.
+## Version 5 -> 6: the passengers were saved as one compressed block (PassengerSave). Passengers
+## were removed 2026-11-14 and are no longer read, so there is nothing left to convert (the
+## converter is kept so the chain of versions stays complete).
 func _v5_to_v6(data: Dictionary) -> Dictionary:
-	var flow: Dictionary = data.get("flow", {})
-	if flow.get("passengers") is Array:
-		var map_size: Array = data.get("map_size", [MapAnchor.REFERENCE_SIZE.x, MapAnchor.REFERENCE_SIZE.y])
-		var size := Vector2i(int(map_size[0]), int(map_size[1]))
-		var records := PassengerSave.from_v5(flow["passengers"], size, AirportWorld.CELL_SIZE)
-		flow["passengers"] = PassengerSave.encode(records, size.x)
 	return data
 
 
@@ -244,7 +238,7 @@ func _v7_to_v8(data: Dictionary) -> Dictionary:
 		slots.append({
 			"time": float(entry.get("departure_time", 0.0)), "day": day,
 			"class": int(TimetableSlot.PlaneClass.CARGO) if cargo else (int(TimetableSlot.PlaneClass.WIDE) if wide else int(TimetableSlot.PlaneClass.NARROW)),
-			"route": str(entry.get("route", "Holiday")), "seats": int(entry.get("seats", 0)),
+			"route": str(entry.get("route", "Holiday")),
 			"state": int(TimetableSlot.State.FILLED), "airline": number.get_slice(" ", 0), "number": number,
 		})
 	data["timetable"] = {"generated_days": [], "slots": slots}

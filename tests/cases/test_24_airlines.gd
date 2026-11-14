@@ -11,7 +11,7 @@ func _flights_planned(seconds: float) -> Array[Flight]:
 	var seen: Array[Flight] = []
 	for i in int(seconds / Airport.SIM_STEP):
 		Airport.step(Airport.SIM_STEP)
-		for flight in Airport.passenger_flow.schedule.flights:
+		for flight in Airport.schedule.flights:
 			if not seen.has(flight):
 				seen.append(flight)
 	return seen
@@ -54,7 +54,6 @@ func test_no_deal_the_default_airline_flies() -> void:
 			continue
 		check(flight.airline == null and flight.number.begins_with(default.code + " "), "default airline: %s" % flight.number)
 		check_eq(flight.route, default.route, "its route type")
-		check_eq(flight.seats, FlightSchedule.SEATS, "a 180-seat narrow-body")
 
 
 func test_flights_follow_the_deal() -> void:
@@ -160,8 +159,11 @@ func test_unhappy_airline_leaves() -> void:
 	var events: Array[String] = []
 	airlines.airline_unhappy.connect(func(a: Airline) -> void: events.append("unhappy " + a.type.code))
 	airlines.airline_left.connect(func(a: Airline) -> void: events.append("left " + a.type.code))
+	# Late flights alone only drag happiness down to LATE_SCORE (50) now that missed passengers are
+	# gone (removed 2026-11-14; PR 2 reworks the airline rating), so push the rating directly.
 	for i in 20:
-		airlines.record_flight(airline, true, 0.6)
+		if airlines.signed.has(airline):
+			airlines._rate(airline, 0.0)
 	check(not airlines.signed.has(airline), "it ended the deal")
 	check_eq(events, ["unhappy VR", "left VR"] as Array[String], "the player is told")
 
@@ -227,7 +229,7 @@ func test_planes_wear_airline_colors() -> void:
 	ShowcaseAirport.build(0.0)
 	var flight := first_flight()
 	await start_game()
-	sim_seconds(flight.departure_time - Airport.passenger_flow.time - 60.0)
+	sim_seconds(flight.departure_time - Airport.sim_time - 60.0)
 	await frames(2)
 	var planes := main.get_node("Planes") as PlaneLayer
 	check(planes._planes.has(flight), "plane drawn")

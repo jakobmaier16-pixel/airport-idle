@@ -1,13 +1,12 @@
 class_name Flight
 extends RefCounted
 ## One scheduled departure at a gate (design doc §8.5). Pure data.
-## Passengers point to their flight; the flight never points to passengers (no reference cycles).
 
 enum Phase {
-	SCHEDULED, ## No plane yet; passengers may already be arriving.
-	ARRIVING, ## The plane is taxiing onto the stand.
-	AT_STAND, ## The plane is parked; boarding hasn't opened yet.
-	BOARDING, ## Passengers walk from the gate onto the plane.
+	SCHEDULED, ## No plane yet.
+	ARRIVING, ## The plane is landing and taxiing onto the stand.
+	AT_STAND, ## The plane is parked.
+	BOARDING, ## The last stretch before the doors close (the plane is still parked).
 	DEPARTING, ## Doors closed; the plane pushes back.
 	DEPARTED, ## Gone.
 	CANCELLED, ## The gate stopped being usable.
@@ -18,20 +17,19 @@ var number: String
 var airline: Airline = null
 ## A wide-body (long-haul) plane (design doc §10.2).
 var wide_body: bool = false
-## A freighter (design doc §10.3): no passengers, `tonnes` of freight to unload and load.
+## A freighter (design doc §10.3): `tonnes` of freight to unload and load.
 var cargo: bool = false
 var tonnes: float = 0.0
 var tonnes_handled: float = 0.0
-## What the airline pays per departing passenger.
+## What the airline pays: per tonne for freighters (it was per passenger, see docs/removed_features.md).
 var fee_per_passenger: float = Economy.PASSENGER_FEE
-## Route type, e.g. "Holiday" (sets the passenger mix, design doc §8.7).
+## Route type, e.g. "Holiday" (sets the season's demand, design doc §12.2).
 var route: String = ""
 var gate: Building
 var stand: Building
-## Scheduled time (PassengerFlow.time) when the doors close.
+## Scheduled time (AirportWorld.sim_time) when the doors close.
 var departure_time: float
-## Seconds the flight is late in total: waiting for passengers who were already airside
-## (design doc §11.7) and knock-on delays.
+## Seconds the flight is late in total (knock-on delays and a busy runway, design doc §11.7).
 var delay: float = 0.0
 ## Seconds the plane landed late without delaying the departure: the time at the stand absorbs it
 ## (turnaround buffer, design doc §7.5a).
@@ -41,19 +39,6 @@ var landing_booked: bool = false
 var takeoff_booked: bool = false
 ## When the take-off run starts (after taxiing out and any wait at the runway); -1 until booked.
 var takeoff_at: float = -1.0
-var seats: int
-var booked: int
-## When each booked passenger arrives at the entrance (simulation time, ascending) and their type.
-var arrival_times: PackedFloat32Array = PackedFloat32Array()
-var arrival_types: Array[PassengerType] = []
-## How many of them have arrived so far.
-var spawned: int = 0
-## Passengers on the inbound plane (design doc §8.8), and how many have deplaned so far.
-var inbound_types: Array[PassengerType] = []
-var deplaned: int = 0
-var deplane_credit: float = 0.0
-var boarded: int = 0
-var missed: int = 0
 var phase: Phase = Phase.SCHEDULED
 ## Fractional passengers allowed through the door so far (boarding happens at a fixed rate).
 var boarding_credit: float = 0.0

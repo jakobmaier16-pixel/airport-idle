@@ -11,7 +11,7 @@ func _flights_planned(seconds: float) -> Array[Flight]:
 	var seen: Array[Flight] = []
 	for i in int(seconds / Airport.SIM_STEP):
 		Airport.step(Airport.SIM_STEP)
-		for flight in Airport.passenger_flow.schedule.flights:
+		for flight in Airport.schedule.flights:
 			if not seen.has(flight):
 				seen.append(flight)
 	return seen
@@ -28,24 +28,18 @@ func test_wide_body_stand_unlocks_at_international() -> void:
 func test_long_haul_flies_from_the_wide_body_gate() -> void:
 	ShowcaseAirport.build(0.0)
 	var wide := 0
-	var wide_booked := 0
-	var narrow_booked := 0
 	var narrow := 0
 	# Long-haul slots are rare (about 0.5 an hour): a span of ten game hours gives a handful.
 	for flight in _flights_planned(2400):
 		if flight.wide_body:
 			wide += 1
-			wide_booked += flight.booked
 			check(flight.wide_body, "long-haul airlines fly wide-body planes")
 			check(flight.gate == _gate_3(), "only from the gate with the wide-body stand")
 			check_eq(flight.route, "Long-haul", "long-haul route")
 		else:
 			narrow += 1
-			narrow_booked += flight.booked
 	check(wide >= 2, "long-haul flights: %d" % wide)
 	check(narrow >= 2, "narrow-body flights: %d" % narrow)
-	if wide > 0 and narrow > 0:
-		check(float(wide_booked) / wide > 1.6 * float(narrow_booked) / narrow, "big planes carry far more passengers")
 
 
 func test_wide_stand_prefers_wide_airlines() -> void:
@@ -85,8 +79,6 @@ func test_long_haul_offers_need_international() -> void:
 
 
 func test_reaching_international_brings_an_offer() -> void:
-	for i in Satisfaction.MEMORY:
-		Airport.passenger_flow.satisfaction.record("Business", 100.0)
 	Airport.reputation.on_time_rate = 1.0
 	Airport.progression.tier = Progression.Tier.NATIONAL
 	Airport.progression.passengers = Progression.PASSENGERS_NEEDED[Progression.Tier.INTERNATIONAL]
@@ -101,7 +93,7 @@ func test_wide_body_plane_is_bigger() -> void:
 	var wide_flight: Flight = null
 	for i in 40000:  # long-haul slots are rare: wait up to a game day
 		Airport.step(Airport.SIM_STEP)
-		for flight in Airport.passenger_flow.schedule.flights:
+		for flight in Airport.schedule.flights:
 			if flight.wide_body and flight.phase == Flight.Phase.AT_STAND:
 				wide_flight = flight
 		if wide_flight != null:

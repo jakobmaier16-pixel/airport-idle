@@ -283,59 +283,6 @@ theme_override_font_sizes/font_size = 30
 layout_mode = 2
 theme_override_font_sizes/font_size = 22
 
-[node name="StaffButtons" type="HBoxContainer" parent="SafeArea/StationPanel/Content"]
-layout_mode = 2
-
-[node name="HireButton" type="Button" parent="SafeArea/StationPanel/Content/StaffButtons"]
-custom_minimum_size = Vector2(0, 64)
-layout_mode = 2
-size_flags_horizontal = 3
-focus_mode = 0
-theme_override_font_sizes/font_size = 22
-text = "Hire"
-
-[node name="DismissButton" type="Button" parent="SafeArea/StationPanel/Content/StaffButtons"]
-custom_minimum_size = Vector2(0, 64)
-layout_mode = 2
-size_flags_horizontal = 3
-focus_mode = 0
-theme_override_font_sizes/font_size = 22
-text = "Dismiss"
-
-[node name="TeamButtons" type="HBoxContainer" parent="SafeArea/StationPanel/Content"]
-layout_mode = 2
-
-[node name="TrainButton" type="Button" parent="SafeArea/StationPanel/Content/TeamButtons"]
-custom_minimum_size = Vector2(0, 64)
-layout_mode = 2
-size_flags_horizontal = 3
-focus_mode = 0
-theme_override_font_sizes/font_size = 20
-text = "Train"
-
-[node name="PromoteButton" type="Button" parent="SafeArea/StationPanel/Content/TeamButtons"]
-custom_minimum_size = Vector2(0, 64)
-layout_mode = 2
-size_flags_horizontal = 3
-focus_mode = 0
-theme_override_font_sizes/font_size = 20
-text = "Promote"
-
-[node name="FastTrackButton" type="Button" parent="SafeArea/StationPanel/Content"]
-visible = false
-custom_minimum_size = Vector2(0, 56)
-layout_mode = 2
-focus_mode = 0
-theme_override_font_sizes/font_size = 20
-text = "Fast track"
-
-[node name="UpgradeButton" type="Button" parent="SafeArea/StationPanel/Content"]
-custom_minimum_size = Vector2(0, 72)
-layout_mode = 2
-focus_mode = 0
-theme_override_font_sizes/font_size = 24
-text = "Upgrade"
-
 [node name="CloseButton" type="Button" parent="SafeArea/StationPanel/Content"]
 custom_minimum_size = Vector2(0, 64)
 layout_mode = 2
@@ -361,21 +308,13 @@ text = "Statistics · last 5 minutes"
 [node name="Tabs" type="HBoxContainer" parent="SafeArea/StatsPanel/Content"]
 layout_mode = 2
 
-[node name="StationsTab" type="Button" parent="SafeArea/StatsPanel/Content/Tabs"]
-custom_minimum_size = Vector2(170, 56)
-layout_mode = 2
-focus_mode = 0
-theme_override_font_sizes/font_size = 22
-toggle_mode = true
-button_pressed = true
-text = "Stations"
-
 [node name="MoneyTab" type="Button" parent="SafeArea/StatsPanel/Content/Tabs"]
 custom_minimum_size = Vector2(170, 56)
 layout_mode = 2
 focus_mode = 0
 theme_override_font_sizes/font_size = 22
 toggle_mode = true
+button_pressed = true
 text = "Money"
 
 [node name="AirlinesTab" type="Button" parent="SafeArea/StatsPanel/Content/Tabs"]
@@ -406,11 +345,7 @@ theme_override_constants/h_separation = 36
 theme_override_constants/v_separation = 2
 columns = 5
 
-[node name="TypesLabel" type="Label" parent="SafeArea/StatsPanel/Content"]
-layout_mode = 2
-theme_override_font_sizes/font_size = 22
-
-[node name="SatisfactionLabel" type="Label" parent="SafeArea/StatsPanel/Content"]
+[node name="PunctualityLabel" type="Label" parent="SafeArea/StatsPanel/Content"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 22
 
@@ -418,11 +353,6 @@ theme_override_font_sizes/font_size = 22
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 0.88, 0.45, 1)
 theme_override_font_sizes/font_size = 22
-
-[node name="BottleneckLabel" type="Label" parent="SafeArea/StatsPanel/Content"]
-layout_mode = 2
-theme_override_colors/font_color = Color(1, 0.7, 0.3, 1)
-theme_override_font_sizes/font_size = 24
 
 [node name="CloseButton" type="Button" parent="SafeArea/StatsPanel/Content"]
 custom_minimum_size = Vector2(0, 64)

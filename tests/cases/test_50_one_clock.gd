@@ -16,7 +16,7 @@ func test_passenger_time_is_the_clock() -> void:
 	ShowcaseAirport.build()
 	sim_seconds(30.0)
 	var clock := Airport.clock
-	check_eq(Airport.passenger_flow.time, clock.real_elapsed, "one number for both")
+	check_eq(Airport.sim_time, clock.real_elapsed, "one number for both")
 	check_eq(clock.elapsed, clock.real_elapsed * Clock.GAME_PER_REAL, "game seconds are 15 per second")
 	check(clock.real_elapsed >= 30.0, "the clock ran")
 
@@ -24,13 +24,12 @@ func test_passenger_time_is_the_clock() -> void:
 func test_jumping_the_time_of_day_keeps_flights_in_place() -> void:
 	ShowcaseAirport.build()
 	sim_seconds(20.0)
-	var flow := Airport.passenger_flow
-	var before := flow.time
+	var before := Airport.sim_time
 	Airport.clock.game_seconds = 14.5 * 3600.0
 	check_eq(Airport.clock.hour(), 14.5, "the time of day jumped")
-	check_eq(flow.time, before, "flight timing did not")
+	check_eq(Airport.sim_time, before, "flight timing did not")
 	sim_seconds(10.0)
-	check(is_equal_approx(flow.time, before + 10.0), "and both run on")
+	check(is_equal_approx(Airport.sim_time, before + 10.0), "and both run on")
 
 
 func test_v6_converter_moves_the_timer_to_the_clock() -> void:
@@ -41,11 +40,11 @@ func test_v6_converter_moves_the_timer_to_the_clock() -> void:
 	check(not (converted["flow"] as Dictionary).has("time"), "the passenger timer is gone")
 	check_eq(float(converted["clock_elapsed"]), timer * Clock.GAME_PER_REAL, "the clock carries it in game seconds")
 	var loaded := _fresh(converted)
-	check(is_equal_approx(loaded.passenger_flow.time, timer), "the flights see the same time as before")
+	check(is_equal_approx(loaded.sim_time, timer), "the flights see the same time as before")
 	check_eq(loaded.clock.game_seconds, float(converted["clock"]), "the time of day is unchanged")
 	for i in int(30.0 / AirportWorld.SIM_STEP):
 		loaded.step(AirportWorld.SIM_STEP)
-	check(loaded.passenger_flow.passengers.size() > 0, "it keeps running")
+	check(loaded.sim_time > 0.0, "it keeps running")
 	loaded.dispose()
 
 
@@ -55,9 +54,8 @@ func test_example_v7_loads() -> void:
 	check_eq(SaveGame.migrate(saved)["version"], SaveGame.FORMAT_VERSION, "only the later converters run")
 	var loaded := _fresh(saved)
 	check(is_equal_approx(loaded.clock.elapsed, float(saved["clock_elapsed"])), "its clock is back")
-	check(loaded.passenger_flow.passengers.size() > 0, "its passengers are back")
-	check(loaded.passenger_flow.schedule.flights.size() > 0, "its flights are back")
+	check(loaded.schedule.flights.size() > 0, "its flights are back")
 	for i in int(60.0 / AirportWorld.SIM_STEP):
 		loaded.step(AirportWorld.SIM_STEP)
-	check(loaded.passenger_flow.passengers.size() > 0, "it keeps running")
+	check(loaded.sim_time > 0.0, "it keeps running")
 	loaded.dispose()

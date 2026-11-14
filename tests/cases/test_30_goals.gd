@@ -4,17 +4,17 @@ extends TestCase
 
 func test_goals_follow_the_build() -> void:
 	check_eq(Airport.goals.current(), 0, "a new airport starts with goal 1")
-	check(Airport.goals.text().begins_with("Goal 1/10: Build Security and lay a walkway behind it"), "text: '%s'" % Airport.goals.text())
+	check(Airport.goals.text().begins_with("Goal 1/8: Build Security and lay a walkway behind it"), "text: '%s'" % Airport.goals.text())
 	Airport.paint_walkway(cells(at(Vector2i(20, 31)), Vector2i(5, 1)), true)
 	check_eq(Airport.goals.current(), 0, "a walkway alone is not airside")
 	Airport.place_building(type_of(&"security"), at(Vector2i(20, 28)), 0)
 	check_eq(Airport.goals.current(), 1, "security with a walkway behind it: airside reached")
 	ShowcaseAirport.build(0.0)
 	Airport.progression.tier = Progression.Tier.REGIONAL
-	Airport.progression.passengers = 0  # as if it had just been built
-	check_eq(Airport.goals.current(), 7, "the showcase still waits for its first departure")
+	Airport.progression.passengers = 0  # the showcase pretends 15,000; here the tier must not climb
+	check_eq(Airport.goals.current(), 5, "the showcase still waits for its first departure")
 	sim_seconds(330)
-	check_eq(Airport.goals.current(), 9, "departed, two airlines: next is National")
+	check_eq(Airport.goals.current(), 7, "departed, two airlines: next is National")
 	Airport.progression.tier = Progression.Tier.NATIONAL
 	check_eq(Airport.goals.current(), -1, "all done")
 	check_eq(Airport.goals.text(), "", "nothing to show")
@@ -23,16 +23,16 @@ func test_goals_follow_the_build() -> void:
 func test_undone_goal_comes_back() -> void:
 	ShowcaseAirport.build(0.0)
 	for building in Airport.buildings.duplicate():
-		if building.type.role == BuildingType.Role.BAGGAGE_CLAIM:
+		if building.type.role == BuildingType.Role.GATE:
 			Airport.demolish(building)
-	check_eq(Airport.goals.current(), 5, "baggage claim is needed again")
+	check_eq(Airport.goals.current(), 4, "a gate is needed again")
 
 
 func test_goal_line_in_the_hud() -> void:
 	await start_game()
 	hud()._goal_refresh_in = 0.0
 	await frames(2)
-	check(hud().goal_text().begins_with("Goal 1/10"), "shown: '%s'" % hud().goal_text())
+	check(hud().goal_text().begins_with("Goal 1/8"), "shown: '%s'" % hud().goal_text())
 	hud().show_stats()
 	await frames(1)
 	check_eq(hud().goal_text(), "", "hidden while a panel is open")

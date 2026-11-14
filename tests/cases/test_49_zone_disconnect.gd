@@ -1,5 +1,6 @@
 extends TestCase
-## Airside buildings before security are unused; demolishing security strands nobody for good.
+## Airside buildings before security are unused; demolishing security cuts the flights off,
+## and rebuilding it brings them back.
 
 
 func _security() -> Building:
@@ -9,31 +10,7 @@ func _security() -> Building:
 	return null
 
 
-func _count(state: Passenger.State) -> int:
-	var total := 0
-	for passenger in Airport.passenger_flow.passengers:
-		if passenger.state == state:
-			total += 1
-	return total
-
-
-func _shop_income() -> float:
-	var total := 0.0
-	for station in Airport.passenger_flow.stations():
-		if station.role() == BuildingType.Role.SHOP:
-			total += station.income_in_window(Airport.passenger_flow.time)
-	return total
-
-
-func _gate_users() -> int:
-	var total := 0
-	for station in Airport.passenger_flow.stations():
-		if station.role() == BuildingType.Role.GATE:
-			total += station.waiting.size()
-	return total
-
-
-func test_gate_and_shop_before_security_are_unused_until_connected() -> void:
+func test_gates_before_security_are_unused_until_connected() -> void:
 	ShowcaseAirport.build(0.0)
 	var security := _security()
 	var type := security.type
@@ -41,66 +18,36 @@ func test_gate_and_shop_before_security_are_unused_until_connected() -> void:
 	var rotation := security.rotation_steps
 	Airport.demolish(security)
 	sim_seconds(600)
-	var flow := Airport.passenger_flow
-	check_eq(_count(Passenger.State.STUCK), 0, "nobody is stuck")
-	check_eq(flow.passengers.size(), 0, "no passengers enter a terminal without a way to the airside")
-	check_eq(flow.departed_count, 0, "no departures")
-	check_eq(_gate_users(), 0, "the unconnected gates are not used")
-	check_eq(_shop_income(), 0.0, "the unconnected shop earns nothing")
+	check_eq(Airport.usable_gates().size(), 0, "the gates are not usable without security")
+	for flight in Airport.schedule.flights:
+		check(flight.cargo, "only freighters still fly (the cargo terminal does not need security)")
+	var before := Airport.reputation.departures
 	var rebuilt := Airport.place_building(type, origin, rotation)
 	check(rebuilt != null, "security built")
-	Airport.staff_fully(rebuilt)  # a new building has no staff yet
 	for i in 60:
 		sim_seconds(10)
-		if flow.departed_count > 0 and _shop_income() > 0.0:
+		if Airport.schedule.flights.any(func(f: Flight) -> bool: return not f.cargo):
 			break
-	check(flow.departed_count > 0, "passengers fly once security connects the gates")
-	check(_shop_income() > 0.0, "and shop in the airside")
+	check(Airport.schedule.flights.any(func(f: Flight) -> bool: return not f.cargo), "passenger flights come back once security connects the gates")
+	check(Airport.reputation.departures >= before, "departures never go back")
 
 
-func test_demolishing_security_with_passengers_airside() -> void:
+func test_demolishing_security_with_planes_on_the_apron() -> void:
 	ShowcaseAirport.build(300.0)
-	var flow := Airport.passenger_flow
-	# Wait until people really queue at security and wait at gates.
+	# Wait until planes are really at the gates.
 	for i in 120:
 		sim_seconds(5)
-		var in_security := 0
-		for station in flow.stations():
-			if station.role() == BuildingType.Role.SECURITY:
-				in_security += station.queue.size() + station.serving.size()
-		if in_security > 0 and _gate_users() > 0:
+		if Airport.schedule.flights.size() > 0:
 			break
-	check(flow.passengers.size() > 0, "a busy airport")
+	check(Airport.schedule.flights.size() > 0, "a busy airport")
 	var security := _security()
 	var type := security.type
 	var origin := security.origin_cell
 	var rotation := security.rotation_steps
 	Airport.demolish(security)
 	sim_seconds(2400)
-	# Departing passengers go home when their flight is cancelled; arriving passengers whose plane
-	# is gone and who have no way out are sent home too.
-	var stuck := Airport.passenger_flow.passengers.filter(func(p: Passenger) -> bool: return p.state == Passenger.State.STUCK)
-	check_eq(stuck.size(), 0, "nobody stays stuck for good")
 	var rebuilt := Airport.place_building(type, origin, rotation)
 	check(rebuilt != null, "security rebuilt")
-	Airport.staff_fully(rebuilt)
-	var departed := flow.departed_count
+	var departed := Airport.reputation.departures
 	sim_seconds(1200)
-	check(flow.departed_count > departed, "flow is restored: %d -> %d departures" % [departed, flow.departed_count])
-
-
-func test_arrivals_of_a_cancelled_flight_are_not_stranded() -> void:
-	# Planes are being unloaded around then; cutting the airside off cancels their flights while
-	# passengers are still getting off (before the fix some of them stayed stuck for good). Several
-	# moments, so the check doesn't depend on where one seed puts the planes.
-	var flow: PassengerFlow
-	for wait in [30.0, 60.0, 90.0, 120.0]:
-		ShowcaseAirport.build(300.0)
-		flow = Airport.passenger_flow
-		sim_seconds(wait)
-		Airport.demolish(_security())
-		sim_seconds(900)
-		var stranded := flow.passengers.filter(func(p: Passenger) -> bool: return p.is_arriving and p.state == Passenger.State.STUCK)
-		check_eq(stranded.size(), 0, "nobody who got off a cancelled plane stays stuck (after %d s)" % int(wait))
-		var left_over := flow.passengers.filter(func(p: Passenger) -> bool: return p.is_arriving and p.flight != null and not p.flight.is_active())
-		check_eq(left_over.size(), 0, "no arriving passenger of a gone plane is left (after %d s)" % int(wait))
+	check(Airport.reputation.departures > departed, "flow is restored: %d -> %d departures" % [departed, Airport.reputation.departures])

@@ -86,13 +86,3 @@ func test_security_needs_a_free_row_on_both_sides() -> void:
 	check_eq(Airport.check_placement(security, at(Vector2i(30, 28)), 0), "", "free rows: fine, nothing painted needed")
 	check(Airport.place_building(type_of(&"check_in"), at(Vector2i(30, 25)), 0) != null, "something stands in the front row")
 	check_eq(Airport.check_placement(security, at(Vector2i(30, 28)), 0), "Needs a free row in front and behind", "no room in front")
-
-
-func test_transfer_security_is_not_a_border() -> void:
-	await start_game()
-	build_basic_terminal()
-	# Across the airside walkway; the walkway on both sides stays airside, the hall stays landside.
-	Airport.place_building(type_of(&"transfer_security"), at(Vector2i(40, 31)), 1, false)
-	check_eq(Airport.grid.get_zone(at(Vector2i(20, 32))), AirportGrid.Zone.AIRSIDE, "west of it: airside")
-	check_eq(Airport.grid.get_zone(at(Vector2i(50, 32))), AirportGrid.Zone.AIRSIDE, "east of it: airside, not split")
-	check_eq(Airport.grid.get_zone(at(Vector2i(20, 25))), AirportGrid.Zone.LANDSIDE, "the hall stays landside")

@@ -1,14 +1,11 @@
 class_name BuildingLayer
 extends Node3D
 ## Visual layer for buildings: creates a 3D placeholder for every building in the simulation,
-## plus a floating hint above buildings that aren't connected yet (design doc §7.1b) or are
-## being upgraded (§7.8).
+## plus a floating hint above buildings that aren't connected yet (design doc §7.1b).
 ## It only reads simulation data and never changes it.
 
 const FRONT_COLOR: Color = Color(0.15, 0.17, 0.2)
 const HINT_COLOR: Color = Color(1.0, 0.45, 0.4)
-const UPGRADE_COLOR: Color = Color(1.0, 0.75, 0.25)
-const MANAGER_COLOR: Color = Color(0.5, 1.0, 0.55)
 ## Metadata key on collision bodies: the Building they belong to (used to find tapped buildings).
 const BUILDING_META: StringName = &"building"
 ## Hint size on screen (Label3D.pixel_size with fixed_size: share of the screen height per font pixel).
@@ -96,36 +93,12 @@ func visual_count() -> int:
 	return _visuals.size()
 
 
-func _process(_delta: float) -> void:
-	# Upgrade countdowns change every frame; connection problems only when the layout changes.
-	for building in _hints:
-		var hint := _hints[building]
-		var problem: String = _problems.get(building, "")
-		if not problem.is_empty():
-			hint.text = problem
-			hint.modulate = HINT_COLOR
-		elif Airport.needs_staff(building) and Airport.staff_at(building).is_empty():
-			hint.text = "Needs staff"
-			hint.modulate = HINT_COLOR
-		elif building.is_upgrading():
-			var seconds := ceili(building.upgrade_seconds_left)
-			hint.text = "Upgrading… %d:%02d" % [seconds / 60, seconds % 60]
-			hint.modulate = UPGRADE_COLOR
-		elif Airport.needs_staff(building) and Airport.is_manager_near(building):
-			# The manager's presence helps (design doc §15.1). Shown on the facade, not above the
-			# roof: the manager stands right in front, so a roof label would sit under the HUD.
-			hint.text = "Manager here · +10 %"
-			hint.modulate = MANAGER_COLOR
-			hint.position.y = building.type.height * 0.5
-		if hint.text != "Manager here · +10 %":
-			hint.position.y = building.type.height + HINT_HEIGHT
-		hint.visible = not problem.is_empty() or building.is_upgrading() \
-			or (Airport.needs_staff(building) and (Airport.staff_at(building).is_empty() or Airport.is_manager_near(building)))
-
-
 func _update_hints() -> void:
 	for building in _hints:
-		_problems[building] = Airport.connection_problem(building.type, building.origin_cell, building.rotation_steps)
+		var problem := Airport.connection_problem(building.type, building.origin_cell, building.rotation_steps)
+		_problems[building] = problem
+		_hints[building].text = problem
+		_hints[building].visible = not problem.is_empty()
 
 
 func _material_for(type: BuildingType) -> StandardMaterial3D:

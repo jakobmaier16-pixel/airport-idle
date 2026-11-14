@@ -20,18 +20,12 @@ signal reset_confirmed
 signal showcase_confirmed
 ## The player confirmed starting the device benchmark (test builds only, scripts/dev/benchmark.gd).
 signal benchmark_confirmed
-signal upgrade_pressed(building: Building)
-signal hire_pressed(building: Building)
-signal dismiss_pressed(building: Building)
-signal train_pressed(building: Building)
-signal promote_pressed(building: Building)
-signal fast_track_pressed(building: Building)
 
 const MONEY_COLOR: Color = Color(1.0, 1.0, 1.0)
 const DEBT_COLOR: Color = Color(1.0, 0.4, 0.35)
 
 const STATS_FONT_SIZE: int = 20
-const BOTTLENECK_COLOR: Color = Color(1.0, 0.7, 0.3)
+const PROFIT_COLOR: Color = Color(1.0, 0.7, 0.3)
 ## How often the statistics panel refreshes, in seconds.
 const STATS_REFRESH: float = 0.5
 
@@ -49,11 +43,11 @@ var _building_types: Array[BuildingType] = []
 var _open_category: String = ""
 var _stats_refresh_in: float = 0.0
 ## Statistics tabs (design doc §13.2).
-enum StatsTab { STATIONS, MONEY, AIRLINES, MESSAGES }
+enum StatsTab { MONEY, AIRLINES, MESSAGES }
 ## The last notices, newest first: [clock text, message] (design doc §13.2).
 const MESSAGE_LOG_SIZE: int = 30
 var messages: Array = []
-var stats_tab: StatsTab = StatsTab.STATIONS
+var stats_tab: StatsTab = StatsTab.MONEY
 ## The building shown in the station panel, or null.
 var shown_station: Building = null
 # Area name of the shown station: looked up on opening and when the layout changes, not per frame.
@@ -70,9 +64,7 @@ var _goal_refresh_in: float = 0.0
 @onready var airlines_panel: AirlinesPanel = $SafeArea/AirlinesPanel
 @onready var _stats_panel: Control = $SafeArea/StatsPanel
 @onready var _stats_table: GridContainer = $SafeArea/StatsPanel/Content/TableScroll/Table
-@onready var _bottleneck_label: Label = $SafeArea/StatsPanel/Content/BottleneckLabel
-@onready var _types_label: Label = $SafeArea/StatsPanel/Content/TypesLabel
-@onready var _satisfaction_label: Label = $SafeArea/StatsPanel/Content/SatisfactionLabel
+@onready var _punctuality_label: Label = $SafeArea/StatsPanel/Content/PunctualityLabel
 @onready var _progress_label: Label = $SafeArea/StatsPanel/Content/ProgressLabel
 @onready var _milestone_panel: Control = $SafeArea/MilestonePanel
 @onready var _goal_panel: Control = $SafeArea/GoalPanel
@@ -101,14 +93,6 @@ var _goal_refresh_in: float = 0.0
 @onready var _station_panel: Control = $SafeArea/StationPanel
 @onready var _station_title: Label = $SafeArea/StationPanel/Content/TitleLabel
 @onready var _station_info: Label = $SafeArea/StationPanel/Content/InfoLabel
-@onready var _upgrade_button: Button = $SafeArea/StationPanel/Content/UpgradeButton
-@onready var _staff_buttons: Control = $SafeArea/StationPanel/Content/StaffButtons
-@onready var _hire_button: Button = $SafeArea/StationPanel/Content/StaffButtons/HireButton
-@onready var _dismiss_button: Button = $SafeArea/StationPanel/Content/StaffButtons/DismissButton
-@onready var _team_buttons: Control = $SafeArea/StationPanel/Content/TeamButtons
-@onready var _train_button: Button = $SafeArea/StationPanel/Content/TeamButtons/TrainButton
-@onready var _promote_button: Button = $SafeArea/StationPanel/Content/TeamButtons/PromoteButton
-@onready var _fast_track_button: Button = $SafeArea/StationPanel/Content/FastTrackButton
 
 
 func _ready() -> void:
@@ -135,16 +119,10 @@ func _ready() -> void:
 	_reset_button.pressed.connect(_on_confirm_button_pressed.bind(_reset_button, "Reset", reset_confirmed))
 	_demo_button.pressed.connect(_on_confirm_button_pressed.bind(_demo_button, "Demo", showcase_confirmed))
 	_bench_button.pressed.connect(_on_confirm_button_pressed.bind(_bench_button, "Bench", benchmark_confirmed))
-	_upgrade_button.pressed.connect(func() -> void: upgrade_pressed.emit(shown_station))
-	_hire_button.pressed.connect(func() -> void: hire_pressed.emit(shown_station))
-	_dismiss_button.pressed.connect(func() -> void: dismiss_pressed.emit(shown_station))
-	_train_button.pressed.connect(func() -> void: train_pressed.emit(shown_station))
-	_promote_button.pressed.connect(func() -> void: promote_pressed.emit(shown_station))
-	_fast_track_button.pressed.connect(func() -> void: fast_track_pressed.emit(shown_station))
 	$SafeArea/StationPanel/Content/CloseButton.pressed.connect(hide_station)
 	_stats_button.pressed.connect(func() -> void: hide_stats() if _stats_panel.visible else show_stats())
 	$SafeArea/StatsPanel/Content/CloseButton.pressed.connect(hide_stats)
-	for tab: StatsTab in [StatsTab.STATIONS, StatsTab.MONEY, StatsTab.AIRLINES, StatsTab.MESSAGES]:
+	for tab: StatsTab in [StatsTab.MONEY, StatsTab.AIRLINES, StatsTab.MESSAGES]:
 		_tab_button(tab).pressed.connect(show_stats_tab.bind(tab))
 	$SafeArea/MilestonePanel/Content/OkButton.pressed.connect(func() -> void: _milestone_panel.visible = false)
 	$SafeArea/GoalPanel/Row/HideButton.pressed.connect(func() -> void: Airport.goals.hidden = true)
@@ -206,13 +184,13 @@ func show_stats() -> void:
 ## Switches the statistics panel to `tab`.
 func show_stats_tab(tab: StatsTab) -> void:
 	stats_tab = tab
-	for other: StatsTab in [StatsTab.STATIONS, StatsTab.MONEY, StatsTab.AIRLINES, StatsTab.MESSAGES]:
+	for other: StatsTab in [StatsTab.MONEY, StatsTab.AIRLINES, StatsTab.MESSAGES]:
 		_tab_button(other).button_pressed = other == tab
 	_update_stats_panel()
 
 
 func _tab_button(tab: StatsTab) -> Button:
-	return get_node("SafeArea/StatsPanel/Content/Tabs/" + ["StationsTab", "MoneyTab", "AirlinesTab", "MessagesTab"][tab]) as Button
+	return get_node("SafeArea/StatsPanel/Content/Tabs/" + ["MoneyTab", "AirlinesTab", "MessagesTab"][tab]) as Button
 
 
 func hide_stats() -> void:
@@ -230,7 +208,7 @@ func report_tap(text: String) -> void:
 		feedback.report(text)
 
 
-## Opens the station panel for `building` (manager view, design doc §7.8).
+## Opens the panel for `building` (manager view): its name, its area and a close button.
 func show_station(building: Building) -> void:
 	hide_stats()
 	hide_airlines()
@@ -342,14 +320,13 @@ func is_milestone_open() -> bool:
 
 
 ## Star rating and what it is made of, under the money (design doc §11.7).
-## Short, so it never runs under the top buttons on an iPad; satisfaction and punctuality are in
-## the statistics panel.
+## Short, so it never runs under the top buttons on an iPad; punctuality is in the statistics panel.
 func set_rating(stars: float, tier_name: String) -> void:
 	_stars.value = stars
 	_rating_label.text = "%.1f   ·   %s airport" % [Reputation.shown_stars(stars), tier_name]
 
 
-## Passenger status line in the top left (both views).
+## Status line in the top left (both views).
 func set_status(text: String) -> void:
 	_status_label.text = text
 
@@ -397,36 +374,19 @@ func _update_visibility() -> void:
 
 
 func _update_stats_panel() -> void:
-	var flow := Airport.passenger_flow
-	var bottleneck := flow.bottleneck()
 	for child in _stats_table.get_children():
 		_stats_table.remove_child(child)
 		child.queue_free()
 	match stats_tab:
-		StatsTab.MONEY:
-			_fill_money_table()
 		StatsTab.AIRLINES:
 			_fill_airlines_table()
 		StatsTab.MESSAGES:
 			_fill_messages_table()
 		_:
-			_fill_stations_table(bottleneck)
-	var counts := flow.count_by_type()
-	var parts: PackedStringArray = []
-	for type_name in ["Families", "Low-cost", "Business"]:
-		parts.append("%d %s" % [counts.get(type_name, 0), type_name])
-	_types_label.text = "In the airport: " + "  ·  ".join(parts) \
-		+ "     Transfers: %d now  ·  %d connected" % [flow.transferring_count(), flow.transferred_count]
-	_satisfaction_label.text = satisfaction_text(flow.satisfaction) \
-		+ "     On time: %d %%" % roundi(Airport.reputation.on_time_rate * 100.0) \
-		+ "     " + demand_text(Airport.demand, Airport.stars())
+			_fill_money_table()
+	_punctuality_label.text = "On time: %d %%" % roundi(Airport.reputation.on_time_rate * 100.0) \
+		+ "     " + demand_text(Airport.demand)
 	_progress_label.text = Airport.progression.progress_text(Airport.stars())
-	_bottleneck_label.visible = stats_tab == StatsTab.STATIONS
-	if bottleneck != null:
-		_bottleneck_label.text = "Bottleneck: %s · avg wait %d s" % [
-			flow.station_label(bottleneck.building), roundi(bottleneck.average_wait(flow.time))]
-	else:
-		_bottleneck_label.text = "No bottleneck: every queue moves quickly."
 
 
 # Income and costs by source over the last five minutes (design doc §13.2).
@@ -450,7 +410,7 @@ func _fill_money_table() -> void:
 		costs += amount
 		_add_money_row(source, -amount, Color.WHITE)
 	_add_money_row("Total costs", -costs, DEBT_COLOR)
-	_add_money_row("Profit", income - costs, BOTTLENECK_COLOR)
+	_add_money_row("Profit", income - costs, PROFIT_COLOR)
 
 
 func _add_money_row(label: String, amount: float, color: Color) -> void:
@@ -491,62 +451,10 @@ func _fill_airlines_table() -> void:
 		_add_stats_cell(Economy.format(airline.fee), color)
 
 
-func _fill_stations_table(bottleneck: Station) -> void:
-	var flow := Airport.passenger_flow
-	_stats_table.columns = 5
-	for heading in ["Station", "Queue now", "Longest", "Avg. wait", "Busy"]:
-		_add_stats_cell(heading, Color(0.75, 0.78, 0.82))
-	for station in flow.stations():
-		var color := BOTTLENECK_COLOR if station == bottleneck else Color.WHITE
-		_add_stats_cell(flow.station_label(station.building), color)
-		if station.role() == BuildingType.Role.GATE:
-			_add_stats_cell("%d waiting" % station.queue_length(), color)
-			for i in 3:
-				_add_stats_cell("", color)
-			continue
-		if station.role() == BuildingType.Role.BAGGAGE_CLAIM:
-			var claim_wait := station.average_wait(flow.time)
-			_add_stats_cell("%d waiting" % station.queue_length(), color)
-			_add_stats_cell(str(station.longest_queue()), color)
-			_add_stats_cell("–" if claim_wait < 0.0 else "%d s" % roundi(claim_wait), color)
-			_add_stats_cell("", color)
-			continue
-		if station.role() == BuildingType.Role.CAR_PARK:
-			for i in 3:
-				_add_stats_cell("", color)
-			_add_stats_cell(Economy.format(station.income_in_window(flow.time)), color)
-			continue
-		if station.role() == BuildingType.Role.SHOP or station.role() == BuildingType.Role.LOUNGE:
-			_add_stats_cell("%d inside" % station.queue_length(), color)
-			_add_stats_cell(str(station.longest_queue()), color)
-			_add_stats_cell("", color)
-			_add_stats_cell(Economy.format(station.income_in_window(flow.time)), color)
-			continue
-		var wait := station.average_wait(flow.time)
-		_add_stats_cell(str(station.queue_length()), color)
-		_add_stats_cell(str(station.longest_queue()), color)
-		_add_stats_cell("–" if wait < 0.0 else "%d s" % roundi(wait), color)
-		_add_stats_cell("%d %%" % roundi(station.busy_share() * 100.0), color)
-
-
-## "Demand: 54 flights/day, 78 % full, rising" (words, not arrows: the font has no arrow glyphs).
-static func demand_text(demand: Demand, stars: float) -> String:
+## "Demand: 54 flights/day, rising" (words, not arrows: the font has no arrow glyphs).
+static func demand_text(demand: Demand) -> String:
 	var trend := {"up": "rising", "down": "falling", "steady": "steady"}[demand.trend()] as String
-	return "Demand: %d flights/day, %d %% full, %s" % [roundi(demand.flights_per_day()), roundi(Demand.load_factor(stars) * 100.0), trend]
-
-
-## "Satisfaction: 78 %  ·  Families 82 % …" plus the main complaint (design doc §8.10).
-static func satisfaction_text(satisfaction: Satisfaction) -> String:
-	var parts: PackedStringArray = []
-	for type_name in ["Families", "Low-cost", "Business"]:
-		if satisfaction.by_type.has(type_name):
-			parts.append("%s %d %%" % [type_name, roundi(satisfaction.by_type[type_name])])
-	var text := "Satisfaction: %d %%" % roundi(satisfaction.average)
-	if not parts.is_empty():
-		text += "   (" + "  ·  ".join(parts) + ")"
-	var complaint := satisfaction.main_complaint()
-	text += "\nMain complaint: " + (complaint if not complaint.is_empty() else "none")
-	return text
+	return "Demand: %d flights/day, %s" % [roundi(demand.flights_per_day()), trend]
 
 
 func _add_stats_cell(text: String, color: Color) -> void:
@@ -573,102 +481,18 @@ func _area_of_building(building: Building) -> String:
 
 func _update_station_panel() -> void:
 	var building := shown_station
-	_station_title.text = "%s · Level %d" % [building.type.display_name, building.level]
-	var lines: PackedStringArray = []
-	var role := building.type.role
-	var station := Airport.passenger_flow.station_for(building)
+	_station_title.text = building.type.display_name
+	var lines: PackedStringArray = ["Zone: %s" % _zone_text(building)]
 	if not _station_area.is_empty():
 		lines.append("Area: %s" % _station_area)
-	if role in [BuildingType.Role.CHECK_IN, BuildingType.Role.SECURITY, BuildingType.Role.TRANSFER_SECURITY]:
-		var unit := "counters" if role == BuildingType.Role.CHECK_IN else "lanes"
-		lines.append("%d %s · %.1f s per passenger" % [building.service_slots(), unit, building.service_time()])
-		if station != null:
-			lines.append("Queue: %d waiting · %d being served" % [station.queue.size(), station.busyness() - station.queue.size()])
-	elif role == BuildingType.Role.GATE and station != null:
-		lines.append("Waiting at the gate: %d" % station.waiting.size())
-	elif role == BuildingType.Role.BAGGAGE_CLAIM and station != null:
-		lines.append("Waiting for bags: %d" % station.waiting.size())
-		var wait := station.average_wait(Airport.passenger_flow.time)
-		lines.append("Average time here (5 min): %s" % ("–" if wait < 0.0 else "%d s" % roundi(wait)))
-	elif role == BuildingType.Role.CARGO_TERMINAL:
-		# Cargo (design doc §10.3): handling speed and the freighter at the stand.
-		lines.append("Handling: %.1f t per second" % Airport.passenger_flow.schedule._handling_rate(building))
-		for flight in Airport.passenger_flow.schedule.flights:
-			if flight.gate == building and flight.phase >= Flight.Phase.AT_STAND:
-				lines.append("%s: %d / %d t handled" % [flight.number, roundi(flight.tonnes_handled), roundi(flight.tonnes)])
-	elif role == BuildingType.Role.CAR_PARK and station != null:
-		lines.append("Returning travellers pay %s each" % Economy.format(PassengerFlow.PARKING_FEE))
-		lines.append("Parking income (5 min): %s" % Economy.format(station.income_in_window(Airport.passenger_flow.time)))
-	elif (role == BuildingType.Role.SHOP or role == BuildingType.Role.LOUNGE) and station != null:
-		lines.append("%s inside: %d / %d" % ["Guests" if role == BuildingType.Role.LOUNGE else "Customers", station.waiting.size(), building.type.customer_capacity])
-		lines.append("Airport income (5 min): %s" % Economy.format(station.income_in_window(Airport.passenger_flow.time)))
-	var staffed := Airport.needs_staff(building)
-	if staffed:
-		var working := Airport.staff_at(building)
-		var salaries := 0.0
-		for employee in working:
-			salaries += employee.salary_per_minute
-		lines.append("Running cost: %s/min + staff %s/min" % [Economy.format(building.running_cost_per_minute()), Economy.format(salaries)])
-		var unit := "counters" if role == BuildingType.Role.CHECK_IN else ("handler places" if role == BuildingType.Role.CARGO_TERMINAL else "lanes")
-		lines.append("Staff: %d / %d %s" % [working.size(), building.service_slots(), unit])
-		for employee in working.slice(0, 4):
-			lines.append("   %s · %s" % [employee.name, employee.level_name()])
-		if working.size() > 4:
-			lines.append("   … and %d more" % (working.size() - 4))
-	else:
-		lines.append("Running cost: %s/min" % Economy.format(building.running_cost_per_minute()))
-	if building.is_upgrading():
-		var seconds := ceili(building.upgrade_seconds_left)
-		lines.append("Upgrading: %s · %d:%02d left" % [building.next_upgrade().title, seconds / 60, seconds % 60])
 	_station_info.text = "\n".join(lines)
 
-	# Managing happens on the spot (design doc §15.1): far away, the panel only shows information.
-	var manage_problem := Airport.manage_problem(building)
-	if staffed and Airport.is_manager_near(building):
-		lines.append("You're here: staff work 10 % faster, queues stay calmer.")
-		_station_info.text = "\n".join(lines)
-	_staff_buttons.visible = staffed
-	if staffed:
-		var hire_problem := Airport.hire_problem(building)
-		if hire_problem.is_empty():
-			hire_problem = manage_problem
-		_hire_button.disabled = not hire_problem.is_empty()
-		_hire_button.text = "Hire · %s/min" % Economy.format(Airport.SALARIES[role]) if hire_problem.is_empty() else hire_problem
-		_dismiss_button.disabled = Airport.staff_at(building).is_empty() or not manage_problem.is_empty()
-	# Training and promotion (design doc §9.2).
-	_team_buttons.visible = staffed
-	if staffed:
-		var train_problem := Airport.train_problem(building)
-		_train_button.text = "Train · %s" % Economy.format(Employee.TRAINING_COST) if train_problem.is_empty() else train_problem
-		_train_button.disabled = not train_problem.is_empty() or not manage_problem.is_empty()
-		var promote_problem := Airport.promote_problem(building)
-		_promote_button.text = "Promote to supervisor" if promote_problem.is_empty() else promote_problem
-		_promote_button.disabled = not promote_problem.is_empty() or not manage_problem.is_empty()
 
-	# Fast track (design doc §11.8): security only, bought once.
-	_fast_track_button.visible = role == BuildingType.Role.SECURITY
-	if _fast_track_button.visible:
-		var fast_problem := Airport.fast_track_problem(building)
-		if building.fast_track:
-			_fast_track_button.text = "Fast track: business travellers first · %s each" % Economy.format(PassengerFlow.FAST_TRACK_FEE)
-		elif fast_problem.is_empty():
-			_fast_track_button.text = "Add fast track · %s" % Economy.format(Airport.FAST_TRACK_COST)
-		else:
-			_fast_track_button.text = fast_problem
-		_fast_track_button.disabled = not fast_problem.is_empty() or not manage_problem.is_empty()
-
-	var upgrade := building.next_upgrade()
-	var problem := Airport.upgrade_problem(building)
-	if problem.is_empty():
-		problem = manage_problem
-	if upgrade != null and not building.is_upgrading():
-		var duration := "" if upgrade.build_seconds <= 0.0 else " · %d min" % ceili(upgrade.build_seconds / 60.0)
-		_upgrade_button.text = "Upgrade: %s · %s%s" % [upgrade.title, Economy.format(upgrade.cost), duration]
-		if not manage_problem.is_empty():
-			_upgrade_button.text = manage_problem
-	else:
-		_upgrade_button.text = problem
-	_upgrade_button.disabled = not problem.is_empty()
+# Landside or airside, or both for security (the border between them).
+func _zone_text(building: Building) -> String:
+	if building.type.zone_rule == BuildingType.ZoneRule.BORDER:
+		return "Border (landside to airside)"
+	return "Airside" if Airport.grid.get_zone(building.origin_cell) == AirportGrid.Zone.AIRSIDE else "Landside"
 
 
 # For buttons that replace the map: the first tap arms the button, a second tap within a few

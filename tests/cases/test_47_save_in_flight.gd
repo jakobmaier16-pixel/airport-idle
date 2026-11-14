@@ -1,5 +1,5 @@
 extends TestCase
-## Flights and passengers on their way are saved (tech_architecture.md §13): a loaded game
+## Flights on their way are saved (tech_architecture.md §13): a loaded game
 ## continues exactly where it stopped, and gets the same future as the game that was saved.
 
 const SHOWCASE_V3: String = "res://tests/saves/v3_showcase.json"
@@ -24,25 +24,18 @@ func _load_fresh(saved: Dictionary) -> AirportWorld:
 
 # The numbers that show whether two airports are in the same state.
 func _summary(brain: AirportWorld) -> Dictionary:
-	var flow := brain.passenger_flow
 	var phases: Array[int] = []
 	var delays := 0.0
-	var boarded := 0
-	for flight in flow.schedule.flights:
+	var tonnes := 0.0
+	for flight in brain.schedule.flights:
 		phases.append(int(flight.phase))
 		delays += flight.delay
-		boarded += flight.boarded
-	var moods := 0.0
-	var queued := 0
-	for station in flow.stations():
-		queued += station.queue.size() + station.waiting.size()
-	for passenger in flow.passengers:
-		moods += passenger.mood
+		tonnes += flight.tonnes_handled
 	return {
-		"passengers": flow.passengers.size(), "flights": flow.schedule.flights.size(), "phases": phases,
-		"delays": delays, "boarded": boarded, "departed": flow.departed_count, "arrived": flow.arrived_count,
-		"in_stations": queued, "mood": snappedf(moods, 0.001), "money": snappedf(brain.economy.balance, 0.01),
-		"time": snappedf(flow.time, 0.001), "clock": snappedf(brain.clock.game_seconds, 0.001),
+		"flights": brain.schedule.flights.size(), "phases": phases, "delays": snappedf(delays, 0.001),
+		"tonnes": snappedf(tonnes, 0.001), "departed": brain.reputation.departures,
+		"money": snappedf(brain.economy.balance, 0.01),
+		"time": snappedf(brain.sim_time, 0.001), "clock": snappedf(brain.clock.game_seconds, 0.001),
 	}
 
 
@@ -53,14 +46,14 @@ func _through_json(state: Dictionary) -> Dictionary:
 func test_loaded_game_continues_exactly() -> void:
 	_busy_airport()
 	var original := Airport.brain
-	check(original.passenger_flow.passengers.size() > 10, "a busy airport (%d passengers)" % original.passenger_flow.passengers.size())
-	check(original.passenger_flow.schedule.flights.size() > 3, "flights are on their way")
-	var states := {}
-	for passenger in original.passenger_flow.passengers:
-		states[passenger.state] = true
-	check(states.size() >= 3, "passengers are in several states (%s)" % [states.keys()])
+	check(original.schedule.flights.size() > 3, "flights are on their way")
+	var phases := {}
+	for flight in original.schedule.flights:
+		phases[flight.phase] = true
+	check(phases.size() >= 2, "flights are in several phases (%s)" % [phases.keys()])
 	# Saved as the real file would be: through JSON text.
 	var saved := _through_json(original.save_state())
+	check(not saved.has("flow"), "no passenger data is written any more")
 	var loaded := _load_fresh(saved)
 	check_eq(_summary(loaded), _summary(original), "right after loading: the same airport")
 	# Both run on for two more game minutes (8 real seconds), then compare.
@@ -70,27 +63,20 @@ func test_loaded_game_continues_exactly() -> void:
 	var a := _summary(original)
 	var b := _summary(loaded)
 	check_eq(b, a, "a minute later: the same airport")
-	check(a["boarded"] > 0 or a["departed"] > 0 or a["arrived"] > 0, "something actually happened meanwhile")
+	check(a["departed"] > 0 or a["phases"].size() > 0, "something actually happened meanwhile")
 	loaded.dispose()
 
 
-func test_saved_passengers_keep_their_places() -> void:
+func test_saved_flights_keep_their_places() -> void:
 	_busy_airport()
-	var flow := Airport.passenger_flow
 	var loaded := _load_fresh(_through_json(Airport.save_state()))
-	var again := loaded.passenger_flow
-	check_eq(again.time, flow.time, "the passenger clock is saved, not restarted")
-	check_eq(again.passengers.size(), flow.passengers.size(), "every passenger is back")
-	for station in flow.stations():
-		var twin := loaded.buildings.filter(func(b: Building) -> bool: return b.id == station.building.id)
-		var copy := again.station_for(twin[0]) if not twin.is_empty() else null
-		check(copy != null and copy.building.id == station.building.id, "the station is back")
-		if copy == null:
-			continue
-		check_eq(copy.queue.size(), station.queue.size(), "queue of %s" % station.building.type.id)
-		check_eq(copy.waiting.size(), station.waiting.size(), "waiting at %s" % station.building.type.id)
-		check_eq(copy.serving.count(null), station.serving.count(null), "free counters at %s" % station.building.type.id)
-	for flight in again.schedule.flights:
+	check_eq(loaded.sim_time, Airport.sim_time, "the clock is saved, not restarted")
+	check_eq(loaded.schedule.flights.size(), Airport.schedule.flights.size(), "every flight is back")
+	for i in loaded.schedule.flights.size():
+		var flight := loaded.schedule.flights[i]
+		var twin := Airport.schedule.flights[i]
+		check_eq(flight.number, twin.number, "the same flight number")
+		check_eq(flight.gate.id, twin.gate.id, "at the same gate")
 		check(flight.gate != null and loaded.buildings.has(flight.gate), "a flight stands at a loaded gate")
 	loaded.dispose()
 
@@ -98,24 +84,34 @@ func test_saved_passengers_keep_their_places() -> void:
 func test_old_save_starts_empty_apron() -> void:
 	_busy_airport()
 	var state := _through_json(Airport.save_state())
-	state.erase("flow")
+	state.erase("schedule")
 	var loaded := _load_fresh(state)
-	check_eq(loaded.passenger_flow.passengers.size(), 0, "no passengers in a save without any")
-	check_eq(loaded.passenger_flow.schedule.flights.size(), 0, "no flights either")
+	check_eq(loaded.schedule.flights.size(), 0, "no flights in a save without any")
 	# The timetable (a slot opens a flight every minute or two) keeps planning them.
 	for i in int(600.0 / AirportWorld.SIM_STEP):
 		loaded.step(AirportWorld.SIM_STEP)
-	check(loaded.passenger_flow.schedule.flights.size() > 0, "new flights get planned as before")
+	check(loaded.schedule.flights.size() > 0, "new flights get planned as before")
+	loaded.dispose()
+
+
+func test_save_before_the_strip_keeps_its_schedule_in_the_flow() -> void:
+	# Saves written until 2026-11-14 kept the schedule inside the passenger flow ("flow").
+	_busy_airport()
+	var state := _through_json(Airport.save_state())
+	state["flow"] = {"schedule": state["schedule"], "passengers": {"junk": true}, "stations": []}
+	state.erase("schedule")
+	var loaded := _load_fresh(state)
+	check_eq(loaded.schedule.flights.size(), Airport.schedule.flights.size(), "its flights are read from the old place")
 	loaded.dispose()
 
 
 func test_demolished_gate_drops_its_flights() -> void:
 	_busy_airport()
 	var state := _through_json(Airport.save_state())
-	var gate_id := int(((state["flow"]["schedule"]["flights"] as Array)[0] as Dictionary)["gate"])
+	var gate_id := int(((state["schedule"]["flights"] as Array)[0] as Dictionary)["gate"])
 	state["buildings"] = (state["buildings"] as Array).filter(func(b: Dictionary) -> bool: return int(b["id"]) != gate_id)
 	var loaded := _load_fresh(state)
-	for flight in loaded.passenger_flow.schedule.flights:
+	for flight in loaded.schedule.flights:
 		check(flight.gate.id != gate_id, "no flight at the missing gate")
 	for i in int(20.0 / AirportWorld.SIM_STEP):
 		loaded.step(AirportWorld.SIM_STEP)
@@ -128,12 +124,11 @@ func test_example_v3_loads_with_flights() -> void:
 	var saved: Dictionary = JSON.parse_string(text)
 	check_eq(int(saved["version"]), 3, "an example save of version 3")
 	var loaded := _load_fresh(SaveGame.migrate(saved.duplicate(true)))
-	check(loaded.passenger_flow.passengers.size() > 0, "its passengers are back")
-	check(loaded.passenger_flow.schedule.flights.size() > 0, "its flights are back")
-	check_eq(loaded.passenger_flow.time, float(saved["flow"]["time"]), "its passenger clock is back")
+	check(loaded.schedule.flights.size() > 0, "its flights are back")
+	check_eq(loaded.sim_time, float(saved["flow"]["time"]), "its clock is back")
 	for i in int(60.0 / AirportWorld.SIM_STEP):
 		loaded.step(AirportWorld.SIM_STEP)
-	check(loaded.passenger_flow.passengers.size() > 0, "it keeps running")
+	check(loaded.sim_time > float(saved["flow"]["time"]), "it keeps running")
 	loaded.dispose()
 
 

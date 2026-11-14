@@ -44,12 +44,12 @@ func test_showcase_stands_reach_the_runway() -> void:
 	Airport.paint_taxiway(cells(at(Vector2i(6, 79)), Vector2i(100, 2)), false)
 	var stand := _stand()
 	check_eq(Airport.connection_problem(stand.type, stand.origin_cell, stand.rotation_steps), "Needs a taxiway to a runway", "cut off")
-	check(Airport.passenger_flow.usable_gates().is_empty(), "no gate gets flights")
+	check(Airport.usable_gates().is_empty(), "no gate gets flights")
 
 
 func test_one_movement_at_a_time() -> void:
 	ShowcaseAirport.build(0.0)
-	var schedule := Airport.passenger_flow.schedule
+	var schedule := Airport.schedule
 	schedule.runway_margin = 60.0  # a slow runway: it becomes the bottleneck
 	sim_seconds(900)
 	var bookings: Array = schedule.runway_bookings
@@ -60,7 +60,7 @@ func test_one_movement_at_a_time() -> void:
 		if bookings[i][1] < bookings[i - 1][2] - 0.01:
 			overlaps += 1
 	check_eq(overlaps, 0, "never two planes on the runway")
-	check(Airport.passenger_flow.schedule.flights.any(func(f: Flight) -> bool: return f.airport_delay() > 0.0) \
+	check(Airport.schedule.flights.any(func(f: Flight) -> bool: return f.airport_delay() > 0.0) \
 		or Airport.reputation.late_departures > 0, "landings wait for the runway: a delay")
 
 
@@ -71,9 +71,9 @@ func test_plane_follows_the_taxiway() -> void:
 	var flight: Flight = null
 	for i in 4000:
 		Airport.step(Airport.SIM_STEP)
-		for candidate in Airport.passenger_flow.schedule.flights:
-			var left := candidate.departs_at() - Airport.passenger_flow.time
-			var route := Airport.passenger_flow.schedule.route_of(candidate)
+		for candidate in Airport.schedule.flights:
+			var left := candidate.departs_at() - Airport.sim_time
+			var route := Airport.schedule.route_of(candidate)
 			if candidate.phase == Flight.Phase.ARRIVING and route != null \
 					and left < FlightSchedule.lead_of(route) - route.roll_in_time - 8.0:
 				flight = candidate

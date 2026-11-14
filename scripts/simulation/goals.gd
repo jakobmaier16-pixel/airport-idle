@@ -13,8 +13,6 @@ const STEPS: Array = [
 	["Build a Check-in facing the entrance's walkway", "_has_check_in"],
 	["Build Security between the check-in hall and the airside walkway", "_has_security"],
 	["Build a Gate with a Stand behind it, and paint a Taxiway from the stand to the runway", "_has_gate"],
-	["Build a Baggage claim for arriving passengers", "_has_claim"],
-	["Hire staff: tap check-in and security in the manager view", "_has_staff"],
 	["Wait for your first departure (watch the departures board)", "_has_departure"],
 	["Sign a second airline: open Airlines when an offer arrives", "_has_second_airline"],
 	["Reach National airport (see Stats for your progress)", "_is_national"],
@@ -60,22 +58,11 @@ func _has_security() -> bool:
 
 
 func _has_gate() -> bool:
-	return not world.passenger_flow.usable_gates().is_empty() or _route_needs_only_a_claim()
-
-
-func _has_claim() -> bool:
-	return world.passenger_flow.route_problem.is_empty()
-
-
-func _has_staff() -> bool:
-	for role in [Role.CHECK_IN, Role.SECURITY]:
-		if not world.buildings.any(func(b: Building) -> bool: return b.type.role == role and not world.staff_at(b).is_empty()):
-			return false
-	return true
+	return not world.usable_gates().is_empty()
 
 
 func _has_departure() -> bool:
-	return world.progression.passengers > 0
+	return world.reputation.departures > 0
 
 
 func _has_second_airline() -> bool:
@@ -90,8 +77,3 @@ func _is_national() -> bool:
 func _connected(role: BuildingType.Role) -> bool:
 	return world.buildings.any(func(b: Building) -> bool:
 		return b.type.role == role and world.connection_problem(b.type, b.origin_cell, b.rotation_steps).is_empty())
-
-
-# Gates can't be "usable" while the route lacks a baggage claim, so accept that state too.
-func _route_needs_only_a_claim() -> bool:
-	return world.passenger_flow.route_problem.contains("baggage claim")

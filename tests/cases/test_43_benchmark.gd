@@ -3,35 +3,29 @@ extends TestCase
 ## The real numbers come from the iPhone and iPad.
 
 
-func test_airport_fills_to_a_thousand() -> void:
+func test_benchmark_airport_has_planes_on_the_move() -> void:
 	Benchmark.prepare_airport()
 	check(not SaveGame.enabled, "saving is off while the benchmark runs")
-	for i in 30:
-		Benchmark.top_up(100)
-		sim_seconds(1.0)
-	var count := Airport.passenger_flow.passengers.size()
-	check(count >= 900, "about 1,000 passengers in the airport (%d)" % count)
+	check(Airport.schedule.flights.size() >= 4, "flights are planned")
+	sim_seconds(120.0)
+	check(Benchmark.planes_active() >= 1, "planes are on the move (%d)" % Benchmark.planes_active())
 	var started := Time.get_ticks_usec()
 	sim_seconds(10.0)
-	print("INFO simulation step with %d passengers: %.3f ms (Mac)" % [
-		Airport.passenger_flow.passengers.size(), (Time.get_ticks_usec() - started) / 1000.0 / 100.0])
+	print("INFO simulation step with %d planes active: %.3f ms (Mac)" % [
+		Benchmark.planes_active(), (Time.get_ticks_usec() - started) / 1000.0 / 100.0])
 
 
-# The benchmark airport on a map of `size` cells with about a thousand passengers: the best (lowest)
-# milliseconds per simulation step over a few short runs, and the milliseconds one layout change
-# (a walkway cell painted and removed) takes. Both are noisy on a shared machine, so the best of a
-# few runs is used.
+# The benchmark airport on a map of `size` cells: the best (lowest) milliseconds per simulation step
+# over a few short runs, and the milliseconds one layout change (a walkway cell painted and removed)
+# takes. Both are noisy on a shared machine, so the best of a few runs is used.
 func _measure(size: Vector2i) -> Dictionary:
 	Airport.reseed(Benchmark.SEED)
 	ShowcaseAirport.build(180.0, size)
-	Airport.passenger_flow.max_passengers = Benchmark.PASSENGER_LIMIT
 	for i in int(2400.0 / Airport.SIM_STEP):
-		if Airport.passenger_flow.schedule.flights.size() >= 4:
+		if Airport.schedule.flights.size() >= 4:
 			break
 		Airport.step(Airport.SIM_STEP)
-	for i in 30:
-		Benchmark.top_up(100)
-		sim_seconds(1.0)
+	sim_seconds(60.0)
 	var best_step := INF
 	for run in 5:
 		var started := Time.get_ticks_usec()
@@ -44,7 +38,7 @@ func _measure(size: Vector2i) -> Dictionary:
 		Airport.paint_walkway(spot, true)
 		Airport.paint_walkway(spot, false)
 		best_layout = minf(best_layout, (Time.get_ticks_usec() - started) / 1000.0 / 2.0)
-	return {"passengers": Airport.passenger_flow.passengers.size(), "step_ms": best_step, "layout_ms": best_layout}
+	return {"flights": Airport.schedule.flights.size(), "step_ms": best_step, "layout_ms": best_layout}
 
 
 # The step costs the same on the big map as on the small one: the simulation only touches used
@@ -58,9 +52,9 @@ func test_big_map_step_is_not_slower() -> void:
 	for key in ["step_ms", "layout_ms"]:
 		small[key] = minf(small[key], again_small[key])
 		big[key] = minf(big[key], again_big[key])
-	print("INFO step with ~%d passengers: %dx%d %.3f ms, %dx%d %.3f ms; layout change: %.2f ms vs %.2f ms" % [
-		big["passengers"], SMALL_MAP.x, SMALL_MAP.y, small["step_ms"], AirportWorld.MAP_SIZE_CELLS.x, AirportWorld.MAP_SIZE_CELLS.y, big["step_ms"], small["layout_ms"], big["layout_ms"]])
-	check(big["passengers"] >= 900 and small["passengers"] >= 900, "both airports are busy (%d, %d passengers)" % [small["passengers"], big["passengers"]])
+	print("INFO step with %d flights: %dx%d %.3f ms, %dx%d %.3f ms; layout change: %.2f ms vs %.2f ms" % [
+		big["flights"], SMALL_MAP.x, SMALL_MAP.y, small["step_ms"], AirportWorld.MAP_SIZE_CELLS.x, AirportWorld.MAP_SIZE_CELLS.y, big["step_ms"], small["layout_ms"], big["layout_ms"]])
+	check(big["flights"] >= 1 and small["flights"] >= 1, "both airports have flights (%d, %d)" % [small["flights"], big["flights"]])
 	check(big["step_ms"] <= small["step_ms"] * 1.2 + 0.2, "a step on the big map is at most 1.2 x the small one plus 0.2 ms of slack (%.3f vs %.3f ms)" % [big["step_ms"], small["step_ms"]])
 	check(big["layout_ms"] <= small["layout_ms"] * 3.0 + 20.0, "a layout change on the big map is not much slower (%.2f vs %.2f ms)" % [big["layout_ms"], small["layout_ms"]])
 
@@ -84,7 +78,7 @@ func test_benchmark_runs_and_reports() -> void:
 	for run_phase in [Benchmark.Phase.TOP_DOWN, Benchmark.Phase.FIRST_PERSON]:
 		check(benchmark.heartbeat_samples(run_phase) > 0, "heartbeats were measured in run %d" % run_phase)
 	check(not benchmark.report.contains("Heartbeat           avg 0.0 ms"), "the heartbeat numbers are real")
-	for part in ["Top-down", "First person", "Work per frame", "Heartbeat", "Memory", "Result:"]:
+	for part in ["Top-down", "First person", "planes on average", "Work per frame", "Heartbeat", "Memory", "Result:"]:
 		check(benchmark.report.contains(part), "the report shows %s" % part)
 	check(benchmark.report.contains("PASS") or benchmark.report.contains("FAIL"), "judged against the budget")
 	check(main.current_view == main.View.MANAGER, "the second run is in first person")

@@ -11,11 +11,11 @@ func test_starts_in_manager_view() -> void:
 	check(not ui("ToolPanel").visible, "tool panel hidden in manager view")
 
 
-func test_status_explains_missing_route() -> void:
+func test_status_explains_missing_gate() -> void:
 	await start_game()
 	await frames(1)
 	var status := (ui("InfoPanel/StatusLabel") as Label).text
-	check(status.contains("build an entrance"), "status asks for an entrance: '%s'" % status)
+	check(status.contains("No gate in use yet"), "status asks for a gate: '%s'" % status)
 
 
 func test_landscape_and_settings() -> void:

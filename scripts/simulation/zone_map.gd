@@ -4,7 +4,7 @@ extends RefCounted
 ## from the entrance along the walkways. Everything reached without passing security is landside,
 ## everything behind security is airside. Pure data, no nodes.
 ## `recompute` also writes the result into the grid, which everything else reads (AirportGrid.get_zone).
-## Border buildings are security only: transfer security joins two airside walkways but is no border.
+## Border buildings are security only.
 
 ## The grid holds the result (AirportGrid.get_zone). The work follows the used cells (walkways, taxiways
 ## and building footprints), never the map size: nothing here scans the whole map.
@@ -48,7 +48,6 @@ func recompute(grid: AirportGrid, buildings: Array[Building]) -> void:
 	# walked through, so security (and every other building) stops the walk by itself.
 	var landside_seeds: Array[Vector2i] = []
 	var airside_seeds: Array[Vector2i] = []
-	var transfers: Array[Building] = []
 	for building: Building in buildings:
 		match building.type.role:
 			BuildingType.Role.ENTRANCE:
@@ -57,24 +56,8 @@ func recompute(grid: AirportGrid, buildings: Array[Building]) -> void:
 			BuildingType.Role.SECURITY:
 				# Security is the border: its back is the only way into the airside.
 				airside_seeds.append_array(Building.outside_row(building.type.footprint, building.origin_cell, building.rotation_steps, false))
-			BuildingType.Role.TRANSFER_SECURITY:
-				transfers.append(building)
 	var landside := _flood(grid, landside_seeds, {})
-	# Transfer security joins two airside walkways: once one side is reached, so is the other.
 	var airside := _flood(grid, airside_seeds, landside)
-	var changed: bool = not transfers.is_empty()
-	while changed:
-		changed = false
-		for building: Building in transfers:
-			var front: Array[Vector2i] = Building.outside_row(building.type.footprint, building.origin_cell, building.rotation_steps, true)
-			var back: Array[Vector2i] = Building.outside_row(building.type.footprint, building.origin_cell, building.rotation_steps, false)
-			var reached: bool = false
-			for cell: Vector2i in front + back:
-				reached = reached or airside.has(cell)
-			if reached:
-				var before: int = airside.size()
-				airside = _flood(grid, front + back, landside, airside)
-				changed = changed or airside.size() != before
 	airside_reached = not airside.is_empty()
 	for cell: Vector2i in airside:
 		grid.set_zone(cell, AirportGrid.Zone.AIRSIDE)

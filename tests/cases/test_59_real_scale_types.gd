@@ -84,12 +84,12 @@ func _gate_with_stand(stand_id: StringName, gate_cell: Vector2i, stand_cell: Vec
 func _slot(plane_class: TimetableSlot.PlaneClass) -> TimetableSlot:
 	var slot := TimetableSlot.new()
 	slot.plane_class = plane_class
-	slot.departure_time = Airport.passenger_flow.time + 3000.0
+	slot.departure_time = Airport.sim_time + 3000.0
 	return slot
 
 
 func test_narrow_slot_on_a_wide_stand_is_fine_a_wide_slot_never_on_a_narrow_one() -> void:
-	var schedule := Airport.passenger_flow.schedule
+	var schedule := Airport.schedule
 	var narrow_gate := _gate_with_stand(&"aircraft_stand", at(Vector2i(10, 34)), at(Vector2i(6, 39)))
 	var wide_gate := _gate_with_stand(&"wide_body_stand", at(Vector2i(34, 34)), at(Vector2i(30, 39)))
 	check(schedule._gate_for(_slot(TimetableSlot.PlaneClass.NARROW), [wide_gate] as Array[Building]) == wide_gate, "a narrow plane fits the wide-body stand")

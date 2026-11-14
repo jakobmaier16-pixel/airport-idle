@@ -57,6 +57,9 @@ Inspirations: *TheoTown* (services that grow with the city), *Builderment*, *Idl
 There is always a next bottleneck, so the player never has to wait. The idle part is that the airport keeps running and earning while the player thinks and builds.
 
 ### 3.2 Upgrades are real airport technology
+
+> **Removed 2026-11-14, see [removed_features.md](removed_features.md).** The text below stays as the design for when it comes back.
+
 Instead of abstract multipliers, each station has an upgrade ladder made of things real airports use. Every step is visible in 3D. The exact steps per ladder are tuned during development.
 
 | Station | Upgrade ladder |
@@ -86,6 +89,8 @@ Idle games let you hire "managers" so things run without you. The realistic vers
 ---
 
 ## 4. The Passenger Journey — Departures
+
+> **Removed 2026-11-14, see [removed_features.md](removed_features.md).** The text below stays as the design for when it comes back.
 
 ### Station 0 — Getting to the airport
 - **Car:** parking garages and lots, drop-off zone
@@ -142,6 +147,8 @@ Remote stands are cheap; jet bridges are expensive but faster and passengers lik
 
 ## 5. Arrivals, Transfers & Zone Rules
 
+> **Removed 2026-11-14, see [removed_features.md](removed_features.md).** The text below stays as the design for when it comes back.
+
 ### 5.1 Arrivals
 Deboarding (same options as boarding) → passport control (only from non-Schengen) → baggage claim → customs → arrivals hall (meeting point, car rental, lost-baggage desk) → ground transport.
 
@@ -169,6 +176,8 @@ Deboarding (same options as boarding) → passport control (only from non-Scheng
 ---
 
 ## 6. Premium & VIP
+
+> **Removed 2026-11-14, see [removed_features.md](removed_features.md).** The text below stays as the design for when it comes back.
 
 - **Premium passengers** (business class, frequent flyers): priority check-in, fast-track security, lounges, priority boarding. Fast track and lounge access can also be sold to anyone.
 - **Lounges:** rented space that earns money.
@@ -247,6 +256,8 @@ The manager view is the heart of the game, so halls must look like real building
 ---
 
 ## 9. Passengers & Staff
+
+> **Removed 2026-11-14, see [removed_features.md](removed_features.md).** The text below stays as the design for when it comes back.
 
 **Passenger types** (quantity vs. quality):
 | Type | Volume | Spending | Needs |

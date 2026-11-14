@@ -72,12 +72,6 @@ func flights_per_day() -> float:
 	return value * total
 
 
-## Booked share of the seats (0..1): the star rating fills the planes, as before.
-static func load_factor(stars: float) -> float:
-	var average_booked := (FlightSchedule.BOOKED_MIN + FlightSchedule.BOOKED_MAX) / 2.0
-	return minf(average_booked * Reputation.demand_factor(stars) / FlightSchedule.SEATS, 1.0)
-
-
 ## "up", "down" or "steady", from the last daily update.
 func trend() -> String:
 	if last_change > 0.001:

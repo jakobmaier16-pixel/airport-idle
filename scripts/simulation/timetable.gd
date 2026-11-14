@@ -47,7 +47,7 @@ func tick() -> void:
 	if clock.hour() >= GENERATE_HOUR and not generated_days.has(day + 1):
 		generate_day(day + 1)
 	# Slots are sorted by departure: only when the oldest one has expired is there anything to prune.
-	var limit := world.passenger_flow.time - KEEP_SECONDS
+	var limit := world.sim_time - KEEP_SECONDS
 	if not slots.is_empty() and slots[0].departure_time <= limit:
 		var expired := 0
 		while expired < slots.size() and slots[expired].departure_time <= limit:
@@ -62,8 +62,8 @@ func tick() -> void:
 ## hours before are skipped). Rolls only the shared dice.
 func generate_day(day: int) -> void:
 	generated_days.append(day)
-	var now := world.passenger_flow.time
-	var earliest := now + world.passenger_flow.schedule.first_departure_delay()
+	var now := world.sim_time
+	var earliest := now + world.schedule.first_departure_delay()
 	var shares := _route_shares()
 	var season := Seasons.season_of(day)
 	var day_start := (day - 1) * 86400.0
@@ -87,8 +87,6 @@ func generate_day(day: int) -> void:
 			slot.day = day
 			slot.route = wanted[i][0]
 			slot.plane_class = wanted[i][1]
-			slot.seats = 0 if slot.plane_class == TimetableSlot.PlaneClass.CARGO \
-				else roundi(FlightSchedule.SEATS * (FlightSchedule.WIDE_BODY_FACTOR if slot.plane_class == TimetableSlot.PlaneClass.WIDE else 1.0))
 			slots.append(slot)
 	slots.sort_custom(func(a: TimetableSlot, b: TimetableSlot) -> bool: return a.departure_time < b.departure_time)
 
@@ -96,12 +94,12 @@ func generate_day(day: int) -> void:
 ## True if a plane may neither land nor take off for a slot at `departure` (the plane arrives
 ## before it leaves, so both ends count).
 func in_curfew(departure: float) -> bool:
-	return _in_curfew(departure, world.passenger_flow.time)
+	return _in_curfew(departure, world.sim_time)
 
 
 func _in_curfew(departure: float, now: float) -> bool:
 	# The plane lands before the departure (the longest planned taxi earlier) and is off the ground after it.
-	var schedule := world.passenger_flow.schedule
+	var schedule := world.schedule
 	return world.curfew_at(departure - now) or world.curfew_at(departure - schedule.longest_lead() - now) \
 			or world.curfew_at(departure + schedule.longest_departure_run() - now)
 

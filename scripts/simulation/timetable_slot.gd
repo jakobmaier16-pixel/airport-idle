@@ -11,15 +11,13 @@ enum PlaneClass { NARROW, WIDE, CARGO }
 const WINGSPAN_M: Dictionary[PlaneClass, float] = {PlaneClass.NARROW: 37.0, PlaneClass.WIDE: 65.0, PlaneClass.CARGO: 37.0}
 enum State { PENDING, FILLED, DROPPED }
 
-## Departure time in simulation seconds (PassengerFlow.time, real seconds for now).
+## Departure time in simulation seconds (AirportWorld.sim_time, real seconds for now).
 var departure_time: float = 0.0
 ## The game day it belongs to (Clock.day()).
 var day: int = 1
 var plane_class: PlaneClass = PlaneClass.NARROW
-## Route type (sets the passenger mix and the season's demand, design doc §12.2).
+## Route type (sets the season's demand, design doc §12.2).
 var route: String = "Holiday"
-## Seats of the plane type this slot expects (0 for freighters).
-var seats: int = 0
 var state: State = State.PENDING
 ## Filled in when the slot becomes a flight: the airline's code ("" until then) and flight number.
 var airline_code: String = ""
@@ -33,7 +31,7 @@ static func size_rank(plane_class: PlaneClass) -> int:
 
 func to_dict() -> Dictionary:
 	return {
-		"time": departure_time, "day": day, "class": int(plane_class), "route": route, "seats": seats,
+		"time": departure_time, "day": day, "class": int(plane_class), "route": route,
 		"state": int(state), "airline": airline_code, "number": flight_number,
 	}
 
@@ -44,7 +42,6 @@ static func from_dict(entry: Dictionary) -> TimetableSlot:
 	slot.day = int(entry.get("day", 1))
 	slot.plane_class = clampi(int(entry.get("class", 0)), 0, PlaneClass.CARGO) as PlaneClass
 	slot.route = str(entry.get("route", "Holiday"))
-	slot.seats = int(entry.get("seats", 0))
 	slot.state = clampi(int(entry.get("state", 0)), 0, State.DROPPED) as State
 	slot.airline_code = str(entry.get("airline", ""))
 	slot.flight_number = str(entry.get("number", ""))

@@ -3,8 +3,6 @@ extends TestCase
 
 
 func _make_excellent() -> void:
-	for i in Satisfaction.MEMORY:
-		Airport.passenger_flow.satisfaction.record("Business", 100.0)
 	Airport.reputation.on_time_rate = 1.0
 
 
@@ -49,8 +47,6 @@ func test_reaching_national() -> void:
 
 func test_rating_matters() -> void:
 	Airport.reputation.on_time_rate = 0.0
-	for i in Satisfaction.MEMORY:
-		Airport.passenger_flow.satisfaction.record("Families", 30.0)
 	Airport.progression.passengers = 5000
 	sim_seconds(1)
 	check_eq(Airport.progression.tier, Progression.Tier.REGIONAL, "a badly rated airport doesn't grow")
@@ -71,36 +67,6 @@ func test_hub_needs_transfers() -> void:
 	check(progression.progress_text(5.0).contains("highest tier"), "progress says so")
 
 
-func test_passengers_are_counted() -> void:
-	ShowcaseAirport.build(0.0)
-	var before := Airport.progression.passengers
-	sim_seconds(400)
-	var flow := Airport.passenger_flow
-	check_eq(Airport.progression.passengers - before, flow.departed_count + flow.arrived_count, "departed + arrived")
-	check(Airport.progression.passengers - before > 30, "counted: %d" % (Airport.progression.passengers - before))
-
-
-func test_hub_doubles_connections() -> void:
-	ShowcaseAirport.build(0.0)
-	var flow := Airport.passenger_flow
-	var inbound: Flight = first_flight_with_connection()  # there is something to connect to
-	check(inbound != null, "a flight with a connection is planned")
-	if inbound == null:
-		return
-	inbound.route = "Business"  # 25 % connect
-	var share := func() -> float:
-		var connecting := 0
-		for i in 2000:
-			if flow._connecting_flight(inbound) != null:
-				connecting += 1
-		return connecting / 2000.0
-	var national: float = share.call()
-	Airport.progression.tier = Progression.Tier.HUB
-	var hub: float = share.call()
-	check(absf(national - 0.25) < 0.05, "national: about 25 %%: %.2f" % national)
-	check(absf(hub - 0.5) < 0.05, "hub: about 50 %%: %.2f" % hub)
-
-
 func test_milestone_panel_and_menu() -> void:
 	_make_excellent()
 	await start_game()
@@ -109,11 +75,11 @@ func test_milestone_panel_and_menu() -> void:
 	await frames(2)
 	check(hud().is_milestone_open(), "the milestone panel opens")
 	check_eq((ui("MilestonePanel/Content/TitleLabel") as Label).text, "National airport!", "title")
-	check((ui("MilestonePanel/Content/RewardsLabel") as Label).text.contains("Transfer security"), "rewards listed")
+	check((ui("MilestonePanel/Content/RewardsLabel") as Label).text.contains("Cargo"), "rewards listed")
 	await press(ui("MilestonePanel/Content/OkButton"))
 	check(not hud().is_milestone_open(), "closed with Let's build!")
 	await open_build_view()
-	check(await pick_building("Transfer security"), "unlocked in the build menu without a note")
+	check(await pick_building("Cargo terminal"), "unlocked in the build menu without a note")
 	var rating := (ui("InfoPanel/RatingRow/RatingLabel") as Label).text
 	check(rating.contains("National airport"), "tier shown next to the stars: '%s'" % rating)
 

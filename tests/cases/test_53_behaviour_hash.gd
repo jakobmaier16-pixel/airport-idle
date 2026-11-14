@@ -4,8 +4,9 @@ extends TestCase
 ## Refactors must not change this. A PR that changes behaviour on purpose updates it and says so in the PR text.
 ## Re-baselined on purpose by PR 6B (real-scale stands, runway and showcase): 3546a4ab... -> 7ff28f52... (the hash now also covers the whole airside: 256 x 256 reference cells instead of 64 x 64)
 ## Re-baselined on purpose by step 7c (taxiing at real scale: taxi times from the route, runway rolls, take-off start saved per flight): 7ff28f52... -> 8ebdd6c4...
+## Re-baselined on purpose by the strip-to-core PR 1 (passengers, stations, shops, satisfaction and staff deleted; cargo handling is a fixed rate): 8ebdd6c4... -> 42cfd3b1...
 ## Print the current value with tools/behaviour_hash.sh.
-const GOLDEN_BEHAVIOUR_HASH: String = "8ebdd6c49503d42a73a68a21e0bf5ba73f1fd738a42c9a6e4ad0bb9c32f458f8"
+const GOLDEN_BEHAVIOUR_HASH: String = "42cfd3b18d97b6cd818b6c58b07fedc6bb0ef916b42d7ac1895c7b27842b1f98"
 
 
 func test_behaviour_hash_is_deterministic() -> void:

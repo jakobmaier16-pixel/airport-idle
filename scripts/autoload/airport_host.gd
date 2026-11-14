@@ -5,9 +5,7 @@ extends Node
 ## method and signal, so scenes and tests keep writing `Airport.x`. All rules live in the brain.
 
 signal building_placed(building: Building)
-signal building_upgraded(building: Building)
 signal restructured(sold: PackedStringArray)
-signal staff_changed(building: Building)
 signal land_changed
 signal building_removed(building: Building)
 signal zones_changed
@@ -24,10 +22,8 @@ const MAX_STEPS_PER_FRAME: int = 5
 const CELL_SIZE: float = AirportWorld.CELL_SIZE
 const MAP_SIZE_CELLS: Vector2i = AirportWorld.MAP_SIZE_CELLS
 const CATALOG: BuildingCatalog = AirportWorld.CATALOG
-const SALARIES: Dictionary = AirportWorld.SALARIES
 const SIM_STEP: float = AirportWorld.SIM_STEP
 const NOBODY_THERE: Vector3 = AirportWorld.NOBODY_THERE
-const FAST_TRACK_COST: float = AirportWorld.FAST_TRACK_COST
 
 ## The simulation. Replaced by a fresh one on every `reset()`, so never keep it (or any part of it)
 ## in a variable across a reset: read it through `Airport` each time.
@@ -72,8 +68,8 @@ func _notification(what: int) -> void:
 # when the brain is replaced. Called again for every new brain: it first disconnects the old one,
 # so nothing is ever connected twice.
 const SIGNALS: Array[StringName] = [
-	&"building_placed", &"building_upgraded",
-	&"restructured", &"staff_changed", &"land_changed", &"building_removed", &"zones_changed",
+	&"building_placed",
+	&"restructured", &"land_changed", &"building_removed", &"zones_changed",
 	&"walkways_changed", &"layout_changed", &"tier_reached", &"offer_arrived",
 	&"airline_unhappy", &"airline_left", &"plane_arriving",
 ]
@@ -104,11 +100,11 @@ var buildings: Array[Building]:
 	set(value):
 		brain.buildings = value
 
-var passenger_flow: PassengerFlow:
+var schedule: FlightSchedule:
 	get:
-		return brain.passenger_flow
+		return brain.schedule
 	set(value):
-		brain.passenger_flow = value
+		brain.schedule = value
 
 var plane_network: PlaneNetwork:
 	get:
@@ -163,12 +159,6 @@ var reputation: Reputation:
 	set(value):
 		brain.reputation = value
 
-var staff: Array[Employee]:
-	get:
-		return brain.staff
-	set(value):
-		brain.staff = value
-
 var manager_position: Vector3:
 	get:
 		return brain.manager_position
@@ -202,6 +192,10 @@ var rng: RandomNumberGenerator:
 	set(value):
 		brain.rng = value
 
+var sim_time: float:
+	get:
+		return brain.sim_time
+
 var game_seed: int:
 	get:
 		return brain.game_seed
@@ -226,18 +220,6 @@ func areas() -> Array:
 
 func owns_cell(cell: Vector2i) -> bool:
 	return brain.owns_cell(cell)
-
-
-func distance_to_building(building: Building, point: Vector3) -> float:
-	return brain.distance_to_building(building, point)
-
-
-func manage_problem(building: Building) -> String:
-	return brain.manage_problem(building)
-
-
-func is_manager_near(building: Building) -> bool:
-	return brain.is_manager_near(building)
 
 
 func propose_airline_deal(offer: AirlineOffer, fee: float, flights: int, tone: AirlineType.Tone) -> Airlines.Answer:
@@ -272,6 +254,22 @@ func restructure() -> PackedStringArray:
 	return brain.restructure()
 
 
+func usable_gates() -> Array[Building]:
+	return brain.usable_gates()
+
+
+func usable_cargo_terminals() -> Array[Building]:
+	return brain.usable_cargo_terminals()
+
+
+func gate_number(gate: Building) -> int:
+	return brain.gate_number(gate)
+
+
+func status_text() -> String:
+	return brain.status_text()
+
+
 func curfew_at(real_seconds_ahead: float = 0.0) -> bool:
 	return brain.curfew_at(real_seconds_ahead)
 
@@ -288,72 +286,8 @@ func stars() -> float:
 	return brain.stars()
 
 
-func upgrade_problem(building: Building) -> String:
-	return brain.upgrade_problem(building)
-
-
-func start_upgrade(building: Building) -> bool:
-	return brain.start_upgrade(building)
-
-
-func fast_track_problem(building: Building) -> String:
-	return brain.fast_track_problem(building)
-
-
-func buy_fast_track(building: Building) -> bool:
-	return brain.buy_fast_track(building)
-
-
 func running_cost_per_minute() -> float:
 	return brain.running_cost_per_minute()
-
-
-func needs_staff(building: Building) -> bool:
-	return brain.needs_staff(building)
-
-
-func staff_at(building: Building) -> Array[Employee]:
-	return brain.staff_at(building)
-
-
-func hire_problem(building: Building) -> String:
-	return brain.hire_problem(building)
-
-
-func hire(building: Building) -> Employee:
-	return brain.hire(building)
-
-
-func dismiss(building: Building) -> bool:
-	return brain.dismiss(building)
-
-
-func staff_working_at(building: Building) -> Array[Employee]:
-	return brain.staff_working_at(building)
-
-
-func next_trainee(building: Building) -> Employee:
-	return brain.next_trainee(building)
-
-
-func train_problem(building: Building) -> String:
-	return brain.train_problem(building)
-
-
-func train(building: Building) -> Employee:
-	return brain.train(building)
-
-
-func promote_problem(building: Building) -> String:
-	return brain.promote_problem(building)
-
-
-func promote(building: Building) -> Employee:
-	return brain.promote(building)
-
-
-func staff_fully(building: Building) -> void:
-	brain.staff_fully(building)
 
 
 func check_placement(type: BuildingType, origin_cell: Vector2i, rotation_steps: int, check_money: bool = true) -> String:

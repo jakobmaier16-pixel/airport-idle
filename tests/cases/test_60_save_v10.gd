@@ -54,12 +54,11 @@ func test_loading_v9_leaves_no_legacy_footprint_and_the_balance_adds_up() -> voi
 	check_eq(runways, 1, "exactly one runway is laid")
 	check_eq(Airport.grid.count_flag(AirportGrid.TAXIWAY_BIT), 0, "no old taxiway paint")
 	check_eq(Airport.economy.balance, float(saved["money"]) + refund + Airport.load_refund, "balance = saved money + refunds")
-	check_eq(Airport.load_refund, 0.0, "nothing else had to be refunded")
+	check_eq(Airport.load_refund, removed_refund_of(saved), "only the removed building types are refunded")
 	# The gates stay and wait for new stands.
 	check(Airport.buildings.any(func(b: Building) -> bool: return b.type.role == BuildingType.Role.GATE), "the gates are still there")
-	check(not Airport.passenger_flow.route_problem.is_empty(), "no flights until stands are built")
 	sim_seconds(1.0)
-	check_eq(Airport.passenger_flow.schedule.flights.size(), 0, "flights of the removed stands are cancelled at the first step")
+	check_eq(Airport.schedule.flights.size(), 0, "flights of the removed stands are cancelled at the first step")
 
 
 func test_the_player_is_told_what_was_refunded() -> void:
@@ -70,7 +69,7 @@ func test_the_player_is_told_what_was_refunded() -> void:
 	SaveGame.save_path = TEST_SAVE
 	SaveGame.enabled = true
 	SaveGame.load_game()
-	check_eq(SaveGame.load_problem, "Old stands and runway were removed: %s refunded." % Economy.format(legacy_refund_of(saved)), "the notice")
+	check(SaveGame.load_problem.ends_with("Old stands and runway were removed: %s refunded." % Economy.format(legacy_refund_of(saved))), "the notice: %s" % SaveGame.load_problem)
 	_clean_up()
 
 
@@ -99,23 +98,23 @@ func test_v10_example_loads_completely_and_saves_the_same() -> void:
 	var saved := _example(V10)
 	check_eq(SaveGame.migrate(_example(V10)), saved, "a current save needs no conversion")
 	check_eq(SaveGame.legacy_refund, 0.0, "nothing is refunded")
-	check_eq(Airport.load_state(saved), 0, "every building loads")
-	check_eq(Airport.buildings.size(), SHOWCASE_BUILDINGS, "all of its buildings")
-	check_eq(Airport.load_refund, 0.0, "no refund")
-	check(Airport.passenger_flow.schedule.flights.size() > 0 or Airport.timetable.slots.size() > 0, "its flights and timetable are back")
+	check_eq(Airport.load_state(saved), REMOVED_TYPES.size(), "every building loads but the removed types")
+	check_eq(Airport.buildings.size(), SHOWCASE_BUILDINGS, "all of its other buildings")
+	check_eq(Airport.load_refund, removed_refund_of(saved), "only the removed types are refunded")
+	check(Airport.schedule.flights.size() > 0 or Airport.timetable.slots.size() > 0, "its flights and timetable are back")
 	var again := JSON.parse_string(JSON.stringify(Airport.save_state(), "", true, true)) as Dictionary
-	var types_before: Array = saved["buildings"].map(func(e: Dictionary) -> Array: return [e["type"], e["cell"], e["rotation"]])
+	var types_before: Array = saved["buildings"].filter(func(e: Dictionary) -> bool: return not REMOVED_TYPES.has(str(e["type"]))).map(func(e: Dictionary) -> Array: return [e["type"], e["cell"], e["rotation"]])
 	var types_after: Array = again["buildings"].map(func(e: Dictionary) -> Array: return [e["type"], e["cell"], e["rotation"]])
 	check_eq(types_after, types_before, "saving it again gives the same buildings")
 	sim_seconds(120.0)
-	check(Airport.passenger_flow.passengers.size() > 0, "it keeps running")
+	check(Airport.sim_time > 0.0, "it keeps running")
 
 
 # A v9 save with a building in the default runway band (rows 81 to 103 of the reference map): the
 # new runway moves to the nearest free spot instead of silently not being laid.
-func _v9_with_a_shop_in_the_runway_band() -> Dictionary:
+func _v9_with_a_building_in_the_runway_band() -> Dictionary:
 	var saved := _example(V9)
-	saved["buildings"].append({"id": 99, "type": "shop", "cell": [30, 90], "rotation": 0, "level": 1, "cost": 3500.0, "upgrade_left": 0.0, "fast_track": false})
+	saved["buildings"].append({"id": 99, "type": "car_park", "cell": [30, 90], "rotation": 0, "level": 1, "cost": 3500.0, "upgrade_left": 0.0, "fast_track": false})
 	return saved
 
 
@@ -127,17 +126,18 @@ func _runway() -> Building:
 
 
 func test_a_building_in_the_runway_band_moves_the_runway_and_flights_still_happen() -> void:
-	var saved := _v9_with_a_shop_in_the_runway_band()
+	var saved := _v9_with_a_building_in_the_runway_band()
 	var refund := legacy_refund_of(saved)
 	var money := float(saved["money"])  # migrate() changes the dictionary in place
-	check_eq(Airport.load_state(SaveGame.migrate(saved)), 0, "nothing is skipped")
+	var removed := removed_refund_of(saved)
+	check_eq(Airport.load_state(SaveGame.migrate(saved)), REMOVED_TYPES.size(), "only the removed types are skipped")
 	var runway := _runway()
 	check(runway != null, "a runway was laid")
-	var shop: Building = Airport.buildings.filter(func(b: Building) -> bool: return b.type.id == &"shop" and b.id == 99)[0]
+	var shop: Building = Airport.buildings.filter(func(b: Building) -> bool: return b.type.id == &"car_park" and b.id == 99)[0]
 	check(not Rect2i(runway.origin_cell, runway.type.footprint).intersects(Rect2i(shop.origin_cell, shop.type.footprint)), "it does not touch the shop")
 	check(Airport.progression.owned_land(Airport.grid.size).encloses(Rect2i(runway.origin_cell, runway.type.footprint)), "it lies on owned land")
-	check_eq(Airport.load_refund, 0.0, "nobody had to leave")
-	check_eq(Airport.economy.balance, money + refund, "balance = saved money + refunds")
+	check_eq(Airport.load_refund, removed, "nobody else had to leave")
+	check_eq(Airport.economy.balance, money + refund + removed, "balance = saved money + refunds")
 	# Give gate 1 a stand and a taxiway down to wherever the runway is: flights come.
 	var gate: Building = Airport.buildings.filter(func(b: Building) -> bool: return b.type.role == BuildingType.Role.GATE)[0]
 	var stand := Airport.place_building(type_of(&"aircraft_stand"), gate.origin_cell + Vector2i(-8, 5), 0)
@@ -145,7 +145,7 @@ func test_a_building_in_the_runway_band_moves_the_runway_and_flights_still_happe
 	var link_x := stand.origin_cell.x + 9
 	var link_top := stand.origin_cell.y + stand.type.footprint.y
 	Airport.paint_taxiway(cells(Vector2i(link_x, link_top), Vector2i(2, runway.origin_cell.y - link_top)), true)
-	check(Airport.passenger_flow.route_problem.is_empty(), "a complete route: %s" % Airport.passenger_flow.route_problem)
+	check(Airport.usable_gates().size() > 0, "a complete route")
 	check(first_flight(0, 3000.0) != null, "flights happen")
 
 

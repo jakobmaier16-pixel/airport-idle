@@ -1,16 +1,14 @@
 class_name FlightSchedule
 extends RefCounted
 ## Turns the timetable's slots into flights and runs them (design doc §8.5).
-## Pure data. PassengerFlow owns it and passes itself into tick() (no stored back reference,
-## so the two never keep each other alive).
+## Pure data. The brain owns it and drives it with tick().
 
 ## The least time between two departures at the same gate (a turnaround).
 const INTERVAL: float = 180.0
 ## Slots are only planned this far ahead of now (just after their arrivals window opens), or
 ## further if the longest planned taxi needs it (see first_departure_delay).
 const FIRST_DEPARTURE_DELAY: float = 270.0
-## The earliest any passenger type arrives before departure (see data/passengers/); a slot becomes
-## a flight this long before it departs (or earlier: see fill_window).
+## A slot becomes a flight this long before it departs (or earlier: see fill_window).
 const ARRIVALS_START: float = 260.0
 ## A plane stands at its stand this long before it departs (from parking to the doors closing).
 const STAND_DWELL: float = 115.0
@@ -21,9 +19,6 @@ const FALLBACK_TAXI_TIME: float = 15.0
 ## but already gone from the runway), in seconds.
 const APPROACH_TIME: float = 6.0
 const CLIMB_TIME: float = 6.0
-## A flight waits at most this long for passengers who are already airside (checked-in bags would
-## otherwise have to be unloaded). Fits before the next plane arrives at the same stand.
-const MAX_HOLD: float = 30.0
 ## A plane that has waited this long at the holding point goes before landings (design doc §7.5a):
 ## no new landing is booked until it has taken off. Without it landings (booked 6 s ahead) always
 ## beat take-offs (which need a free runway right now) and the holding point can starve (the
@@ -44,42 +39,14 @@ const CARGO_TONNES_MAX: float = 50.0
 const CARGO_MAX_HOLD: float = 60.0
 ## A plane may land this many seconds late without delaying its departure (design doc §7.5a).
 const TURNAROUND_BUFFER: float = 20.0
+## The last stretch before the doors close (the BOARDING phase).
 const BOARDING_OPENS: float = 90.0
-## Passengers per second walking from the gate onto the plane.
-const BOARDING_RATE: float = 1.0
-## Arriving passengers per second leaving the parked plane through the gate (design doc §8.8).
-const DEPLANE_RATE: float = 1.0
-## Bags come off the belt between these times after the plane has parked.
-const BAGS_FROM: float = 30.0
-const BAGS_UNTIL: float = 90.0
-const SEATS: int = 180
-const BOOKED_MIN: int = 12
-const BOOKED_MAX: int = 20
-## Passenger types (design doc §8.7).
-const FAMILY: PassengerType = preload("res://data/passengers/family.tres")
-const LOW_COST: PassengerType = preload("res://data/passengers/low_cost.tres")
-const BUSINESS: PassengerType = preload("res://data/passengers/business.tres")
-## Share of a route's arriving passengers who connect to another flight (design doc §8.9).
-const TRANSFER_SHARES: Dictionary = {"Holiday": 0.1, "Low-cost": 0.05, "Business": 0.25, "Long-haul": 0.3}
-## A connecting flight must depart at least this long after the transfer passenger deplanes.
-const MIN_CONNECTION: float = 150.0
-## Route types and their passenger mix: [families, low-cost, business] shares.
-const ROUTES: Dictionary = {
-	"Holiday": [0.7, 0.2, 0.1],
-	"Low-cost": [0.15, 0.8, 0.05],
-	"Business": [0.1, 0.3, 0.6],
-	"Long-haul": [0.35, 0.15, 0.5],
-}
-## Wide-body (long-haul) planes carry this many times the passengers, and deplane through two
-## doors (design doc §10.2).
-const WIDE_BODY_FACTOR: float = 2.0
-const WIDE_BODY_DEPLANE_RATE: float = 2.0
 
 ## A plane starts its final approach (the visuals may celebrate a new airline's first landing).
 signal plane_arriving(flight: Flight)
 
 ## Every flight that hasn't departed yet. A gate can have two: the one at the stand and the
-## next one, whose passengers are already arriving (like at a real airport).
+## next one, whose plane is already on its way (like at a real airport).
 var flights: Array[Flight] = []
 
 # Simulation time from which each runway is free again.
@@ -100,16 +67,15 @@ func _init() -> void:
 	rng.randomize()
 
 
-func tick(now: float, delta: float, flow: PassengerFlow) -> void:
-	var usable := flow.usable_gates() + flow.usable_cargo_terminals()
+func tick(now: float, delta: float) -> void:
+	var usable := world.usable_gates() + world.usable_cargo_terminals()
 	for flight in flights:
 		if not usable.has(flight.gate):
 			flight.phase = Flight.Phase.CANCELLED
-			flow.remove_flight_passengers(flight, false)
 			_last_planned.erase(flight.gate)
 	flights = flights.filter(func(f: Flight) -> bool: return f.is_active())
 
-	# The timetable's slots become flights exactly when their passengers have to start arriving.
+	# The timetable's slots become flights when their planes have to start arriving.
 	for slot in world.timetable.slots:
 		if slot.state == TimetableSlot.State.PENDING and slot.departure_time - now <= fill_window():
 			_fill_slot(slot, usable, now)
@@ -123,12 +89,12 @@ func tick(now: float, delta: float, flow: PassengerFlow) -> void:
 				_takeoff_priority = true
 				break
 	for flight in flights:
-		_advance(flight, now, delta, flow)
+		_advance(flight, now, delta)
 	flights = flights.filter(func(f: Flight) -> bool: return f.is_active())
 
 
-## A slot becomes a flight this long before it departs: when its passengers start to arrive, and
-## early enough for the plane with the longest planned taxi to touch down in time.
+## A slot becomes a flight this long before it departs: early enough for the plane with the
+## longest planned taxi to touch down in time.
 func fill_window() -> float:
 	return maxf(ARRIVALS_START, longest_lead() + APPROACH_TIME + 5.0)
 
@@ -188,24 +154,33 @@ func upcoming() -> Array[Flight]:
 	return sorted
 
 
-## The passenger type with this id (one of the three the schedule uses), or FAMILY.
-static func type_by_id(id: StringName) -> PassengerType:
-	for type in [FAMILY, LOW_COST, BUSINESS]:
-		if type.id == id:
-			return type
-	return FAMILY
+## The next departures, one line each: number, gate, status, time to departure.
+func departures_text(max_lines: int = 4) -> String:
+	var phase_names := {
+		Flight.Phase.SCHEDULED: "Scheduled", Flight.Phase.ARRIVING: "Plane arriving",
+		Flight.Phase.AT_STAND: "At stand", Flight.Phase.BOARDING: "Boarding",
+		Flight.Phase.DEPARTING: "Departed",
+	}
+	var lines: PackedStringArray = []
+	if flights.is_empty() and world.curfew_at():
+		lines.append("Night curfew: no flights until %02d:00" % int(Clock.CURFEW_END))
+	for flight in upcoming().slice(0, max_lines):
+		var seconds := maxi(ceili(flight.departs_at() - world.sim_time), 0)
+		var status: String = phase_names[flight.phase]
+		if flight.delay > 0.0 and flight.phase == Flight.Phase.BOARDING:
+			status = "Delayed"
+		var where := "Cargo" if flight.cargo else "Gate %d" % world.gate_number(flight.gate)
+		lines.append("%s   %s   %s   %s   %d:%02d" % [
+			flight.number, where, "Freighter" if flight.cargo else flight.route, status, seconds / 60, seconds % 60])
+	return "\n".join(lines)
 
 
-## The schedule as plain data for the save game (tech_architecture.md §13). `extra` are flights
-## that already left the schedule but that saved passengers still point to. Buildings are stored
+## The schedule as plain data for the save game (tech_architecture.md §13). Buildings are stored
 ## by their permanent ID.
-func save_state(extra: Array[Flight]) -> Dictionary:
+func save_state() -> Dictionary:
 	var saved: Array[Dictionary] = []
 	for flight in flights:
-		saved.append(_save_flight(flight, true))
-	for flight in extra:
-		if not flights.has(flight):
-			saved.append(_save_flight(flight, false))
+		saved.append(_save_flight(flight))
 	var planned: Array = []
 	for gate in _last_planned:
 		planned.append([gate.id, _last_planned[gate]])
@@ -215,53 +190,36 @@ func save_state(extra: Array[Flight]) -> Dictionary:
 	return {"flights": saved, "next_number": _next_number, "last_planned": planned, "runway_free_at": runways}
 
 
-## Restores from save_state(). Returns every restored flight in saved order (flights whose gate
-## is gone are left out, so `index_map` tells where each saved index went: saved index -> Flight).
-func load_state(data: Dictionary, by_id: Dictionary[int, Building]) -> Dictionary[int, Flight]:
+## Restores from save_state(). Flights whose gate is gone are left out. Entries of old saves that
+## were only kept for their passengers ("scheduled": false) are dropped.
+func load_state(data: Dictionary, by_id: Dictionary[int, Building]) -> void:
 	flights.clear()
 	_last_planned.clear()
 	_runway_free_at.clear()
 	_next_number = int(data.get("next_number", _next_number))
-	var index_map: Dictionary[int, Flight] = {}
-	var saved_flights: Array = data.get("flights", [])
-	for i in saved_flights.size():
-		var entry: Dictionary = saved_flights[i]
+	for entry: Dictionary in data.get("flights", []):
 		var gate: Building = by_id.get(int(entry.get("gate", 0)))
-		if gate == null:
+		if gate == null or not bool(entry.get("scheduled", true)):
 			continue
-		var flight := _load_flight(entry, gate, by_id)
-		index_map[i] = flight
-		if bool(entry.get("scheduled", true)):
-			flights.append(flight)
+		flights.append(_load_flight(entry, gate, by_id))
 	for pair: Array in data.get("last_planned", []):
 		if by_id.has(int(pair[0])):
 			_last_planned[by_id[int(pair[0])]] = float(pair[1])
 	for pair: Array in data.get("runway_free_at", []):
 		if by_id.has(int(pair[0])):
 			_runway_free_at[by_id[int(pair[0])]] = float(pair[1])
-	return index_map
 
 
-func _save_flight(flight: Flight, scheduled: bool) -> Dictionary:
-	var arrival_types: Array = []
-	for type in flight.arrival_types:
-		arrival_types.append(String(type.id))
-	var inbound_types: Array = []
-	for type in flight.inbound_types:
-		inbound_types.append(String(type.id))
+func _save_flight(flight: Flight) -> Dictionary:
 	return {
-		"scheduled": scheduled, "number": flight.number,
+		"number": flight.number,
 		"airline": String(flight.airline.type.id) if flight.airline != null else "",
 		"wide_body": flight.wide_body, "cargo": flight.cargo,
 		"tonnes": flight.tonnes, "tonnes_handled": flight.tonnes_handled, "fee": flight.fee_per_passenger,
 		"route": flight.route, "gate": flight.gate.id, "stand": flight.stand.id if flight.stand != null else 0,
 		"departure_time": flight.departure_time, "delay": flight.delay, "arrival_delay": flight.arrival_delay,
 		"landing_booked": flight.landing_booked, "takeoff_booked": flight.takeoff_booked,
-		"takeoff_at": flight.takeoff_at, "seats": flight.seats, "booked": flight.booked,
-		"arrival_times": Array(flight.arrival_times), "arrival_types": arrival_types,
-		"spawned": flight.spawned, "inbound_types": inbound_types, "deplaned": flight.deplaned,
-		"deplane_credit": flight.deplane_credit, "boarded": flight.boarded, "missed": flight.missed,
-		"phase": int(flight.phase), "boarding_credit": flight.boarding_credit,
+		"takeoff_at": flight.takeoff_at, "phase": int(flight.phase),
 	}
 
 
@@ -289,21 +247,7 @@ func _load_flight(entry: Dictionary, gate: Building, by_id: Dictionary[int, Buil
 	flight.takeoff_at = float(entry.get("takeoff_at", -1.0))
 	if flight.takeoff_booked and flight.takeoff_at < 0.0:
 		flight.takeoff_at = flight.departs_at() + taxi_out_of(route_of(flight))
-	flight.seats = int(entry.get("seats", 0))
-	flight.booked = int(entry.get("booked", 0))
-	for time: float in entry.get("arrival_times", []):
-		flight.arrival_times.append(time)
-	for id: String in entry.get("arrival_types", []):
-		flight.arrival_types.append(type_by_id(StringName(id)))
-	flight.spawned = int(entry.get("spawned", 0))
-	for id: String in entry.get("inbound_types", []):
-		flight.inbound_types.append(type_by_id(StringName(id)))
-	flight.deplaned = int(entry.get("deplaned", 0))
-	flight.deplane_credit = float(entry.get("deplane_credit", 0.0))
-	flight.boarded = int(entry.get("boarded", 0))
-	flight.missed = int(entry.get("missed", 0))
 	flight.phase = clampi(int(entry.get("phase", 0)), 0, Flight.Phase.CANCELLED) as Flight.Phase
-	flight.boarding_credit = float(entry.get("boarding_credit", 0.0))
 	return flight
 
 
@@ -386,58 +330,25 @@ func _schedule(gate: Building, departure_time: float, type: AirlineType = null, 
 	_next_number += 1
 	flight.gate = gate
 	flight.stand = world.stand_behind(gate)
-	# The airline's route type sets the passenger mix (design doc §10.1).
+	# The airline's route type (it sets the season's demand, design doc §12.2).
 	flight.route = type.route
 	flight.wide_body = type.wide_body
 	flight.departure_time = departure_time
 	if type.cargo:
-		# A freighter (design doc §10.3): freight instead of passengers.
+		# A freighter (design doc §10.3): freight to unload and load.
 		flight.cargo = true
 		flight.tonnes = rng.randf_range(CARGO_TONNES_MIN, CARGO_TONNES_MAX)
 		flight.fee_per_passenger = airline.fee  # per tonne
 		_last_planned[gate] = departure_time
 		flights.append(flight)
 		return flight
-	var size_factor := WIDE_BODY_FACTOR if flight.wide_body else 1.0
-	flight.seats = roundi(SEATS * size_factor)
-	# Busy mornings and evenings are more flights now (the timetable); holiday peaks in summer
-	# fill the planes (design doc §12.2).
-	size_factor *= Seasons.demand_factor(flight.route, world.season())
-	flight.booked = roundi(_passenger_count() * size_factor)
-	flight.departure_time = departure_time
 	flight.fee_per_passenger = airline.fee if airline != null else type.expected_fee
-	_plan_arrivals(flight)
-	# The inbound leg: the same plane brings passengers before it takes new ones (turnaround).
-	var mix := PackedFloat32Array(ROUTES[flight.route])
-	var types: Array[PassengerType] = [FAMILY, LOW_COST, BUSINESS]
-	for i in roundi(_passenger_count() * size_factor):
-		flight.inbound_types.append(types[rng.rand_weighted(mix)])
 	_last_planned[gate] = departure_time
 	flights.append(flight)
 	return flight
 
 
-# Passengers on one leg: a well-rated airport attracts more of them (design doc §11.7).
-func _passenger_count() -> int:
-	return roundi(rng.randi_range(BOOKED_MIN, BOOKED_MAX) * world.reputation.demand_factor(world.stars()))
-
-
-# Decides type and arrival time of every booked passenger, from the route's mix.
-func _plan_arrivals(flight: Flight) -> void:
-	var mix: Array = ROUTES[flight.route]
-	var types: Array[PassengerType] = [FAMILY, LOW_COST, BUSINESS]
-	var arrivals: Array = []
-	for i in flight.booked:
-		var type := types[rng.rand_weighted(PackedFloat32Array(mix))]
-		var before := rng.randf_range(type.arrives_until, type.arrives_from)
-		arrivals.append([flight.departure_time - before, type])
-	arrivals.sort_custom(func(a: Array, b: Array) -> bool: return a[0] < b[0])
-	for arrival: Array in arrivals:
-		flight.arrival_times.append(arrival[0])
-		flight.arrival_types.append(arrival[1])
-
-
-func _advance(flight: Flight, now: float, delta: float, flow: PassengerFlow) -> void:
+func _advance(flight: Flight, now: float, delta: float) -> void:
 	# Knock-on holds: time stands still for this flight.
 	var hold := _hold_reason(flight, now)
 	if hold == Hold.AIRPORT and flight.arrival_delay < TURNAROUND_BUFFER:
@@ -450,12 +361,6 @@ func _advance(flight: Flight, now: float, delta: float, flow: PassengerFlow) -> 
 	var arrival_left := time_left + flight.arrival_delay
 	var route := route_of(flight)
 	var taxi_out := taxi_out_of(route)
-
-	# Passengers arrive at the entrance at their planned times.
-	while flight.spawned < flight.booked and flight.arrival_times[flight.spawned] <= now:
-		if not flow.spawn_passenger(flight, flight.arrival_types[flight.spawned]):
-			break
-		flight.spawned += 1
 
 	# The take-off run starts when the plane reaches the runway (it waits there until the runway is free).
 	if not flight.takeoff_booked and time_left <= 0.0 and now >= flight.departs_at() + taxi_out:
@@ -475,16 +380,6 @@ func _advance(flight: Flight, now: float, delta: float, flow: PassengerFlow) -> 
 	# A plane never goes back a phase (a changed route moves the times, not the story).
 	phase = maxi(phase, flight.phase) as Flight.Phase if flight.phase != Flight.Phase.CANCELLED else phase
 
-	if phase == Flight.Phase.AT_STAND or (phase == Flight.Phase.BOARDING and flight.deplaned < flight.inbound_types.size()):
-		# Arriving passengers leave the plane first; whoever is left when boarding opens leaves at once.
-		flight.deplane_credit += (WIDE_BODY_DEPLANE_RATE if flight.wide_body else DEPLANE_RATE) * delta
-		if phase == Flight.Phase.BOARDING:
-			flight.deplane_credit = flight.inbound_types.size()
-		while flight.deplane_credit >= 1.0 and flight.deplaned < flight.inbound_types.size():
-			if not flow.deplane_passenger(flight, flight.inbound_types[flight.deplaned]):
-				break
-			flight.deplaned += 1
-			flight.deplane_credit -= 1.0
 	if flight.cargo and (phase == Flight.Phase.AT_STAND or phase == Flight.Phase.BOARDING):
 		flight.tonnes_handled = minf(flight.tonnes_handled + _handling_rate(flight.gate) * delta, flight.tonnes)
 	if phase >= Flight.Phase.DEPARTING and flight.phase == Flight.Phase.BOARDING and flight.cargo \
@@ -492,35 +387,15 @@ func _advance(flight: Flight, now: float, delta: float, flow: PassengerFlow) -> 
 		# The freight isn't loaded yet: the freighter waits (the airport's delay).
 		flight.delay += delta
 		phase = Flight.Phase.BOARDING
-	if phase == Flight.Phase.BOARDING:
-		flight.boarding_credit += BOARDING_RATE * delta
-		var boarded := flow.board(flight, floori(flight.boarding_credit))
-		flight.boarding_credit -= boarded
-		# Unused capacity doesn't pile up while nobody is waiting.
-		flight.boarding_credit = minf(flight.boarding_credit, 1.0)
-	if phase >= Flight.Phase.DEPARTING and flight.phase == Flight.Phase.BOARDING \
-			and flight.airport_delay() < MAX_HOLD and flow.is_anyone_coming(flight):
-		# Hold the doors for passengers who are airside or still boarding: a delay (design doc §11.7).
-		flight.delay += delta
-		phase = Flight.Phase.BOARDING
 	if phase >= Flight.Phase.DEPARTING and flight.phase < Flight.Phase.DEPARTING:
 		world.reputation.record_departure(flight.airport_delay())
-		# Doors close: whoever isn't on board has missed the flight.
-		flight.missed = flow.remove_flight_passengers(flight, true)
-		flow.departed_count += flight.boarded
-		world.progression.passengers += flight.boarded
 		if flight.cargo:
-			# Paid per tonne handled (design doc §10.3); the handlers gain experience.
+			# Paid per tonne handled (design doc §10.3).
 			world.economy.earn(flight.tonnes_handled * flight.fee_per_passenger + Economy.FLIGHT_FEE, Economy.CARGO)
-			var handlers := world.staff_working_at(flight.gate)
-			for handler in handlers:
-				var role := BuildingType.Role.CARGO_TERMINAL
-				handler.served[role] = handler.served.get(role, 0) + roundi(flight.tonnes_handled / handlers.size())
 		else:
-			# The airline pays per passenger (as agreed in its deal) and per flight (design doc §11.5).
-			world.economy.earn(flight.boarded * flight.fee_per_passenger + Economy.FLIGHT_FEE)
-		var missed_share := float(flight.missed) / maxi(flight.booked, 1)
-		world.airlines.record_flight(flight.airline, flight.airport_delay() > Reputation.ON_TIME_LIMIT, missed_share)
+			# The airline pays per flight (design doc §11.5).
+			world.economy.earn(Economy.FLIGHT_FEE)
+		world.airlines.record_flight(flight.airline, flight.airport_delay() > Reputation.ON_TIME_LIMIT)
 	if phase == Flight.Phase.ARRIVING and flight.phase == Flight.Phase.SCHEDULED:
 		plane_arriving.emit(flight)
 	flight.phase = phase
@@ -528,15 +403,13 @@ func _advance(flight: Flight, now: float, delta: float, flow: PassengerFlow) -> 
 
 enum Hold { NONE, AIRPORT }
 
-## Tonnes per second one cargo handler moves (design doc §10.3); experience makes them faster.
-const HANDLER_RATE: float = 0.25
+## Tonnes per second a cargo terminal moves (design doc §10.3): four handler places at 0.25 t/s
+## each, as when every place was staffed (staff were removed 2026-11-14).
+const HANDLING_RATE: float = 1.0
 
 
-func _handling_rate(terminal: Building) -> float:
-	var rate := 0.0
-	for handler in world.staff_working_at(terminal):
-		rate += HANDLER_RATE / handler.time_factor()
-	return rate
+func _handling_rate(_terminal: Building) -> float:
+	return HANDLING_RATE
 
 
 # Books `runway` for a movement that starts at `start` and lasts `duration`. False if the runway is
