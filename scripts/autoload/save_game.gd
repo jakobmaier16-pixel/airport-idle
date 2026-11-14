@@ -2,8 +2,8 @@ extends Node
 ## Saves and loads the airport automatically (design doc §5), registered as the autoload "SaveGame".
 ## Loads at startup; saves shortly after every change and right away when the app goes to the
 ## background or closes. There is no manual save.
-## Test builds: the first start after a new export loads the showcase airport instead
-## (see ShowcaseAirport), so the newest features are ready to try without building by hand.
+## Test builds: only the "Free build" world (scripts/dev/worlds/) touches the save file; while a test
+## world is active nothing is written (`save_now`).
 
 ## Bump when the save format changes in a way older code can't read, and add a converter to
 ## `migrations` for the old version (tech_architecture.md §13). Keep every old converter.
@@ -33,8 +33,6 @@ var load_problem: String = ""
 ## Where a save that couldn't be loaded was put aside ("" if none). It is never overwritten.
 var backup_path: String = ""
 
-# Stamp of the export that wrote the loaded save.
-var _saved_build: String = ""
 var _autosave_in: float = AUTOSAVE_INTERVAL
 
 var _dirty: bool = false
@@ -46,8 +44,6 @@ func _ready() -> void:
 	enabled = not OS.get_cmdline_user_args().has(NO_SAVE_FLAG)
 	build_stamp = BuildStamp.text()
 	load_game()
-	if enabled and OS.is_debug_build():
-		load_showcase_if_new_build()
 	Airport.layout_changed.connect(_on_airport_changed)
 
 
@@ -72,7 +68,8 @@ func _notification(what: int) -> void:
 
 func save_now() -> void:
 	_dirty = false
-	if not enabled:
+	# A test world (scripts/dev/worlds/) is never saved: the file stays what "Free build" left.
+	if not enabled or not TestWorlds.saving_allowed():
 		return
 	var data := Airport.save_state()
 	data["version"] = format_version
@@ -109,7 +106,6 @@ func load_game() -> void:
 	if data.is_empty():
 		_put_aside("unconvertible", "Your saved airport couldn't be converted to this version. It was kept as a backup, and a new airport starts.")
 		return
-	_saved_build = str(data.get("build", ""))
 	_loading = true
 	var skipped := Airport.load_state(data)
 	_loading = false
@@ -317,31 +313,6 @@ func _put_aside(reason: String, message: String) -> void:
 	DirAccess.rename_absolute(ProjectSettings.globalize_path(save_path), ProjectSettings.globalize_path(backup_path))
 	load_problem = message
 	push_warning("Save game put aside as %s: %s" % [backup_path, message])
-
-
-## On the first start of a new export (test builds only), replaces the map with the showcase
-## airport. Running from the editor ("dev") never does. Returns true if the showcase was loaded.
-func load_showcase_if_new_build() -> bool:
-	if build_stamp == BuildStamp.DEV or build_stamp == _saved_build:
-		return false
-	load_showcase()
-	return true
-
-
-## Seconds the showcase runs before the player sees it. Short on purpose: the opening flight touches
-## down about 26 s after the start, and the player should be there to watch it (a longer warm-up
-## would let it land before the first frame; the push-back then follows about 3 minutes later).
-const SHOWCASE_WARM_UP: float = 10.0
-
-
-## Replaces the map with the showcase airport and saves it. The caller reloads the scene
-## if the game is already running, to rebuild the visuals.
-func load_showcase() -> void:
-	_loading = true
-	ShowcaseAirport.build(SHOWCASE_WARM_UP)
-	_loading = false
-	_saved_build = build_stamp
-	save_now()
 
 
 ## Deletes the save and clears the airport. The caller reloads the scene to rebuild the visuals.

@@ -2,7 +2,7 @@ extends Node3D
 ## Entry point of the game. Owns the two camera views and switches between them.
 ## The simulation (Airport autoload) keeps running in both views.
 
-enum View { MANAGER, BUILD }
+enum View { MANAGER, BUILD, VIEWER }
 
 var current_view: View = View.MANAGER
 
@@ -12,6 +12,8 @@ var _last_pick: String = ""
 @onready var _manager: Manager = $Manager
 @onready var _manager_camera: ManagerCamera = $ManagerCamera
 @onready var _build_camera: BuildCamera = $BuildCamera
+@onready var _viewer_camera: ViewerCamera = $ViewerCamera
+@onready var _buildings: BuildingLayer = $Buildings
 @onready var _build_mode: BuildMode = $BuildMode
 @onready var _hud: Hud = $HUD
 @onready var _ground: Ground = $Ground
@@ -34,7 +36,8 @@ func _ready() -> void:
 			_hud.hide_station())
 	_build_mode.tool_changed.connect(_hud.set_tool_state)
 	_hud.reset_confirmed.connect(_on_reset_confirmed)
-	_hud.showcase_confirmed.connect(_on_showcase_confirmed)
+	_hud.world_picked.connect(_on_world_picked)
+	_hud.world_restart_pressed.connect(_on_world_restart)
 	_hud.benchmark_confirmed.connect(_on_benchmark_confirmed)
 	TouchGestures.tapped.connect(_on_tapped)
 	# First person: start where the manager was, or inside the entrance (design doc §15).
@@ -42,7 +45,7 @@ func _ready() -> void:
 	_manager.global_position = start[0]
 	_manager_camera.yaw = start[1]
 	_manager_camera.snap_to_target()
-	_set_view(View.MANAGER)
+	_start_world()
 	if not SaveGame.load_problem.is_empty():
 		_hud.notify(SaveGame.load_problem)
 		SaveGame.load_problem = ""
@@ -60,10 +63,45 @@ func _on_reset_confirmed() -> void:
 	get_tree().reload_current_scene()
 
 
-# Loads the ready-made showcase airport and reloads the scene to rebuild every visual.
-func _on_showcase_confirmed() -> void:
-	SaveGame.load_showcase()
-	get_tree().reload_current_scene()
+# The player picked a test world: it is built (or, for the saved game, loaded) and the scene reloads,
+# so every visual is rebuilt from the new airport.
+func _on_world_picked(world: TestWorld) -> void:
+	TestWorlds.enter(world, get_tree())
+
+
+func _on_world_restart() -> void:
+	TestWorlds.enter(TestWorlds.current(), get_tree())
+
+
+# Opens the view of the active test world (the manager view when none was picked), and in the debug
+# builds the world list once per app start (never in tests: they pass --no-save and use the button).
+func _start_world() -> void:
+	var world := TestWorlds.current()
+	if world.has_start_pose:
+		_manager.global_position = world.start_position
+		_manager_camera.yaw = world.start_yaw
+		_manager_camera.snap_to_target()
+	match world.start_view:
+		TestWorld.StartView.BUILD:
+			_set_view(View.BUILD)
+		TestWorld.StartView.VIEWER:
+			_set_view(View.VIEWER)
+			_start_viewer()
+		_:
+			_set_view(View.MANAGER)
+	if OS.is_debug_build() and not TestWorlds.start_list_shown and not OS.get_cmdline_user_args().has(SaveGame.NO_SAVE_FLAG):
+		TestWorlds.start_list_shown = true
+		_hud.open_world_list()
+
+
+# The asset viewer world: the viewer node with its catalog, and its controls in the HUD.
+func _start_viewer() -> void:
+	var viewer := (load("res://scenes/viewer/asset_viewer.tscn") as PackedScene).instantiate() as AssetViewer
+	viewer.camera = _viewer_camera
+	viewer.building_layer = _buildings
+	add_child(viewer)
+	viewer.set_items(ViewerCatalog.items())
+	_hud.add_viewer_controls(viewer, _viewer_camera)
 
 
 # Builds the benchmark airport (the player's save is kept safe) and reloads the scene for it.
@@ -163,30 +201,40 @@ func _station_on_screen(screen_position: Vector2) -> Building:
 
 
 func _on_view_toggle_pressed() -> void:
+	if current_view == View.VIEWER:
+		return  # the viewer world has no other view
 	_set_view(View.BUILD if current_view == View.MANAGER else View.MANAGER)
 
 
 func _set_view(view: View) -> void:
 	current_view = view
 	var building := view == View.BUILD
+	var viewing := view == View.VIEWER
 	if building:
 		# Open the build view above wherever the manager is standing.
 		_build_camera.center_on(_manager.global_position)
 		_build_camera.make_current()
+	elif viewing:
+		_viewer_camera.make_current()
 	else:
 		_manager_camera.make_current()
 	_build_camera.update_shadows()
 	# Distance haze is for the first-person view; seen from above it would only grey the map out.
-	($WorldEnvironment as WorldEnvironment).environment.fog_enabled = not building
+	# The viewer judges single assets, some of them 2 km long: no haze there either.
+	($WorldEnvironment as WorldEnvironment).environment.fog_enabled = not building and not viewing
 
-	_manager.input_enabled = not building
-	_hud.joystick.enabled = not building
+	# The viewer has no manager: he neither walks nor is seen.
+	_manager.input_enabled = not building and not viewing
+	_manager.visible = not viewing
+	_manager.process_mode = Node.PROCESS_MODE_DISABLED if viewing else Node.PROCESS_MODE_INHERIT
+	_hud.joystick.enabled = not building and not viewing
 	_build_mode.active = building
 	_hud.hide_station()
 	_hud.set_build_view_open(building)
 	_ground.set_build_view(building)
 	# Build view: adding a second finger turns a pan into a pinch.
 	# Manager view: every finger is its own gesture (one walks, the other looks around).
-	TouchGestures.pinch_cancels_drag = building
-	TouchGestures.independent_drags = not building
+	# Viewer: one finger turns the view, two fingers pinch.
+	TouchGestures.pinch_cancels_drag = building or viewing
+	TouchGestures.independent_drags = not building and not viewing
 	_hud.set_view_button_text("Manager" if building else "Build")

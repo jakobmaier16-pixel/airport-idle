@@ -53,6 +53,20 @@ size_flags_horizontal = 8
 size_flags_vertical = 0
 mouse_filter = 2
 
+[node name="InfoButton" type="Button" parent="SafeArea/TopButtons"]
+visible = false
+custom_minimum_size = Vector2(84, 84)
+layout_mode = 2
+focus_mode = 0
+text = "i"
+
+[node name="WorldsButton" type="Button" parent="SafeArea/TopButtons"]
+visible = false
+custom_minimum_size = Vector2(150, 84)
+layout_mode = 2
+focus_mode = 0
+text = "Worlds"
+
 [node name="ViewButton" type="Button" parent="SafeArea/TopButtons"]
 custom_minimum_size = Vector2(200, 72)
 layout_mode = 2
@@ -67,6 +81,7 @@ size_flags_vertical = 0
 mouse_filter = 2
 theme_override_font_sizes/font_size = 18
 text = "build dev"
+horizontal_alignment = 1
 
 [node name="InfoPanel" type="VBoxContainer" parent="SafeArea"]
 layout_mode = 2
@@ -161,12 +176,6 @@ custom_minimum_size = Vector2(120, 72)
 layout_mode = 2
 focus_mode = 0
 text = "Reset"
-
-[node name="DemoButton" type="Button" parent="SafeArea/BuildMenu/PaintButtons"]
-custom_minimum_size = Vector2(120, 72)
-layout_mode = 2
-focus_mode = 0
-text = "Demo"
 
 [node name="BenchButton" type="Button" parent="SafeArea/BuildMenu/PaintButtons"]
 custom_minimum_size = Vector2(120, 72)

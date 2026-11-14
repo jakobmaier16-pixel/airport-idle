@@ -16,8 +16,10 @@ signal demolish_tool_selected
 signal demolish_pressed
 ## The player confirmed resetting the map (test builds only).
 signal reset_confirmed
-## The player confirmed loading the showcase airport (test builds only).
-signal showcase_confirmed
+## The player picked a test world in the world list (test builds only, scripts/dev/worlds/).
+signal world_picked(world: TestWorld)
+## The player pressed "Restart world" in the world info (test builds only).
+signal world_restart_pressed
 ## The player confirmed starting the device benchmark (test builds only, scripts/dev/benchmark.gd).
 signal benchmark_confirmed
 
@@ -26,7 +28,7 @@ const NOTICE_SECONDS: float = 10.0
 
 ## Smallest size for touch buttons, in UI pixels (Apple recommends at least 44 pt).
 const BUTTON_MIN_SIZE: Vector2 = Vector2(120, 72)
-## How long Reset / Demo wait for the confirming second tap.
+## How long Reset / Bench wait for the confirming second tap.
 const CONFIRM_TIME: float = 3.0
 ## Colours of the hint line while placing: info (allowed, something is missing) and error.
 const HINT_INFO_COLOR: Color = Color(0.6, 0.82, 1.0)
@@ -45,6 +47,8 @@ var _notice_left: float = 0.0
 
 @onready var joystick: TouchJoystick = $SafeArea/TouchJoystick
 @onready var _view_button: Button = $SafeArea/TopButtons/ViewButton
+@onready var _worlds_button: Button = $SafeArea/TopButtons/WorldsButton
+@onready var _info_button: Button = $SafeArea/TopButtons/InfoButton
 @onready var _build_menu: Control = $SafeArea/BuildMenu
 @onready var _category_buttons: HFlowContainer = $SafeArea/BuildMenu/CategoryButtons
 @onready var _building_buttons: HFlowContainer = $SafeArea/BuildMenu/BuildingButtons
@@ -62,11 +66,16 @@ var _notice_left: float = 0.0
 @onready var _next_flight_label: Label = $SafeArea/InfoPanel/NextFlightLabel
 @onready var _departures_label: Label = $SafeArea/InfoPanel/DeparturesLabel
 @onready var _reset_button: Button = $SafeArea/BuildMenu/PaintButtons/ResetButton
-@onready var _demo_button: Button = $SafeArea/BuildMenu/PaintButtons/DemoButton
 @onready var _bench_button: Button = $SafeArea/BuildMenu/PaintButtons/BenchButton
 @onready var _station_panel: Control = $SafeArea/StationPanel
 @onready var _station_title: Label = $SafeArea/StationPanel/Content/TitleLabel
 @onready var _station_info: Label = $SafeArea/StationPanel/Content/InfoLabel
+@onready var _flight_info: Control = $SafeArea/InfoPanel
+@onready var _safe_area: Control = $SafeArea
+
+# The test world list and info panel (debug builds), on top of everything.
+var _world_list: WorldList
+var _world_info: WorldInfo
 
 
 func _ready() -> void:
@@ -86,14 +95,15 @@ func _ready() -> void:
 	_done_button.pressed.connect(done_pressed.emit)
 	_demolish_button.pressed.connect(demolish_pressed.emit)
 	$SafeArea/BuildMenu/PaintButtons/DemolishToolButton.pressed.connect(demolish_tool_selected.emit)
-	# Reset and Demo are testing aids, so they only exist in debug builds (including device test builds).
-	_reset_button.visible = OS.is_debug_build()
-	_demo_button.visible = OS.is_debug_build()
-	_bench_button.visible = OS.is_debug_build()
+	# Reset and Bench are testing aids that belong to the player's own game: only in debug builds
+	# (including device test builds) and only in the "Free build" world (scripts/dev/worlds/).
+	var own_game := OS.is_debug_build() and TestWorlds.current().is_saved()
+	_reset_button.visible = own_game
+	_bench_button.visible = own_game
 	_reset_button.pressed.connect(_on_confirm_button_pressed.bind(_reset_button, "Reset", reset_confirmed))
-	_demo_button.pressed.connect(_on_confirm_button_pressed.bind(_demo_button, "Demo", showcase_confirmed))
 	_bench_button.pressed.connect(_on_confirm_button_pressed.bind(_bench_button, "Bench", benchmark_confirmed))
 	$SafeArea/StationPanel/Content/CloseButton.pressed.connect(hide_station)
+	_setup_worlds()
 	_update_visibility()
 	_show_build_info()
 
@@ -296,6 +306,45 @@ func _disarm(button: Button, label: String) -> void:
 	button.text = label
 
 
-# Shows which export is running, so a stale build on the device is easy to spot.
+# Shows which export is running, so a stale build on the device is easy to spot, and which test world
+# (a screenshot then tells us the world).
 func _show_build_info() -> void:
 	_build_label.text = "build " + BuildStamp.text()
+	if OS.is_debug_build():
+		_build_label.text += "\n" + TestWorlds.current().title
+
+
+# --- Test worlds (debug builds only) ---
+
+func _setup_worlds() -> void:
+	var world := TestWorlds.current()
+	_worlds_button.visible = OS.is_debug_build()
+	_info_button.visible = OS.is_debug_build() and not world.is_saved()
+	_flight_info.visible = world.show_flight_info
+	_view_button.visible = world.show_view_button
+	if not OS.is_debug_build():
+		return
+	_world_list = WorldList.new()
+	add_child(_world_list)
+	_world_list.world_picked.connect(world_picked.emit)
+	_world_info = WorldInfo.new()
+	add_child(_world_info)
+	_world_info.restart_pressed.connect(world_restart_pressed.emit)
+	_worlds_button.pressed.connect(open_world_list)
+	_info_button.pressed.connect(func() -> void: _world_info.open(TestWorlds.current()))
+
+
+## Opens the list of test worlds (debug builds).
+func open_world_list() -> void:
+	if _world_list != null:
+		_world_info.visible = false
+		_world_list.open()
+
+
+## The viewer world: hides the manager and build controls and adds the viewer's own.
+func add_viewer_controls(viewer: AssetViewer, camera: ViewerCamera) -> void:
+	joystick.visible = false
+	_station_panel.visible = false
+	var controls := ViewerHud.new()
+	_safe_area.add_child(controls)
+	controls.setup(viewer, camera)

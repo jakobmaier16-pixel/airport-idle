@@ -9,6 +9,10 @@ func _ready() -> void:
 	# Let the scene tree finish starting up before adding the game to it.
 	await get_tree().process_frame
 	Airport.set_process(false)
+	if "--world-shots" in OS.get_cmdline_user_args():
+		await _world_shots()
+		get_tree().quit()
+		return
 	ShowcaseAirport.build()  # exactly what the player sees after an update
 	await start_game()
 
@@ -137,3 +141,54 @@ func _landside_shots() -> void:
 	build_camera().center_on(Airport.grid.cell_to_world(layout.call(72.0, 40.0)))
 	await _shot("landside_build_view")
 	await close_build_view()
+
+
+## The test worlds (scripts/dev/worlds/): the world list and the asset viewer's items, with the notch of an
+## iPhone 13 Pro simulated (landscape: about 59 pt at the sides and 21 pt at the bottom, 1.85 px per pt).
+## Pass `--item=<id>` (and `--eye`) to shoot one item only.
+func _world_shots() -> void:
+	TestWorlds.reload = func() -> void: pass
+	await start_game()
+	_simulate_notch()
+	hud().open_world_list()
+	await _shot("world_list")
+	var only := ""
+	for arg in OS.get_cmdline_user_args():
+		if arg.begins_with("--item="):
+			only = arg.trim_prefix("--item=")
+	await enter_world(TestWorlds.ASSET_VIEWER)
+	_simulate_notch()
+	var viewer := main.get_node("AssetViewer") as AssetViewer
+	(hud().get_node("WorldInfo") as WorldInfo).open(TestWorlds.current())
+	await _shot("world_info")
+	(hud().get_node("WorldInfo") as WorldInfo).close_panel()
+	var camera := main.get_node("ViewerCamera") as ViewerCamera
+	# [file, item id, eye level]
+	var shots: Array = [
+		["viewer_prop_person", &"pay_station", false],
+		["viewer_road_piece", &"curb_dropoff_segment", false],
+		["viewer_tree", &"tree_deciduous", false],
+		["viewer_stand", &"aircraft_stand", false],
+		["viewer_plane_eye_level", &"plane_narrow", true],
+		["viewer_swatch_paving", &"swatch_paving", false],
+		["viewer_terminal_facade", &"terminal_facade_glass", false],
+		["viewer_runway", &"runway", false],
+		["viewer_taxiway", &"ground_taxiway", false],
+	]
+	for shot: Array in shots:
+		if not only.is_empty() and only != str(shot[1]):
+			continue
+		for i in viewer.items.size():
+			if viewer.items[i].id == shot[1]:
+				viewer.show_item(i)
+		if shot[2]:
+			camera.go_eye_level()
+		await _shot(shot[0])
+
+
+# Margins like the iPhone 13 Pro in landscape (the notch side, the home indicator) on the HUD.
+func _simulate_notch() -> void:
+	for area in hud().find_children("*", "SafeAreaContainer", true, false) + [hud().get_node("SafeArea")]:
+		area.add_theme_constant_override(&"margin_left", 16 + 109)
+		area.add_theme_constant_override(&"margin_right", 16 + 109)
+		area.add_theme_constant_override(&"margin_bottom", 16 + 39)

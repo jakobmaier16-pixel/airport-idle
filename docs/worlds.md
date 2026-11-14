@@ -18,14 +18,23 @@ A world answers **one question**. A world that needs more than about five check 
 
 | World | Kind | The question it answers | Status | Jakob's verdict |
 |---|---|---|---|---|
-| World list | base | Can I pick a world right after the app starts, and switch at any time? | building | |
-| Asset viewer | look | How does each single asset look in the game: building, piece, plant, sign, ground, material, plane? | building | |
-| Fresh airport | function | Do the build tools work on an empty field? | building | |
-| Everything together | combined | The old all-in-one showcase. Kept for the automated tests, **not** for judging. | building | |
+| World list | base | Can I pick a world right after the app starts, and switch at any time? | ready for Jakob | |
+| Asset viewer | look | How does each single asset look in the game: building, piece, plant, sign, ground, material, plane? | ready for Jakob | |
+| Fresh airport | function | Do the build tools work on an empty field? | ready for Jakob | |
+| Everything together | combined | The old all-in-one showcase. Kept for the automated tests, **not** for judging. | ready for Jakob | |
 | Building rules | function | Where may each building stand, what does it need, what does it do? The rules are set here with Jakob. | planned | |
 | Landing and take-off | function | Does a plane land, roll out, line up and take off correctly? | planned | |
 | Push-back | function | Is the push-back arc right? | planned | |
 | Taxiway tool | function | Is painting and removing taxiways easy to control? | planned | |
+
+## How to add a world / a viewer item
+
+- **A world:** add a `TestWorld.make(...)` to `TestWorlds._create_all()` (id, title, kind, one question, at most five
+  checks, a builder that fills the airport through the `Airport` API, start view); give it its own test file.
+- **A viewer item:** a `BuildingType` in `data/buildings/catalog.tres` shows up by itself. A thing that is not a
+  building yet (wall, ceiling, material) is a `DisplayItem` (scene or material swatch) listed in
+  `data/viewer/display_items.tres`. A new `.glb` under `assets/models/` must be one of the two (a test checks).
+- `tools/viewer_catalog.sh` prints the numbered list, so Jakob's "No. 12" maps to an id.
 
 ## Stations of an asset (proposal)
 

@@ -1,5 +1,5 @@
 extends TestCase
-## The showcase airport: test builds open with it after each update (scripts/dev/showcase_airport.gd).
+## The showcase airport (the "Everything together" world; scripts/dev/showcase_airport.gd).
 
 const TEST_SAVE: String = "user://test_savegame.json"
 
@@ -17,15 +17,6 @@ func _restore_save_settings() -> void:
 	SaveGame.build_stamp = BuildStamp.DEV
 
 
-func test_showcase_uses_every_building_type() -> void:
-	ShowcaseAirport.build(0.0)
-	var used: Dictionary[StringName, bool] = {}
-	for building in Airport.buildings:
-		used[building.type.id] = true
-	for type in Airport.CATALOG.types:
-		check(used.has(type.id), "showcase contains a %s (add new buildings to the showcase!)" % type.display_name)
-
-
 func test_showcase_is_complete_and_busy() -> void:
 	ShowcaseAirport.build()
 	check_eq(Airport.usable_gates().size(), 3, "all three gates can have flights")
@@ -37,49 +28,22 @@ func test_showcase_is_complete_and_busy() -> void:
 		check(problem.is_empty(), "%s connected: %s" % [building.type.display_name, problem])
 
 
-func test_new_export_replaces_map_with_showcase() -> void:
+func test_new_export_keeps_the_players_map() -> void:
+	# The showcase no longer opens by itself after an update: the world list replaces that
+	# (scripts/dev/worlds/). A new export keeps what the player built.
 	_use_test_save("abc1234 · old")
 	Airport.place_building(type_of(&"check_in"), at(Vector2i(20, 20)), 0)
 	SaveGame.save_now()
-
 	SaveGame.build_stamp = "def5678 · new"
 	Airport.reset()
 	SaveGame.load_game()
-	check_eq(Airport.buildings.size(), 2, "own save loads first (plus the runway old saves get)")
-	check(SaveGame.load_showcase_if_new_build(), "new export loads the showcase")
-	check_eq(Airport.buildings.size(), SHOWCASE_WITH_LANDSIDE_BUILDINGS, "showcase replaced the map")
-
-	# Next start of the same export: keep what the player built since.
-	Airport.place_building(type_of(&"check_in"), at(Vector2i(60, 24)), 0)
-	SaveGame.save_now()
-	Airport.reset()
-	SaveGame.load_game()
-	check(not SaveGame.load_showcase_if_new_build(), "same export keeps the save")
-	check_eq(Airport.buildings.size(), SHOWCASE_WITH_LANDSIDE_BUILDINGS + 1, "player's additions kept")
+	check_eq(Airport.buildings.size(), 2, "own save loads (plus the runway old saves get)")
+	check(Airport.buildings.any(func(b: Building) -> bool: return b.type.id == &"check_in"), "the player's check-in is there")
 	_restore_save_settings()
 
 
-func test_editor_runs_never_replace_the_map() -> void:
-	_use_test_save(BuildStamp.DEV)
-	Airport.place_building(type_of(&"check_in"), at(Vector2i(20, 20)), 0)
-	SaveGame.save_now()
-	Airport.reset()
-	SaveGame.load_game()
-	check(not SaveGame.load_showcase_if_new_build(), "'dev' never loads the showcase")
-	check_eq(Airport.buildings.size(), 2, "own map kept (plus the runway old saves get)")
-	_restore_save_settings()
-
-
-func test_demo_button_needs_two_taps() -> void:
-	await start_game()
-	await open_build_view()
-	# Don't let the real handler reload the scene (that would reload the test runner).
-	hud().showcase_confirmed.disconnect(main._on_showcase_confirmed)
-	var confirmed := [0]
-	hud().showcase_confirmed.connect(func() -> void: confirmed[0] += 1)
-	var button := ui("BuildMenu/PaintButtons/DemoButton") as Button
-	check(button.visible, "demo button visible in debug builds")
-	await press(button)
-	check_eq(confirmed[0], 0, "first tap only arms it")
-	await press(button)
-	check_eq(confirmed[0], 1, "second tap loads the showcase")
+func test_the_showcase_is_the_everything_together_world() -> void:
+	await enter_world(TestWorlds.EVERYTHING_TOGETHER)
+	check_eq(Airport.buildings.size(), SHOWCASE_WITH_LANDSIDE_BUILDINGS, "the world holds the whole showcase, landside included")
+	check(not SaveGame.has_method("load_showcase"), "SaveGame has no showcase loader any more")
+	check(ui("BuildMenu/PaintButtons").get_node_or_null("DemoButton") == null, "no Demo button: the world list replaced it")

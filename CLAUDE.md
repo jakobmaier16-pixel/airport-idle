@@ -112,12 +112,13 @@ Target: smooth on older iPhones. Plan this in from the start (design doc §16).
 scenes/<feature>/     one folder per feature: <name>.tscn + <name>.gd side by side
   main/               entry point (main scene); switches between manager view and build view
   manager/            the manager (player character)
-  camera/             manager_camera (first person) and build_camera (top-down)
+  camera/             manager_camera (first person), build_camera (top-down), viewer_camera (orbit, asset viewer)
   build/              build view logic: placing buildings (preview, rotate, place / cancel)
   buildings/          building visuals: BuildingLayer draws every simulated building
   planes/             PlaneLayer + PlaneVisual: planes taxiing in, parked, pushing back
   ground/             map ground, sized from the grid
-  ui/                 HUD, view button, joystick, safe area container, tap feedback
+  ui/                 HUD, view button, joystick, safe area container, tap feedback, world list and world info
+  viewer/             asset viewer world: AssetViewer (one asset at a time) and its controls
 scripts/autoload/     global singletons:
                         Airport       -> thin host (airport_host.gd): owns the AirportWorld brain
                                          (scripts/simulation/airport_brain.gd), steps it, forwards x and signals
@@ -135,7 +136,9 @@ tests/                automated walkthrough tests (excluded from the app export)
   test_case.gd        base class with player helpers (tap, drag, pinch, place, paint, sim_seconds)
   cases/              test files, run in name order
 scripts/dev/          testing aids that ship in debug builds: ShowcaseAirport, BuildStamp
-tools/                run_tests.sh, screenshots.sh, export_ios.sh
+scripts/dev/worlds/   test worlds: TestWorld, TestWorlds (catalog, active world), ViewerCatalog (asset viewer items)
+data/viewer/          display_items.tres: display-only items of the asset viewer (walls, kit pieces, material swatches)
+tools/                run_tests.sh, screenshots.sh, export_ios.sh, viewer_catalog.sh (numbered asset list)
 assets/               models/, textures/, materials/, audio/, fonts/
 ```
 
@@ -172,10 +175,15 @@ UI controls (buttons) consume their touches first, so taps on buttons never reac
   fast-forward the simulation with `sim_seconds()`. `test_09_walkthrough` builds a whole airport
   by touch; extend it when the core loop grows (e.g. planes, money).
 - **After visual changes** run `tools/screenshots.sh` and look at `build/screenshots/*.png`.
-- **Showcase airport** (`scripts/dev/showcase_airport.gd`): test builds open with it on the first
-  start after every new export, so the user never has to build by hand to try an update.
-  **Every new feature must be added to the showcase** (a test checks every building type is in it).
-  The tests and screenshots use the same layout. The "Demo" button (debug builds) reloads it.
+- **Test worlds** (`scripts/dev/worlds/`): test builds open with the **world list** (never in tests); a
+  "Worlds" button in every view switches worlds, the HUD shows the active world's title, and the "i"
+  button shows its question and checks plus "Restart world". **Test worlds are never saved**; only
+  "Free build" (the normal save) touches the save file. **New assets go into the asset viewer** (a
+  `BuildingType` in the catalog, or a display-only item in `data/viewer/display_items.tres`); a test checks
+  that every `.glb` under `assets/models/` is reachable there. **A new function gets its own small world**
+  (own test file). The showcase airport (`scripts/dev/showcase_airport.gd`) is the "Everything together"
+  world, kept for the automated tests and screenshots, not for judging; new features no longer have to be
+  added to it.
 - **Randomness is seeded** (tech_architecture.md §3): simulation code rolls only `Airport.rng`
   (shared with the brain's FlightSchedule and Timetable), never the global
   `randf()` / `randi()`. Purely visual effects (e.g. lightning flashes) may use the global ones.
