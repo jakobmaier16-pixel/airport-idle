@@ -29,6 +29,9 @@ var slots: Array[TimetableSlot] = []
 var _next: Dictionary[int, float] = {}
 # Game time minus the clock's running time: changes only when something jumps the time of day.
 var _offset: float = 0.0
+# True once the airport has planned anything: the opening flight happens once per fresh airport, never
+# again after all flights got cancelled or a gate was rebuilt.
+var _opened: bool = false
 
 
 ## Seconds between two departures at one gate, in game seconds.
@@ -51,6 +54,7 @@ static func next_departure_at_or_after(gate_id: int, game_time: float) -> float:
 func clear() -> void:
 	slots.clear()
 	_next.clear()
+	_opened = false
 	_offset = world.clock.game_seconds - world.clock.elapsed if world != null else 0.0
 
 
@@ -78,7 +82,7 @@ func tick() -> void:
 	# Only a fresh airport opens with a flight: nothing is planned or flying yet. It goes to the gate
 	# whose first grid slot is the latest (the one that would wait longest), ties to the first gate.
 	var opening_gate: Building = null
-	if slots.is_empty() and _next.is_empty() and world.schedule.flights.is_empty():
+	if not _opened and slots.is_empty() and _next.is_empty() and world.schedule.flights.is_empty():
 		var latest := -INF
 		for gate in usable:
 			if world.stand_behind(gate) != null:
@@ -113,6 +117,8 @@ func tick() -> void:
 			added = true
 			next += period_game()
 		_next[gate.id] = next
+	if added or opening_gate != null:
+		_opened = true
 	if added:
 		slots.sort_custom(_by_time)
 	# Slots are sorted by departure: only when the oldest one has expired is there anything to prune.

@@ -251,7 +251,7 @@ func test_removing_the_taxiway_cancels_cleanly_and_laying_it_again_resumes() -> 
 	check(first_flight(0, 2400.0) != null, "a flight is planned")
 	sim_seconds(60.0)
 	# Cut the parallel taxiway while planes are about.
-	Airport.paint_taxiway(cells(at(Vector2i(4, 79)), Vector2i(102, 12)), false)
+	Airport.paint_taxiway(cells(at(Vector2i(-40, 79)), Vector2i(171, 12)), false)
 	var stands := Airport.buildings.filter(func(b: Building) -> bool: return b.type.role == BuildingType.Role.AIRCRAFT_STAND)
 	for stand: Building in stands:
 		check(Airport.plane_network.route_to_stand(stand) == null, "no route to stand %d" % stand.id)
@@ -262,7 +262,7 @@ func test_removing_the_taxiway_cancels_cleanly_and_laying_it_again_resumes() -> 
 	sim_seconds(300.0)
 	check_eq(Airport.plane_network.routes_built, built, "and the simulation makes no routes meanwhile")
 	# Lay it again: routes come back and flights are planned again.
-	Airport.paint_taxiway(cells(at(Vector2i(4, 79)), Vector2i(102, 12)), true)
+	Airport.paint_taxiway(cells(at(Vector2i(-40, 79)), Vector2i(171, 12)), true)
 	for stand: Building in stands:
 		check(Airport.plane_network.route_to_stand(stand) != null, "route back to stand %d" % stand.id)
 	check(first_flight(0, 3000.0) != null, "flights are planned again")
@@ -271,7 +271,7 @@ func test_removing_the_taxiway_cancels_cleanly_and_laying_it_again_resumes() -> 
 func test_no_route_is_built_inside_a_step_after_a_layout_change() -> void:
 	ShowcaseAirport.build(0.0)
 	var before := Airport.plane_network.routes_built
-	Airport.paint_taxiway(cells(at(Vector2i(106, 79)), Vector2i(12, 12)), true)
+	Airport.paint_taxiway(cells(at(Vector2i(131, 79)), Vector2i(12, 12)), true)
 	var after_change := Airport.plane_network.routes_built
 	check(after_change > before, "a taxiway change rebuilds the routes at once (%d -> %d)" % [before, after_change])
 	sim_seconds(600.0)
@@ -410,9 +410,11 @@ func _build_far_stand() -> void:
 
 
 func _link_far_stand() -> void:
-	# Up along the east side of everything, then down to the parallel taxiway.
+	# Up along the east side of everything, then down to the parallel taxiway. The showcase's east
+	# runway link lies right below that corner: it is cut, so that this stand's planes have the long way
+	# round to the west link (a far stand is what the test is about).
+	Airport.paint_taxiway(cells(at(Vector2i(107, 91)), Vector2i(24, 3)), false)
 	Airport.paint_taxiway(cells(at(Vector2i(118, 3)), Vector2i(12, 76)), true)
-	Airport.paint_taxiway(cells(at(Vector2i(106, 79)), Vector2i(24, 12)), true)
 
 
 func test_a_far_stand_built_mid_day_still_gets_its_planes_down_in_time() -> void:

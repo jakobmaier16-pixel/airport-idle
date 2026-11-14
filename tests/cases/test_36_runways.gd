@@ -37,7 +37,7 @@ func test_showcase_stands_reach_the_runway() -> void:
 			check_eq(Airport.connection_problem(building.type, building.origin_cell, building.rotation_steps), "", "%s connected" % building.type.display_name)
 			check(not Airport.plane_network.path_to_stand(building).is_empty(), "planes find a way")
 	# Cut the parallel taxiway: the stands lose their way to the runway.
-	Airport.paint_taxiway(cells(at(Vector2i(4, 79)), Vector2i(102, 12)), false)
+	Airport.paint_taxiway(cells(at(Vector2i(-40, 79)), Vector2i(171, 12)), false)
 	var stand := _stand()
 	check_eq(Airport.connection_problem(stand.type, stand.origin_cell, stand.rotation_steps), "No taxiway", "cut off")
 	check(Airport.usable_gates().is_empty(), "no gate gets flights")

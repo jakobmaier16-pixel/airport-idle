@@ -1,6 +1,6 @@
 extends TestCase
-## The airside of the showcase works like a real one: planes are pushed back along the stand's axis
-## and turn on the taxiway (never at the stand), they stay on pavement, taxiways must be 12 cells
+## The airside of the showcase works like a real one: planes are pushed back out of the stand and
+## along a reverse arc onto the taxiway (never turning on the spot), they stay on pavement, taxiways must be 12 cells
 ## (24 m) wide to count, and a fresh airport sees its first landing within a minute.
 
 ## Half the width of a taxiway (12 cells = 24 m). Real taxiways (ICAO code C to E: 15 to 23 m) are
@@ -118,7 +118,18 @@ func test_planes_stay_on_pavement_taxiing_in_and_out() -> void:
 	print("INFO airside poses: the fuselage middle is at least %.1f m inside the pavement, the worst tip %.1f m beyond it" % [stats.get("min_clearance", 0.0), stats.get("max_overhang", 0.0)])
 
 
-func test_the_push_back_goes_straight_back_and_turns_on_the_taxiway() -> void:
+# The sharpest turn the plane may make: its nose swings at most this many radians per metre driven
+# (a 12 m radius is 0.083; the arc is drawn in chords, so a little slack).
+const MAX_TURN_PER_METRE: float = 0.12
+## A heading change above this (degrees) while the plane stands still is a turn on the spot.
+const STILL_TURN_DEG: float = 3.0
+
+
+func _angle_between(a: Vector2, b: Vector2) -> float:
+	return rad_to_deg(absf(a.angle_to(b)))
+
+
+func test_the_push_back_is_a_reverse_arc_onto_the_taxiway() -> void:
 	ShowcaseAirport.build(0.0)
 	for stand in _stands():
 		var route := Airport.plane_network.route_to_stand(stand)
@@ -126,42 +137,70 @@ func test_the_push_back_goes_straight_back_and_turns_on_the_taxiway() -> void:
 		check(route != null and gate != null, "stand %d has a route and a gate" % stand.id)
 		if route == null or gate == null:
 			continue
+		var label := "stand %d" % stand.id
 		var size := Building.rotated_size(stand.type.footprint, stand.rotation_steps)
 		var origin := Vector2(Airport.grid.origin.x, Airport.grid.origin.z)
 		var rect := Rect2(origin + Vector2(stand.origin_cell) * CELL, Vector2(size) * CELL)
 		var towards_gate := (Vector2(gate.origin_cell) + Vector2(gate.get_rect().size) * 0.5 - Vector2(stand.origin_cell) - Vector2(size) * 0.5).normalized()
 		var nose := route.nose_direction()
-		check(nose.dot(towards_gate) > 0.5, "stand %d: parked nose-in, the nose points towards the gate" % stand.id)
+		check(nose.dot(towards_gate) > 0.5, "%s: parked nose-in, the nose points towards the gate" % label)
+		check(not route.from_fallback and route.blend_length == 0.0, "%s: a real push-back arc, no blending turn" % label)
 		check(route.heading_at(route.length - 1.0).dot(nose) > 0.999 and route.heading_at(route.length - 20.0).dot(nose) > 0.99,
-			"stand %d: the last 20 m are straight along the axis" % stand.id)
-		var middle := route.position_out(0.0)
+			"%s: the last 20 m are straight along the axis" % label)
 		check(route.pushback_length > maxf(rect.size.x * absf(nose.x), rect.size.y * absf(nose.y)) * 0.5,
-			"stand %d: pushed back beyond the stand's back edge (%.0f m)" % [stand.id, route.pushback_length])
-		var turned := 0
-		var time := 0.0
-		var last_nose := nose
+			"%s: pushed back beyond the stand's back edge (%.0f m)" % [label, route.pushback_length])
+		check(PlaneRoute.PUSHBACK_HOLD >= 3.0, "the tug needs a few seconds to disconnect")
+		# Straight out of the stand first: the first 10 m go back along the axis.
+		var middle := route.position_out(0.0)
+		var early := route.position_out(10.0) - middle
+		check(absf(early.cross(nose)) < 0.01 and early.dot(nose) < 0.0, "%s: straight back out of the stand first" % label)
+		# Walk the whole way out every tenth of a second.
+		var last_pos := middle
+		var last_nose := route.nose_out(0.0, 0.0)
+		var swept := 0.0
+		var time := 0.1
+		var still_turns := 0
+		var worst_rate := 0.0
+		var window_moved := 0.0
+		var window_nose := last_nose
+		var arc_turned := 0.0
 		while time <= route.taxi_out_time:
 			var driven := route.out_distance_at(time)
 			var here := route.position_out(driven)
 			var facing := route.nose_out(time, driven)
+			var moved := here.distance_to(last_pos)
+			var turned := _angle_between(last_nose, facing)
+			if moved < 0.001 and turned > STILL_TURN_DEG:
+				still_turns += 1
+			# The turn rate is measured over 3 m of travel (the arc is drawn in chords of a few degrees).
+			window_moved += moved
+			if window_moved >= 3.0:
+				worst_rate = maxf(worst_rate, deg_to_rad(_angle_between(window_nose, facing)) / window_moved)
+				window_moved = 0.0
+				window_nose = facing
 			if time < route.pushback_time:
-				check(facing.dot(nose) > 0.9999, "stand %d: the nose keeps the parked heading while pushed back (t=%.1f)" % [stand.id, time])
-				# Straight back along the stand's axis.
-				var along := (here - middle)
-				check(absf(along.cross(nose)) < 0.01, "stand %d: pushed straight back along the axis (t=%.1f)" % [stand.id, time])
-				check(along.dot(nose) <= 0.01, "stand %d: it moves backwards (t=%.1f)" % [stand.id, time])
-			if facing.dot(last_nose) < 0.9999:
-				turned += 1
-				check(not rect.has_point(here), "stand %d: it never turns on the spot inside the stand (t=%.1f, %s)" % [stand.id, time, here])
+				arc_turned += turned
+				# Tail first: it moves opposite to where the nose points.
+				if moved > 0.01:
+					check((here - last_pos).normalized().dot(facing) < -0.95, "%s: backwards while pushed (t=%.1f)" % [label, time])
+				check(not rect.has_point(here) or here.distance_to(middle) < route.pushback_length, "%s: stays on its path" % label)
+			last_pos = here
 			last_nose = facing
-			time += 0.25
-		# A full turn of the nose from the parked heading towards the taxiway takes time, at 20 degrees a second at most.
-		check(route.turn_time <= 9.5, "stand %d: the turn takes %.1f s" % [stand.id, route.turn_time])
-		check(turned > 0 or route.turn_time < 0.2, "stand %d: it turns on the taxiway" % stand.id)
-		# After the turn the plane drives forward: the nose is the direction of travel.
-		var driven := route.out_distance_at(route.pushback_time + route.turn_time + 3.0)
-		check(route.nose_out(route.pushback_time + route.turn_time + 3.0, driven).dot(route.heading_out(driven)) > 0.999, "stand %d: forward on the taxiway" % stand.id)
-		check(route.out_distance_at(route.taxi_out_time) >= route.out_length - 0.5, "stand %d: the way out ends at the runway" % stand.id)
+			time += 0.1
+		check_eq(still_turns, 0, "%s: the heading never changes while the plane stands still" % label)
+		check(worst_rate <= MAX_TURN_PER_METRE, "%s: sharpest turn %.3f rad per metre (at most %.2f)" % [label, worst_rate, MAX_TURN_PER_METRE])
+		check(arc_turned > 10.0, "%s: the push-back really curves (%.0f degrees)" % [label, arc_turned])
+		# At the end of the push-back the nose already points the way the plane taxis.
+		var end_nose := route.nose_out(route.pushback_time, route.pushback_length)
+		var taxi_direction := route.heading_out(route.pushback_length + 2.0)
+		check(_angle_between(end_nose, taxi_direction) <= 5.0, "%s: ends with the nose in the taxi direction (%.1f degrees off)" % [label, _angle_between(end_nose, taxi_direction)])
+		# Then it waits (nothing moves), then rolls forward with the nose along the line.
+		var held := route.out_distance_at(route.pushback_time + PlaneRoute.PUSHBACK_HOLD * 0.5)
+		check_eq(held, route.pushback_length, "%s: stands still for the tug to disconnect" % label)
+		var after := route.pushback_time + PlaneRoute.PUSHBACK_HOLD + 3.0
+		var driven_after := route.out_distance_at(after)
+		check(route.nose_out(after, driven_after).dot(route.heading_out(driven_after)) > 0.999, "%s: forward on the taxiway" % label)
+		check(route.out_distance_at(route.taxi_out_time) >= route.out_length - 0.5, "%s: the way out ends at the runway" % label)
 
 
 func test_a_plane_on_screen_follows_the_same_poses() -> void:
@@ -173,27 +212,26 @@ func test_a_plane_on_screen_follows_the_same_poses() -> void:
 	if flight == null:
 		return
 	var route := Airport.schedule.route_of(flight)
-	# While pushed back the drawn plane keeps the parked heading, and never turns inside its stand.
 	var departs := flight.departs_at()
 	while Airport.sim_time < departs - 2.0:
 		Airport.step(Airport.SIM_STEP)
-	var origin := Vector2(Airport.grid.origin.x, Airport.grid.origin.z)
-	var stand := flight.stand
-	var rect := Rect2(origin + Vector2(stand.origin_cell) * CELL, Vector2(Building.rotated_size(stand.type.footprint, stand.rotation_steps)) * CELL)
 	var parked := layer._pose(flight, departs - 1.0) as Transform3D
 	var nose_parked := Vector2(-parked.basis.z.x, -parked.basis.z.z)
 	check(nose_parked.dot(route.nose_direction()) > 0.999, "parked with the route's nose direction")
 	var time := 0.0
-	var turned_inside := 0
+	var still_turns := 0
 	var last := nose_parked
+	var last_at := Vector2(parked.origin.x, parked.origin.z)
 	while time < route.taxi_out_time:
 		var pose := layer._pose(flight, departs + time) as Transform3D
 		var nose := Vector2(-pose.basis.z.x, -pose.basis.z.z)
-		if nose.dot(last) < 0.9999 and rect.has_point(Vector2(pose.origin.x, pose.origin.z)):
-			turned_inside += 1
+		var at := Vector2(pose.origin.x, pose.origin.z)
+		if at.distance_to(last_at) < 0.001 and _angle_between(nose, last) > STILL_TURN_DEG:
+			still_turns += 1
 		last = nose
-		time += 0.25
-	check_eq(turned_inside, 0, "the drawn plane never turns inside its stand")
+		last_at = at
+		time += 0.1
+	check_eq(still_turns, 0, "the drawn plane never turns while standing still")
 
 
 # --- A taxiway must be wide enough ---
@@ -257,3 +295,19 @@ func test_only_the_first_gate_of_a_fresh_airport_gets_an_opening_flight() -> voi
 		times.sort()
 		for i in range(1, times.size()):
 			check(times[i] - times[i - 1] >= Timetable.period_real() - 0.01 or absf(times[i] - times[i - 1]) < 0.01, "gate %d: departures a turnaround apart" % gate.id)
+
+
+func test_the_opening_flight_happens_once_per_fresh_airport() -> void:
+	ShowcaseAirport.build(0.0)
+	Airport.step(Airport.SIM_STEP)
+	var first := Airport.schedule.flights.size()
+	check(first >= 1, "the fresh airport has its opening flight")
+	# Every flight and slot cancelled (and the planner's memory of the grid gone): no second opening.
+	Airport.schedule.flights.clear()
+	Airport.timetable.slots.clear()
+	Airport.timetable._next.clear()
+	var before := Airport.sim_time
+	for i in int(30.0 / Airport.SIM_STEP):
+		Airport.step(Airport.SIM_STEP)
+	var early := Airport.schedule.flights.filter(func(f: Flight) -> bool: return f.departure_time < before + Timetable.period_real() * 0.2)
+	check_eq(early.size(), 0, "no second opening flight after everything was cancelled")

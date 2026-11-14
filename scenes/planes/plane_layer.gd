@@ -96,8 +96,8 @@ func _departing(route: PlaneRoute, time: float, rolled: float) -> Transform3D:
 	if time >= route.taxi_out_time:
 		# Waiting at the holding point for the runway.
 		return _flat(route.points[0], 0.0, runway_dir)
-	# Push-back: straight back along the stand's axis, nose still towards the gate; on the taxiway
-	# the plane turns on the spot, then taxis out (PlaneRoute.nose_out).
+	# Push-back: straight back along the stand's axis, then a reverse arc onto the taxiway (the nose
+	# follows, tail first), a short stop, then the plane rolls forward (PlaneRoute.nose_out).
 	var distance := route.out_distance_at(time)
 	var position := route.position_out(distance)
 	return Transform3D(Basis.looking_at(_to_3d(route.nose_out(time, distance)), Vector3.UP), Vector3(position.x, 0.0, position.y))

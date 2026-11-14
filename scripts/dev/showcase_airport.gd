@@ -44,14 +44,13 @@ static func build(warm_up_seconds: float = 30.0, map_size: Vector2i = Vector2i.Z
 	# Long-haul (§10.2): gate 3 in the middle with a wide-body stand behind it (wide planes).
 	Airport.place_building(catalog.find(&"gate"), _at(Vector2i(27, 34)), 0)
 	Airport.place_building(catalog.find(&"wide_body_stand"), _at(Vector2i(26, 39)), 0)
-	# Taxiways (§7.5a), all 12 cells (24 m) wide: a parallel taxiway behind the stands (the wide-body
-	# stand touches it), links up to the narrow stands, and links across the gap to the runway.
-	Airport.paint_taxiway(_cells(Vector2i(4, 79), Vector2i(102, 12)), true)
-	Airport.paint_taxiway(_cells(Vector2i(10, 62), Vector2i(12, 17)), true)
-	Airport.paint_taxiway(_cells(Vector2i(66, 62), Vector2i(12, 17)), true)
-	Airport.paint_taxiway(_cells(Vector2i(10, 91), Vector2i(12, 3)), true)
-	Airport.paint_taxiway(_cells(Vector2i(38, 91), Vector2i(12, 3)), true)
-	Airport.paint_taxiway(_cells(Vector2i(66, 91), Vector2i(12, 3)), true)
+	# Taxiways (§7.5a), all 12 cells (24 m) wide: an apron strip right behind the stands (planes are pushed back onto it and
+	# swing round on wide curves) with the parallel taxiway below it, and a link at each end across the gap to the
+	# runway (so planes pushed back onto the parallel taxiway turn onto it and taxi along it).
+	Airport.paint_taxiway(_cells(Vector2i(-40, 79), Vector2i(171, 12)), true)
+	Airport.paint_taxiway(_cells(Vector2i(-40, 62), Vector2i(171, 17)), true)
+	Airport.paint_taxiway(_cells(Vector2i(-40, 91), Vector2i(24, 3)), true)
+	Airport.paint_taxiway(_cells(Vector2i(107, 91), Vector2i(24, 3)), true)
 
 	# A car park beside the landside hall.
 	Airport.place_building(catalog.find(&"car_park"), _at(Vector2i(46, 21)), 3)

@@ -8,9 +8,12 @@ extends RefCounted
 ## pavement is not part of the network, so no route runs on it (ICAO taxiways are 15 to 23 m wide
 ## with the wings reaching beyond the edge). Stands and runways are always wide enough.
 const MIN_TAXIWAY_CELLS: int = 12
-## How far the push-back point lies beyond the stand's back edge at most (cells): the middle of the
-## pavement behind the stand, at most half of a taxiway's width.
-const PUSHBACK_REACH_CELLS: int = MIN_TAXIWAY_CELLS
+## How far behind the stand's back edge the paved run along its axis is followed at most (cells).
+const PUSHBACK_REACH_CELLS: int = 40
+## The reverse arc of a push-back turns the travel direction by at most this much (radians, about 137 degrees).
+const ARC_MAX_TURN: float = 2.4
+## Chords of the reverse arc (the nose follows the chords: fine steps keep its turn smooth).
+const ARC_STEPS: int = 24
 ## Where on the runway a plane touches down, measured from its far end, and how far before that end
 ## it lifts off (metres).
 const TOUCHDOWN_ZONE_M: float = 300.0
@@ -296,14 +299,56 @@ func _make_route(stand: Building) -> PlaneRoute:
 		to_b.append(pushback[0] as Vector2)
 		var lines := _centreline.smooth_to_stand(to_b, Vector2(stand.origin_cell) + Vector2(size_of_stand) * 0.5, origin, _grid.cell_size)
 		route = PlaneRoute.from_points(lines[0], false)
-		route.set_pushback(lines[1])
+		var way_out: PackedVector2Array = lines[1]
+		var back := PackedVector2Array()
+		if way_out.size() >= 2:
+			var b_metres := way_out[way_out.size() - 1]
+			var onward := (way_out[way_out.size() - 2] - b_metres).normalized()
+			back = _pushback_arc(lines[0][lines[0].size() - 1], b_metres, pushback[1] as Vector2, onward, origin)
+		route.set_way_out(back, way_out)
 	else:
 		route = PlaneRoute.from_points(_centreline.smooth(best, origin, _grid.cell_size), fallback)
-		route.set_pushback(PackedVector2Array())
+		route.set_way_out(PackedVector2Array(), PackedVector2Array())
 	route.runway = best_runway
 	_place_runway_rolls(route)
 	route.plan_timing()
 	return route
+
+
+# The push-back path (metres) from the stand's middle `middle`: straight back along the axis (direction
+# `away`), then a reverse arc that ends on the taxiway line through `b` with the nose (opposite to the
+# direction of travel) pointing along `onward`, the way the plane will taxi from `b`. A tug swings the
+# tail like this; the plane then stands for a moment and rolls forward over `b`. The arc has the biggest
+# radius (35 down to 12 m) that fits between the stand and `b` and stays on pavement. Empty if the way
+# onward turns back almost the way the plane came (more than 137 degrees: no room for the arc) or no
+# radius fits. Tangent length T = R tan(theta / 2): the arc starts T before `b` on the axis and ends T
+# behind `b` on the taxiway.
+func _pushback_arc(middle: Vector2, b: Vector2, away: Vector2, onward: Vector2, origin: Vector2) -> PackedVector2Array:
+	var theta := acos(clampf(away.dot(-onward), -1.0, 1.0))
+	if theta < 0.05 or theta > ARC_MAX_TURN:
+		return PackedVector2Array()
+	var side := (-onward - away * cos(theta)) / sin(theta)
+	var room := middle.distance_to(b)
+	for radius: float in [35.0, 28.0, 22.0, 16.0, 12.0]:
+		var tangent := radius * tan(theta * 0.5)
+		if tangent > room - 4.0:
+			continue
+		var start := b - away * tangent
+		var centre := start + side * radius
+		var path := PackedVector2Array([middle, start])
+		var ok := true
+		for k in range(1, ARC_STEPS + 1):
+			var phi := theta * k / ARC_STEPS
+			var point := centre + (-side * cos(phi) + away * sin(phi)) * radius
+			path.append(point)
+		# The arc keeps the same room to the pavement's edge as the rounded corners do.
+		for k in range(1, path.size()):
+			if not _centreline.has_room((path[k] - origin) / _grid.cell_size, CentrelineGraph.CURVE_ROOM):
+				ok = false
+				break
+		if ok:
+			return path
+	return PackedVector2Array()
 
 
 # The push-back point of `stand`: [B (cell corner coordinates), the unit direction pointing away from the gate], or
@@ -346,7 +391,9 @@ func _pushback_point(stand: Building) -> Variant:
 		run += 1
 	if run < 4:
 		return null
-	return [middle + away * (half + run * 0.5), away]
+	# B: the middle of the last 12 cells of the run (the taxiway the plane is pushed onto), but at most 24
+	# cells behind the edge; a run of only 12 cells gives its middle.
+	return [middle + away * (half + maxf(minf(run - MIN_TAXIWAY_CELLS * 0.5, 24.0), run * 0.5)), away]
 
 
 # Where planes touch down and lift off for `route`: on the runway's middle line, towards the end
