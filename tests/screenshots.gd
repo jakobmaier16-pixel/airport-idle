@@ -78,7 +78,9 @@ func _ready() -> void:
 	for i in 3000:
 		var taxiing := Airport.passenger_flow.schedule.flights.any(func(f: Flight) -> bool:
 			var left := f.departs_at() - Airport.passenger_flow.time
-			return f.phase == Flight.Phase.ARRIVING and left < FlightSchedule.PLANE_ARRIVES - 7.0)
+			var route := Airport.passenger_flow.schedule.route_of(f)
+			return f.phase == Flight.Phase.ARRIVING and route != null \
+				and left < FlightSchedule.lead_of(route) - route.roll_in_time - 3.0)
 		if taxiing:
 			break
 		Airport.step(Airport.SIM_STEP)

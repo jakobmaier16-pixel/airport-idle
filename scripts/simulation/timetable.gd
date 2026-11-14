@@ -63,7 +63,7 @@ func tick() -> void:
 func generate_day(day: int) -> void:
 	generated_days.append(day)
 	var now := world.passenger_flow.time
-	var earliest := now + FlightSchedule.FIRST_DEPARTURE_DELAY
+	var earliest := now + world.passenger_flow.schedule.first_departure_delay()
 	var shares := _route_shares()
 	var season := Seasons.season_of(day)
 	var day_start := (day - 1) * 86400.0
@@ -100,7 +100,10 @@ func in_curfew(departure: float) -> bool:
 
 
 func _in_curfew(departure: float, now: float) -> bool:
-	return world.curfew_at(departure - now) or world.curfew_at(departure - FlightSchedule.PLANE_ARRIVES - now)
+	# The plane lands before the departure (the longest planned taxi earlier) and is off the ground after it.
+	var schedule := world.passenger_flow.schedule
+	return world.curfew_at(departure - now) or world.curfew_at(departure - schedule.longest_lead() - now) \
+			or world.curfew_at(departure + schedule.longest_departure_run() - now)
 
 
 ## The slots still waiting for their flight, in departure order.

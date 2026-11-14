@@ -16,7 +16,7 @@ func _claim() -> Station:
 func test_everyone_deplanes_before_boarding() -> void:
 	ShowcaseAirport.build(0.0)
 	var flight := _first_flight()
-	var parked_at := flight.departure_time - (FlightSchedule.PLANE_ARRIVES - FlightSchedule.TAXI_TIME)
+	var parked_at := flight.departure_time - FlightSchedule.STAND_DWELL
 	sim_seconds(parked_at - Airport.passenger_flow.time - 1.0)
 	check_eq(flight.deplaned, 0, "nobody gets off before the plane is parked")
 	sim_seconds(flight.departure_time - FlightSchedule.BOARDING_OPENS - Airport.passenger_flow.time + 0.5)

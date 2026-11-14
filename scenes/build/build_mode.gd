@@ -337,8 +337,10 @@ func _update_paint_rect(screen_position: Vector2) -> void:
 		_paint_rect = _brush_rect(_paint_start_cell, end_cell, _lock_axis(end_cell))
 		_show_paint_rect()
 		var cost := Airport.taxiway_cost(_rect_cells(_paint_rect), _paint_kind == PaintKind.TAXIWAY)
-		if cost > 0.0:
-			tool_changed.emit(Tool.PAINT, true, "Taxiway: %s" % Economy.format(cost))
+		if _paint_kind == PaintKind.TAXIWAY:
+			# Also with nothing new to pave (a stamp over pavement): never leave an old price on screen.
+			var note := "Taxiway: %s" % Economy.format(cost)
+			tool_changed.emit(Tool.PAINT, true, note if cost > 0.0 else note + " (already paved)")
 		return
 	var top_left := Vector2i(mini(_paint_start_cell.x, end_cell.x), mini(_paint_start_cell.y, end_cell.y))
 	var bottom_right := Vector2i(maxi(_paint_start_cell.x, end_cell.x), maxi(_paint_start_cell.y, end_cell.y))

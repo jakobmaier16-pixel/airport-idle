@@ -13,6 +13,23 @@ var length: float = 0.0
 ## True if the centreline graph had no way and the 4-way cell path was smoothed instead.
 var from_fallback: bool = false
 
+## The runway this route starts on (the exit is `points[0]`), and where planes touch down on it
+## and lift off from it, in metres. Landing and take-off use the same line, in opposite directions.
+var runway: Building = null
+var touchdown: Vector2 = Vector2.ZERO
+var liftoff: Vector2 = Vector2.ZERO
+## Metres of the landing roll (touchdown to the exit) and of the take-off run (entry to lift-off).
+var roll_in_distance: float = 0.0
+var roll_out_distance: float = 0.0
+## Speed profiles of the taxi in (exit to stand) and taxi out (stand to the runway entry).
+var profile_in: TaxiProfile = TaxiProfile.new()
+var profile_out: TaxiProfile = TaxiProfile.new()
+## Seconds, all from the profiles: the planned timing of every flight at this stand.
+var roll_in_time: float = 0.0
+var taxi_in_time: float = 0.0
+var taxi_out_time: float = 0.0
+var roll_out_time: float = 0.0
+
 
 static func from_points(line: PackedVector2Array, fallback: bool = false) -> PlaneRoute:
 	var route := PlaneRoute.new()
@@ -26,6 +43,22 @@ static func from_points(line: PackedVector2Array, fallback: bool = false) -> Pla
 		route.cumulative[i] = total
 	route.length = total
 	return route
+
+
+## Works out the speed profiles and runway rolls (call once `points`, `runway`, `touchdown` and
+## `liftoff` are set).
+func plan_timing() -> void:
+	profile_in = TaxiProfile.build(points, TaxiProfile.TAXI_SPEED, 0.0)
+	var backwards := points.duplicate()
+	backwards.reverse()
+	profile_out = TaxiProfile.build(backwards, 0.0, TaxiProfile.TAXI_SPEED)
+	taxi_in_time = profile_in.duration
+	taxi_out_time = profile_out.duration
+	if not points.is_empty():
+		roll_in_distance = touchdown.distance_to(points[0])
+		roll_out_distance = points[0].distance_to(liftoff)
+	roll_in_time = TaxiProfile.landing_roll_time(roll_in_distance)
+	roll_out_time = TaxiProfile.takeoff_roll_time(roll_out_distance)
 
 
 ## Position `distance` metres from the runway exit (clamped to the route).

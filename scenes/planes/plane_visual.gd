@@ -1,7 +1,7 @@
 class_name PlaneVisual
 extends Node3D
-## Placeholder low-poly narrow-body plane built from simple shapes, scaled down like the airside
-## (design doc §7.1, §8.5). The nose points to -Z. Replace with a Blender model later.
+## Placeholder low-poly narrow-body plane built from simple shapes, scaled up to the real wingspan
+## (size_for; design doc §7.1, §8.5). The nose points to -Z. Replace with a Blender model later.
 ## It is solid: a moving physics body (AnimatableBody3D) keeps the manager from walking through it.
 
 const LENGTH: float = 21.0
@@ -13,15 +13,15 @@ const CARGO_BODY_COLOR: Color = Color(0.68, 0.7, 0.72)
 ## Tail color without an airline; with one, the airline's color (design doc §10.1).
 const TAIL_COLOR: Color = Color(0.1, 0.45, 0.65)
 const ENGINE_COLOR: Color = Color(0.55, 0.57, 0.6)
-## Wide-body planes are this much bigger in every direction (fits a 16 × 16 cell stand).
-const WIDE_BODY_SIZE: float = 1.4
 
 ## Set before the plane enters the tree.
 var tail_color: Color = TAIL_COLOR
 ## A freighter: grey body. Set before the plane enters the tree.
 var cargo: bool = false
-## 1 for narrow-body planes; WIDE_BODY_SIZE for long-haul (design doc §10.2).
+## How much bigger than the base model the plane is (see size_for). Set before the plane enters the tree.
 var size_factor: float = 1.0
+## Long-haul planes have four engines (design doc §10.2). Set before the plane enters the tree.
+var wide_body: bool = false
 
 var _body: AnimatableBody3D
 
@@ -74,7 +74,7 @@ func _ready() -> void:
 
 	# Wide-body planes have four engines.
 	var engine_offsets: Array[float] = [-3.8, 3.8]
-	if k > 1.0:
+	if wide_body:
 		engine_offsets = [-6.0, -3.6, 3.6, 6.0]
 	for side in engine_offsets:
 		var engine := CylinderMesh.new()
@@ -94,6 +94,14 @@ func _ready() -> void:
 	var tail_shape := BoxShape3D.new()
 	tail_shape.size = Vector3(7.0 * k, body_height + 0.5 * k, 1.8 * k)
 	_add_collision(tail_shape, Vector3(0.0, (body_height + 0.5 * k) * 0.5, length * 0.5 - 1.4 * k), Vector3.ZERO)
+
+
+## The scale that makes the placeholder as wide as the real plane (TimetableSlot.WINGSPAN_M: 37 m
+## narrow-body, 65 m wide-body). The one place the plane size is decided, until the real models
+## arrive (handoff #44).
+static func size_for(flight: Flight) -> float:
+	var plane_class := TimetableSlot.PlaneClass.WIDE if flight.wide_body else TimetableSlot.PlaneClass.NARROW
+	return TimetableSlot.WINGSPAN_M[plane_class] / WINGSPAN
 
 
 func _add(mesh: Mesh, material: Material, offset: Vector3, rotation_radians: Vector3) -> void:

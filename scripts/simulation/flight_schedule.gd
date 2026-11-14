@@ -6,23 +6,37 @@ extends RefCounted
 
 ## The least time between two departures at the same gate (a turnaround).
 const INTERVAL: float = 180.0
-## Slots are only planned this far ahead of now (just after their arrivals window opens).
+## Slots are only planned this far ahead of now (just after their arrivals window opens), or
+## further if the longest planned taxi needs it (see first_departure_delay).
 const FIRST_DEPARTURE_DELAY: float = 270.0
 ## The earliest any passenger type arrives before departure (see data/passengers/); a slot becomes
-## a flight this long before it departs.
+## a flight this long before it departs (or earlier: see fill_window).
 const ARRIVALS_START: float = 260.0
-## The plane starts taxiing onto the stand this long before departure.
-const PLANE_ARRIVES: float = 130.0
+## A plane stands at its stand this long before it departs (from parking to the doors closing).
+const STAND_DWELL: float = 115.0
+## Ground time to and from the stand when no route is known (tests without a runway): the old
+## fixed taxi time.
+const FALLBACK_TAXI_TIME: float = 15.0
+## The final approach (seen, but not on the runway yet) and the climb-out after lift-off (seen,
+## but already gone from the runway), in seconds.
+const APPROACH_TIME: float = 6.0
+const CLIMB_TIME: float = 6.0
 ## A flight waits at most this long for passengers who are already airside (checked-in bags would
 ## otherwise have to be unloaded). Fits before the next plane arrives at the same stand.
 const MAX_HOLD: float = 30.0
+## A plane that has waited this long at the holding point goes before landings (design doc §7.5a):
+## no new landing is booked until it has taken off. Without it landings (booked 6 s ahead) always
+## beat take-offs (which need a free runway right now) and the holding point can starve (the
+## longest wait was 140 s on the showcase day). Not shorter, because a landing that waits is a
+## late departure, while a take-off that waits is not (punctuality counts the push-back).
+const HOLDING_PRIORITY_AFTER: float = 80.0
 ## The airport this part of the simulation works for; set by the Airport autoload.
 var world: AirportWorld
 
-## Every landing and take-off occupies a runway this long (design doc §7.5a). A variable, so
-## tests can make runways the bottleneck.
-var runway_seconds: float = RUNWAY_SECONDS
-const RUNWAY_SECONDS: float = 20.0
+## A landing or take-off occupies the runway for its roll plus this clear margin (design doc §7.5a).
+## A variable, so tests can make runways the bottleneck.
+var runway_margin: float = RUNWAY_CLEAR_MARGIN
+const RUNWAY_CLEAR_MARGIN: float = 10.0
 ## Freight per cargo flight (unloaded and loaded), and how long a freighter waits for unfinished
 ## loading (design doc §10.3).
 const CARGO_TONNES_MIN: float = 30.0
@@ -30,8 +44,6 @@ const CARGO_TONNES_MAX: float = 50.0
 const CARGO_MAX_HOLD: float = 60.0
 ## A plane may land this many seconds late without delaying its departure (design doc §7.5a).
 const TURNAROUND_BUFFER: float = 20.0
-## Seconds to taxi onto the stand, and to push back after departure.
-const TAXI_TIME: float = 15.0
 const BOARDING_OPENS: float = 90.0
 ## Passengers per second walking from the gate onto the plane.
 const BOARDING_RATE: float = 1.0
@@ -72,12 +84,14 @@ var flights: Array[Flight] = []
 
 # Simulation time from which each runway is free again.
 var _runway_free_at: Dictionary[Building, float] = {}
-## Every runway booking (runway, start time), for tests.
+## Every runway booking (runway, start time, end time), for tests.
 var runway_bookings: Array = []
 
 # Departure time of the latest flight planned at each gate.
 var _last_planned: Dictionary[Building, float] = {}
 var _next_number: int = 101
+# True while a plane has waited long enough at the holding point to go before landings (set per tick).
+var _takeoff_priority: bool = false
 ## Dice. Airport replaces them with its shared, seeded dice (tech_architecture.md §3).
 var rng: RandomNumberGenerator = RandomNumberGenerator.new()
 
@@ -97,12 +111,74 @@ func tick(now: float, delta: float, flow: PassengerFlow) -> void:
 
 	# The timetable's slots become flights exactly when their passengers have to start arriving.
 	for slot in world.timetable.slots:
-		if slot.state == TimetableSlot.State.PENDING and slot.departure_time - now <= ARRIVALS_START:
+		if slot.state == TimetableSlot.State.PENDING and slot.departure_time - now <= fill_window():
 			_fill_slot(slot, usable, now)
 
+	_takeoff_priority = false
+	for flight in flights:
+		if not flight.takeoff_booked and flight.phase == Flight.Phase.DEPARTING:
+			var route := route_of(flight)
+			if route != null and route.runway != null \
+					and now >= flight.departs_at() + taxi_out_of(route) + HOLDING_PRIORITY_AFTER:
+				_takeoff_priority = true
+				break
 	for flight in flights:
 		_advance(flight, now, delta, flow)
 	flights = flights.filter(func(f: Flight) -> bool: return f.is_active())
+
+
+## A slot becomes a flight this long before it departs: when its passengers start to arrive, and
+## early enough for the plane with the longest planned taxi to touch down in time.
+func fill_window() -> float:
+	return maxf(ARRIVALS_START, longest_lead() + APPROACH_TIME + 5.0)
+
+
+## Slots are only planned further ahead than this (so no flight is made too late for its plane).
+func first_departure_delay() -> float:
+	return maxf(FIRST_DEPARTURE_DELAY, fill_window() + 10.0)
+
+
+## The longest time any plane needs between touchdown and the doors closing, over all stands.
+func longest_lead() -> float:
+	var network := world.plane_network
+	return maxf(network.longest_arrival(), FALLBACK_TAXI_TIME) + STAND_DWELL
+
+
+## The longest time from a departure's push-back to the plane being off the ground.
+func longest_departure_run() -> float:
+	return maxf(world.plane_network.longest_departure(), FALLBACK_TAXI_TIME) + CLIMB_TIME
+
+
+## The route of `flight`'s stand, or null if it has none (tests without a runway).
+func route_of(flight: Flight) -> PlaneRoute:
+	return world.plane_network.route_to_stand(flight.stand) if flight.stand != null else null
+
+
+## Seconds from the plane touching down to the doors closing: landing roll, taxi in and the time
+## at the stand. This is what the timetable plans a flight's arrival by.
+static func lead_of(route: PlaneRoute) -> float:
+	if route == null:
+		return FALLBACK_TAXI_TIME + STAND_DWELL
+	return route.roll_in_time + route.taxi_in_time + STAND_DWELL
+
+
+## Seconds from push-back to the take-off run starting (the taxi out).
+static func taxi_out_of(route: PlaneRoute) -> float:
+	return FALLBACK_TAXI_TIME if route == null else route.taxi_out_time
+
+
+static func roll_out_of(route: PlaneRoute) -> float:
+	return 0.0 if route == null else route.roll_out_time
+
+
+## How long the plane of `flight` blocks the runway when it lands (`landing`) or takes off: the
+## roll plus a clear margin.
+func occupancy(flight: Flight, landing: bool) -> float:
+	var route := route_of(flight)
+	var roll := 0.0
+	if route != null:
+		roll = route.roll_in_time if landing else route.roll_out_time
+	return roll + runway_margin
 
 
 ## The flights in departure order, for the departures board.
@@ -181,7 +257,7 @@ func _save_flight(flight: Flight, scheduled: bool) -> Dictionary:
 		"route": flight.route, "gate": flight.gate.id, "stand": flight.stand.id if flight.stand != null else 0,
 		"departure_time": flight.departure_time, "delay": flight.delay, "arrival_delay": flight.arrival_delay,
 		"landing_booked": flight.landing_booked, "takeoff_booked": flight.takeoff_booked,
-		"seats": flight.seats, "booked": flight.booked,
+		"takeoff_at": flight.takeoff_at, "seats": flight.seats, "booked": flight.booked,
 		"arrival_times": Array(flight.arrival_times), "arrival_types": arrival_types,
 		"spawned": flight.spawned, "inbound_types": inbound_types, "deplaned": flight.deplaned,
 		"deplane_credit": flight.deplane_credit, "boarded": flight.boarded, "missed": flight.missed,
@@ -209,6 +285,10 @@ func _load_flight(entry: Dictionary, gate: Building, by_id: Dictionary[int, Buil
 	flight.arrival_delay = float(entry.get("arrival_delay", 0.0))
 	flight.landing_booked = bool(entry.get("landing_booked", false))
 	flight.takeoff_booked = bool(entry.get("takeoff_booked", false))
+	# Saves from before real taxi times have no start: the run starts when the plane reaches the runway.
+	flight.takeoff_at = float(entry.get("takeoff_at", -1.0))
+	if flight.takeoff_booked and flight.takeoff_at < 0.0:
+		flight.takeoff_at = flight.departs_at() + taxi_out_of(route_of(flight))
 	flight.seats = int(entry.get("seats", 0))
 	flight.booked = int(entry.get("booked", 0))
 	for time: float in entry.get("arrival_times", []):
@@ -233,7 +313,7 @@ func _fill_slot(slot: TimetableSlot, usable: Array[Building], now: float) -> voi
 	# Night curfew (design doc §12.4): no landing or take-off in the quiet hours.
 	if world.timetable.in_curfew(slot.departure_time):
 		return
-	var gate := _gate_for(slot, usable)
+	var gate := _gate_for(slot, usable, now)
 	if gate == null:
 		return
 	# Signed deals fill their quotas first; without a deal the default airline flies the narrow-bodies.
@@ -249,14 +329,15 @@ func _fill_slot(slot: TimetableSlot, usable: Array[Building], now: float) -> voi
 	slot.flight_number = flight.number
 
 
-# The gate that takes `slot` with the least waste: free for a turnaround before it, and the one
-# whose last flight is closest (so the others stay free for later slots). Wide-body slots need a
-# wide-body stand (stand_behind decides what fits), so narrow-body slots keep off those gates
-# while another one is free.
-func _gate_for(slot: TimetableSlot, usable: Array[Building]) -> Building:
+# The gate that takes `slot`: free for a turnaround before it, and the one with the shortest planned
+# route (close stands are worth more), ties by id. Wide-body slots need a wide-body stand
+# (stand_behind decides what fits), so narrow-body slots keep off those gates while another one is free.
+# A stand whose plane would have to land before `now` (a far stand built mid-day while this slot
+# was already planned) is skipped: the plane could not touch down in time.
+func _gate_for(slot: TimetableSlot, usable: Array[Building], now: float = -INF) -> Building:
 	var best: Building = null
 	var best_wide := false
-	var best_last := -INF
+	var best_time := INF
 	for gate in usable:
 		if (gate.type.role == BuildingType.Role.CARGO_TERMINAL) != (slot.plane_class == TimetableSlot.PlaneClass.CARGO):
 			continue
@@ -273,11 +354,16 @@ func _gate_for(slot: TimetableSlot, usable: Array[Building]) -> Building:
 			continue
 		if wide_stand and slot.plane_class == TimetableSlot.PlaneClass.NARROW and _wide_slot_near(slot):
 			continue  # a wide-body slot needs this gate right about now
-		var better := best == null or (best_wide and not wide_stand) or (best_wide == wide_stand and last > best_last)
+		var route := world.plane_network.route_to_stand(stand) if stand != null else null
+		if route != null and slot.departure_time - now < lead_of(route) + APPROACH_TIME:
+			continue
+		var planned := 2.0 * FALLBACK_TAXI_TIME if route == null else route.taxi_in_time + route.taxi_out_time
+		var better := best == null or (best_wide and not wide_stand) or (best_wide == wide_stand \
+				and (planned < best_time - 0.001 or (absf(planned - best_time) <= 0.001 and gate.id < best.id)))
 		if better:
 			best = gate
 			best_wide = wide_stand
-			best_last = last
+			best_time = planned
 	return best
 
 
@@ -362,6 +448,8 @@ func _advance(flight: Flight, now: float, delta: float, flow: PassengerFlow) -> 
 	var time_left := flight.departs_at() - now
 	# Arrival phases run late by the absorbed arrival delay.
 	var arrival_left := time_left + flight.arrival_delay
+	var route := route_of(flight)
+	var taxi_out := taxi_out_of(route)
 
 	# Passengers arrive at the entrance at their planned times.
 	while flight.spawned < flight.booked and flight.arrival_times[flight.spawned] <= now:
@@ -369,17 +457,23 @@ func _advance(flight: Flight, now: float, delta: float, flow: PassengerFlow) -> 
 			break
 		flight.spawned += 1
 
+	# The take-off run starts when the plane reaches the runway (it waits there until the runway is free).
+	if not flight.takeoff_booked and time_left <= 0.0 and now >= flight.departs_at() + taxi_out:
+		_try_takeoff(flight, now)
+
 	var phase := Flight.Phase.SCHEDULED
-	if time_left <= -TAXI_TIME:
+	if flight.takeoff_booked and now >= flight.takeoff_at + roll_out_of(route) + CLIMB_TIME:
 		phase = Flight.Phase.DEPARTED
 	elif time_left <= 0.0:
 		phase = Flight.Phase.DEPARTING
 	elif time_left <= BOARDING_OPENS:
 		phase = Flight.Phase.BOARDING
-	elif arrival_left <= PLANE_ARRIVES - TAXI_TIME:
+	elif arrival_left <= STAND_DWELL:
 		phase = Flight.Phase.AT_STAND
-	elif arrival_left <= PLANE_ARRIVES:
+	elif arrival_left <= lead_of(route) + APPROACH_TIME:
 		phase = Flight.Phase.ARRIVING
+	# A plane never goes back a phase (a changed route moves the times, not the story).
+	phase = maxi(phase, flight.phase) as Flight.Phase if flight.phase != Flight.Phase.CANCELLED else phase
 
 	if phase == Flight.Phase.AT_STAND or (phase == Flight.Phase.BOARDING and flight.deplaned < flight.inbound_types.size()):
 		# Arriving passengers leave the plane first; whoever is left when boarding opens leaves at once.
@@ -409,11 +503,6 @@ func _advance(flight: Flight, now: float, delta: float, flow: PassengerFlow) -> 
 		# Hold the doors for passengers who are airside or still boarding: a delay (design doc §11.7).
 		flight.delay += delta
 		phase = Flight.Phase.BOARDING
-	if phase >= Flight.Phase.DEPARTING and flight.phase < Flight.Phase.DEPARTING and not flight.takeoff_booked:
-		# The take-off slot (design doc §7.5a): the plane pushes back on time and, if the runway is
-		# busy, waits at the holding point. Punctuality counts the push-back, as in real statistics.
-		_book_runway(flight, now, true)
-		flight.takeoff_booked = true
 	if phase >= Flight.Phase.DEPARTING and flight.phase < Flight.Phase.DEPARTING:
 		world.reputation.record_departure(flight.airport_delay())
 		# Doors close: whoever isn't on board has missed the flight.
@@ -450,41 +539,55 @@ func _handling_rate(terminal: Building) -> float:
 	return rate
 
 
-# Books the runway `flight` uses for `runway_seconds`, from now. False if it is busy, unless
-# `queue` is set: then the booking starts when the runway is free again.
-func _book_runway(flight: Flight, now: float, queue: bool = false) -> bool:
-	var runway := _runway_for(flight)
-	if runway == null:
-		return true  # no runway known (tests without one): nothing to wait for
-	var free_at: float = _runway_free_at.get(runway, -INF)
-	if free_at > now and not queue:
+# Books `runway` for a movement that starts at `start` and lasts `duration`. False if the runway is
+# still busy then: nobody reserves the runway for later than their own movement, so a plane that
+# waits (at the holding point or in the air) never blocks the planes that are ready.
+func _book_runway(runway: Building, start: float, duration: float) -> bool:
+	if _runway_free_at.get(runway, -INF) > start:
 		return false
-	var start := maxf(now, free_at)
-	_runway_free_at[runway] = start + runway_seconds
-	runway_bookings.append([runway, start])
+	_runway_free_at[runway] = start + duration
+	runway_bookings.append([runway, start, start + duration])
 	return true
 
 
-# The runway at the start of the planes' way to `flight`'s stand.
+# The take-off run of `flight` (design doc §7.5a): the plane has pushed back and taxied to the
+# runway, and waits at the holding point until the runway is free. Punctuality counts the push-back,
+# as in real statistics.
+func _try_takeoff(flight: Flight, now: float) -> void:
+	var route := route_of(flight)
+	if route != null and route.runway != null and not _book_runway(route.runway, now, occupancy(flight, false)):
+		return
+	flight.takeoff_booked = true
+	flight.takeoff_at = now
+
+
+# The runway `flight` lands on, or null (tests without one).
 func _runway_for(flight: Flight) -> Building:
-	if flight.stand == null:
-		return null
-	var path := world.plane_network.path_to_stand(flight.stand)
-	return world.plane_network.runway_at(path[0]) if not path.is_empty() else null
+	var route := route_of(flight)
+	return null if route == null else route.runway
 
 
 # Why `flight` must wait this step: its stand is still taken by the previous plane at the same
 # gate (knock-on delay) or the runway is busy.
 func _hold_reason(flight: Flight, now: float) -> Hold:
 	var arrival_left := flight.departs_at() - now + flight.arrival_delay
-	if flight.phase == Flight.Phase.SCHEDULED and arrival_left <= PLANE_ARRIVES:
+	var route := route_of(flight)
+	var arrive_at := lead_of(route) + APPROACH_TIME
+	if flight.phase == Flight.Phase.SCHEDULED and arrival_left <= arrive_at:
+		# The plane reaches the stand this long after touchdown; the plane before it at the same gate
+		# must have pushed back by then.
+		var parks_in := APPROACH_TIME + FALLBACK_TAXI_TIME
+		if route != null:
+			parks_in = APPROACH_TIME + route.roll_in_time + route.taxi_in_time
 		for other in flights:
 			if other != flight and other.gate == flight.gate and other.is_active() \
-					and other.departure_time < flight.departure_time and other.phase != Flight.Phase.SCHEDULED:
+					and other.departure_time < flight.departure_time and other.phase < Flight.Phase.DEPARTING \
+					and other.departs_at() > now + parks_in:
 				return Hold.AIRPORT
-		# A landing slot on the runway (design doc §7.5a).
+		# A landing slot on the runway: the roll starts after the approach (design doc §7.5a).
 		if not flight.landing_booked:
-			if not _book_runway(flight, now):
+			var runway := _runway_for(flight)
+			if runway != null and (_takeoff_priority or not _book_runway(runway, now + APPROACH_TIME, occupancy(flight, true))):
 				return Hold.AIRPORT
 			flight.landing_booked = true
 	return Hold.NONE
