@@ -344,7 +344,7 @@ The details live in `tech_architecture.md` (to write) and `CLAUDE.md`. The princ
 - **Content is data, not code:** buildings, airlines, passenger types and upgrade steps live in data files, so balancing needs no code changes.
 - **Real scale (decided 2026-11-13, replaces "compressed scale"):** everything is real size, 1 cell = 2 m (one easy-to-change value), also the airside: planes, stands, taxiways and the runway at full length. The map is large and is unlocked piece by piece (§13). The top-down view always shows the whole airport with very cheap far models; the first-person view loads only the area the manager is in, in full detail (§8.3).
   *Details (decided 2026-11-13):*
-  - **Map:** about 4.4 × 3.2 km (2,200 × 1,600 cells).
+  - **Map:** about 4.4 × 3.2 km (2,200 × 1,600 cells). **Step 6.5 / PR 6A done** (2026-11-13): the map has this size; the old building types keep their size until 6B. The starting land is one placeholder rectangle of 1,200 × 400 cells (2.4 × 0.8 km) on the 200-cell grid, one named constant (`Progression.STARTING_LAND`); **(open)** the real starting airport is Jakob's decision (§19). National and above own the whole map until PR 9. The build view opens at about 250 m and zooms out to the whole map (shadows off beyond 400 m).
   - **Runway:** starts at 2,000 m; extended to about 3,200 m with the International tier.
   - **Land:** bought in pieces of about 400 × 400 m, only next to owned land; some pieces are tied to tiers.
   - **Old saves:** stands and runways in the old small size are removed on load with a full refund.

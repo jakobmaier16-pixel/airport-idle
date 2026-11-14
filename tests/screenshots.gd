@@ -14,8 +14,8 @@ func _ready() -> void:
 
 	await _shot("manager_view")
 	# First person in the landside hall, looking at check-in 1 (design doc §15).
-	manager().global_position = Airport.grid.cell_to_world(Vector2i(31, 25))
-	manager_camera().face(Airport.grid.cell_to_world(Vector2i(22, 23)) + Vector3.UP * 1.5)
+	manager().global_position = Airport.grid.cell_to_world(at(Vector2i(31, 25)))
+	manager_camera().face(Airport.grid.cell_to_world(at(Vector2i(22, 23))) + Vector3.UP * 1.5)
 	await _shot("manager_view_hall")
 	# Night and evening light (design doc §12.1); back to the morning afterwards.
 	var morning := Airport.clock.game_seconds
@@ -28,18 +28,18 @@ func _ready() -> void:
 
 	# South of gate 1's stand, looking across the plane to the gate, while it boards (first departure at 210 s, boarding from 120 s).
 	sim_seconds(60)
-	manager().global_position = Airport.grid.cell_to_world(Vector2i(25, 52))
-	manager_camera().face(Airport.grid.block_center(Vector2i(10, 39), Vector2i(12, 12)) + Vector3.UP * 2.0)
+	manager().global_position = Airport.grid.cell_to_world(at(Vector2i(25, 52)))
+	manager_camera().face(Airport.grid.block_center(at(Vector2i(10, 39)), Vector2i(12, 12)) + Vector3.UP * 2.0)
 	await _shot("manager_at_gate_boarding")
 
 	# The long-haul plane at the wide-body stand behind gate 3 (design doc §10.2).
-	manager().global_position = Airport.grid.cell_to_world(Vector2i(41, 54))
-	manager_camera().face(Airport.grid.block_center(Vector2i(22, 39), Vector2i(16, 16)) + Vector3.UP * 3.0)
+	manager().global_position = Airport.grid.cell_to_world(at(Vector2i(41, 54)))
+	manager_camera().face(Airport.grid.block_center(at(Vector2i(22, 39)), Vector2i(16, 16)) + Vector3.UP * 3.0)
 	await _shot("wide_body_plane")
 
 	# Station panel: security seen from the airside walkway.
-	manager().global_position = Airport.grid.cell_to_world(Vector2i(32, 33))
-	manager_camera().face(Airport.grid.block_center(Vector2i(30, 28), Vector2i(5, 3)) + Vector3.UP * 1.5)
+	manager().global_position = Airport.grid.cell_to_world(at(Vector2i(32, 33)))
+	manager_camera().face(Airport.grid.block_center(at(Vector2i(30, 28)), Vector2i(5, 3)) + Vector3.UP * 1.5)
 	var security: Building = Airport.buildings.filter(func(b: Building) -> bool: return b.type.role == BuildingType.Role.SECURITY)[0]
 	hud().show_station(security)
 	await _shot("station_panel")
@@ -61,10 +61,15 @@ func _ready() -> void:
 	hud().hide_airlines()
 
 	await open_build_view()
-	build_camera().center_on(Airport.grid.cell_to_world(Vector2i(32, 30)))
+	build_camera().center_on(Airport.grid.cell_to_world(at(Vector2i(32, 30))))
 	await _shot("build_view")
 	await show_whole_map()
 	await _shot("build_view_whole_map")
+	# Fully zoomed out: the whole 4.4 x 3.2 km map, shadows off.
+	build_camera().view_height = 1.0e6
+	build_camera().center_on(Vector3.ZERO)
+	await _shot("build_view_zoomed_out")
+	await show_whole_map()
 	# A plane taxiing in from the runway, and one taking off (design doc §7.5a).
 	for i in 3000:
 		var taxiing := Airport.passenger_flow.schedule.flights.any(func(f: Flight) -> bool:
@@ -73,7 +78,7 @@ func _ready() -> void:
 		if taxiing:
 			break
 		Airport.step(Airport.SIM_STEP)
-	build_camera().center_on(Airport.grid.cell_to_world(Vector2i(32, 52)))
+	build_camera().center_on(Airport.grid.cell_to_world(at(Vector2i(32, 52))))
 	await _shot("plane_taxiing")
 	for i in 3000:
 		var leaving := Airport.passenger_flow.schedule.flights.any(func(f: Flight) -> bool:
@@ -81,7 +86,7 @@ func _ready() -> void:
 		if leaving:
 			break
 		Airport.step(Airport.SIM_STEP)
-	build_camera().center_on(Airport.grid.cell_to_world(Vector2i(32, 52)))
+	build_camera().center_on(Airport.grid.cell_to_world(at(Vector2i(32, 52))))
 	await _shot("plane_taking_off")
 	# A regional airport only owns the middle of the map (design doc §14.1).
 	Airport.progression.tier = Progression.Tier.REGIONAL
@@ -93,9 +98,9 @@ func _ready() -> void:
 	await _shot("milestone")
 	hud().get_node("SafeArea/MilestonePanel").visible = false
 
-	build_camera().center_on(Airport.grid.cell_to_world(Vector2i(32, 30)))
+	build_camera().center_on(Airport.grid.cell_to_world(at(Vector2i(32, 30))))
 	await pick_building("Security")  # Security, in an invalid spot
-	build_mode()._set_preview_origin(Vector2i(44, 24))
+	build_mode()._set_preview_origin(at(Vector2i(44, 24)))
 	await _shot("placing_invalid")
 	await press(ui("ToolPanel/ToolBar/CancelButton"))
 

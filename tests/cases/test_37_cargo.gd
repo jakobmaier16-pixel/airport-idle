@@ -21,9 +21,9 @@ func _flights_seen(seconds: float) -> Array[Flight]:
 
 func test_terminal_rules() -> void:
 	var type := type_of(&"cargo_terminal")
-	check_eq(Airport.check_placement(type, Vector2i(20, 35), 0), "Unlocked at National airport", "not for regional airports")
+	check_eq(Airport.check_placement(type, at(Vector2i(20, 35)), 0), "Unlocked at National airport", "not for regional airports")
 	Airport.progression.tier = Progression.Tier.NATIONAL
-	var terminal := Airport.place_building(type, Vector2i(20, 35), 0)
+	var terminal := Airport.place_building(type, at(Vector2i(20, 35)), 0)
 	check(terminal != null, "built")
 	check_eq(Airport.connection_problem(type, terminal.origin_cell, 0), "Needs an aircraft stand behind", "needs a stand")
 	check(Airport.needs_staff(terminal), "needs handlers")

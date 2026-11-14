@@ -5,9 +5,9 @@ extends TestCase
 func test_showcase_zones() -> void:
 	await start_game()
 	build_reference_airport()
-	check_eq(Airport.brain.zone_map.zone_at(Vector2i(20, 32)), AirportGrid.Zone.AIRSIDE, "gate walkway is airside")
-	check_eq(Airport.brain.zone_map.zone_at(Vector2i(20, 25)), AirportGrid.Zone.LANDSIDE, "hall is landside")
-	check_eq(Airport.grid.get_zone(Vector2i(20, 32)), AirportGrid.Zone.AIRSIDE, "the grid holds the computed zones")
+	check_eq(Airport.brain.zone_map.zone_at(at(Vector2i(20, 32))), AirportGrid.Zone.AIRSIDE, "gate walkway is airside")
+	check_eq(Airport.brain.zone_map.zone_at(at(Vector2i(20, 25))), AirportGrid.Zone.LANDSIDE, "hall is landside")
+	check_eq(Airport.grid.get_zone(at(Vector2i(20, 32))), AirportGrid.Zone.AIRSIDE, "the grid holds the computed zones")
 
 
 func test_zones_after_load() -> void:

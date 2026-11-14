@@ -7,31 +7,74 @@ const SHOWCASE_AREA_HASH := "46af9c9c4390a8ce0fabb2b700ce6787ef7b755da98a72a0285
 const BIG := Vector2i(2200, 1600)
 
 
-# A grid of another size with the same walkways, taxiways and buildings as the game's grid.
+# The game's airport laid out on a map of another size: the same walkways, taxiways and buildings
+# at the same spot relative to the map centre (MapAnchor).
+func _move() -> Vector2i:
+	return -MapAnchor.shift_for(Airport.grid.size)  # to the 64 x 64 reference map
+
+
+func _buildings_on(size: Vector2i) -> Array[Building]:
+	var delta := _move() + MapAnchor.shift_for(size)
+	var result: Array[Building] = []
+	for building in Airport.brain.buildings:
+		result.append(Building.new(building.type, building.origin_cell + delta, building.rotation_steps))
+	return result
+
+
 func _clone(size: Vector2i) -> AirportGrid:
+	var delta := _move() + MapAnchor.shift_for(size)
 	var copy := AirportGrid.new(size, Airport.grid.cell_size)
 	for cell in Airport.grid.get_nonempty_cells():
-		copy.set_walkway(cell, Airport.grid.is_walkway(cell))
-		copy.set_taxiway(cell, Airport.grid.is_taxiway(cell))
-	for building in Airport.brain.buildings:
+		copy.set_walkway(cell + delta, Airport.grid.is_walkway(cell))
+		copy.set_taxiway(cell + delta, Airport.grid.is_taxiway(cell))
+	for building in _buildings_on(size):
 		for cell in building.get_cells():
 			copy.set_content(cell, building)
 	return copy
 
 
-# Zone of every used cell, as one comparable list (independent of the map size).
+# Zone of every used cell, as one comparable list (independent of the map size: cells are given on
+# the 64 x 64 reference map).
 func _zones_of(grid: AirportGrid) -> Array:
 	var result: Array = []
+	var back := -MapAnchor.shift_for(grid.size)
 	for cell in grid.get_nonempty_cells():
-		result.append([cell, grid.get_zone(cell)])
+		result.append([cell + back, grid.get_zone(cell)])
+	# The order of the cells follows the chunk layout, which depends on the map width: compare sorted.
+	result.sort_custom(func(a: Array, b: Array) -> bool: return a[0].y < b[0].y or (a[0].y == b[0].y and a[0].x < b[0].x))
+	return result
+
+
+# The zones of the airport's grid as the old dense bytes of the 64 x 64 reference map.
+func _reference_zone_bytes() -> PackedByteArray:
+	var reference := MapAnchor.REFERENCE_SIZE
+	var bytes := PackedByteArray()
+	bytes.resize(reference.x * reference.y)
+	for y in reference.y:
+		for x in reference.x:
+			bytes[y * reference.x + x] = Airport.grid.get_zone(MapAnchor.cell(Vector2i(x, y), Airport.grid.size))
+	return bytes
+
+
+# `areas` (from an AreaMap on a map of `size`) with their cells on the 64 x 64 reference map.
+func _reference_areas(areas: Array, size: Vector2i) -> Array:
+	var back := -MapAnchor.shift_for(size)
+	var result: Array = []
+	for area: Dictionary in areas:
+		var moved: Array[Vector2i] = []
+		for cell: Vector2i in area["cells"]:
+			moved.append(cell + back)
+		var copy := area.duplicate()
+		copy["cells"] = moved
+		result.append(copy)
 	return result
 
 
 func test_showcase_unchanged() -> void:
 	await start_game()
 	build_reference_airport()
-	check_eq(Marshalls.raw_to_base64(Airport.grid.get_zone_data()).sha256_text(), SHOWCASE_ZONE_HASH, "zones of the showcase")
-	check_eq(JSON.stringify(Airport.areas()).sha256_text(), SHOWCASE_AREA_HASH, "areas of the showcase")
+	check_eq(Marshalls.raw_to_base64(_reference_zone_bytes()).sha256_text(), SHOWCASE_ZONE_HASH, "zones of the showcase")
+	check_eq(JSON.stringify(_reference_areas(Airport.areas(), Airport.grid.size)).sha256_text(), SHOWCASE_AREA_HASH, "areas of the showcase")
 
 
 func test_big_map_costs_the_same_as_a_small_one() -> void:
@@ -39,17 +82,18 @@ func test_big_map_costs_the_same_as_a_small_one() -> void:
 	build_reference_airport()
 	var small := _clone(Vector2i(64, 64))
 	var big := _clone(BIG)
+	var small_buildings := _buildings_on(Vector2i(64, 64))
+	var big_buildings := _buildings_on(BIG)
 	var small_zones := ZoneMap.new()
 	var big_zones := ZoneMap.new()
 	var small_areas := AreaMap.new()
 	var big_areas := AreaMap.new()
-	var buildings := Airport.brain.buildings
 	var t0 := Time.get_ticks_usec()
-	small_zones.recompute(small, buildings)
-	small_areas.recompute(small, buildings)
+	small_zones.recompute(small, small_buildings)
+	small_areas.recompute(small, small_buildings)
 	var t1 := Time.get_ticks_usec()
-	big_zones.recompute(big, buildings)
-	big_areas.recompute(big, buildings)
+	big_zones.recompute(big, big_buildings)
+	big_areas.recompute(big, big_buildings)
 	var t2 := Time.get_ticks_usec()
 	var small_ms := (t1 - t0) / 1000.0
 	var big_ms := (t2 - t1) / 1000.0
@@ -58,7 +102,7 @@ func test_big_map_costs_the_same_as_a_small_one() -> void:
 	check_eq(big_zones.last_work_cells, small_zones.last_work_cells, "zone work does not depend on the map size")
 	check_eq(big_areas.last_work_cells, small_areas.last_work_cells, "area work does not depend on the map size")
 	check_eq(_zones_of(big), _zones_of(small), "same zones on both maps")
-	check_eq(JSON.stringify(big_areas.areas()), JSON.stringify(small_areas.areas()), "same areas on both maps")
+	check_eq(JSON.stringify(_reference_areas(big_areas.areas(), BIG)), JSON.stringify(_reference_areas(small_areas.areas(), Vector2i(64, 64))), "same areas on both maps")
 	# The old dense version needed about 2,300 ms + 2,500 ms for the big map. Generous bounds.
 	check(big_ms < 400.0, "big map recompute is fast (%.1f ms)" % big_ms)
 	check(big_ms < small_ms * 10.0 + 100.0, "big map is not much slower than the small one")
@@ -71,7 +115,7 @@ func test_repeated_recompute_equals_fresh() -> void:
 	await start_game()
 	build_reference_airport()
 	var grid := _clone(Vector2i(64, 64))
-	var buildings: Array[Building] = Airport.brain.buildings.duplicate()
+	var buildings := _buildings_on(Vector2i(64, 64))
 	var types := AirportWorld.CATALOG.types
 	var zones := ZoneMap.new()
 	var areas := AreaMap.new()

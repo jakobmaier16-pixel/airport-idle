@@ -17,6 +17,54 @@ func test_airport_fills_to_a_thousand() -> void:
 		Airport.passenger_flow.passengers.size(), (Time.get_ticks_usec() - started) / 1000.0 / 100.0])
 
 
+# The benchmark airport on a map of `size` cells with about a thousand passengers: the best (lowest)
+# milliseconds per simulation step over a few short runs, and the milliseconds one layout change
+# (a walkway cell painted and removed) takes. Both are noisy on a shared machine, so the best of a
+# few runs is used.
+func _measure(size: Vector2i) -> Dictionary:
+	Airport.reseed(Benchmark.SEED)
+	ShowcaseAirport.build(180.0, size)
+	Airport.passenger_flow.max_passengers = Benchmark.PASSENGER_LIMIT
+	for i in int(2400.0 / Airport.SIM_STEP):
+		if Airport.passenger_flow.schedule.flights.size() >= 4:
+			break
+		Airport.step(Airport.SIM_STEP)
+	for i in 30:
+		Benchmark.top_up(100)
+		sim_seconds(1.0)
+	var best_step := INF
+	for run in 5:
+		var started := Time.get_ticks_usec()
+		sim_seconds(5.0)
+		best_step = minf(best_step, (Time.get_ticks_usec() - started) / 1000.0 / 50.0)
+	var best_layout := INF
+	var spot: Array[Vector2i] = [MapAnchor.cell(Vector2i(5, 5), Airport.grid.size)]
+	for run in 5:
+		var started := Time.get_ticks_usec()
+		Airport.paint_walkway(spot, true)
+		Airport.paint_walkway(spot, false)
+		best_layout = minf(best_layout, (Time.get_ticks_usec() - started) / 1000.0 / 2.0)
+	return {"passengers": Airport.passenger_flow.passengers.size(), "step_ms": best_step, "layout_ms": best_layout}
+
+
+# The step costs the same on the big map as on the small one: the simulation only touches used
+# cells. A generous ratio (and the best of several runs) keeps it from flaking on a busy machine.
+func test_big_map_step_is_not_slower() -> void:
+	# Two rounds in turn, the best of each size: a busy machine slows a whole run, not one size.
+	var small := _measure(MapAnchor.REFERENCE_SIZE)
+	var big := _measure(AirportWorld.MAP_SIZE_CELLS)
+	var again_big := _measure(AirportWorld.MAP_SIZE_CELLS)
+	var again_small := _measure(MapAnchor.REFERENCE_SIZE)
+	for key in ["step_ms", "layout_ms"]:
+		small[key] = minf(small[key], again_small[key])
+		big[key] = minf(big[key], again_big[key])
+	print("INFO step with ~%d passengers: 64x64 %.3f ms, %dx%d %.3f ms; layout change: %.2f ms vs %.2f ms" % [
+		big["passengers"], small["step_ms"], AirportWorld.MAP_SIZE_CELLS.x, AirportWorld.MAP_SIZE_CELLS.y, big["step_ms"], small["layout_ms"], big["layout_ms"]])
+	check(big["passengers"] >= 900 and small["passengers"] >= 900, "both airports are busy (%d, %d passengers)" % [small["passengers"], big["passengers"]])
+	check(big["step_ms"] <= small["step_ms"] * 1.2 + 0.1, "a step on the big map is at most 1.2 x the small one (%.3f vs %.3f ms)" % [big["step_ms"], small["step_ms"]])
+	check(big["layout_ms"] <= small["layout_ms"] * 3.0 + 20.0, "a layout change on the big map is not much slower (%.2f vs %.2f ms)" % [big["layout_ms"], small["layout_ms"]])
+
+
 func test_benchmark_runs_and_reports() -> void:
 	Benchmark.prepare_airport()
 	await start_game()

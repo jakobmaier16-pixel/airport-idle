@@ -388,11 +388,13 @@ func connection_problem(type: BuildingType, origin_cell: Vector2i, rotation_step
 	return brain.connection_problem(type, origin_cell, rotation_steps)
 
 
-func reset(with_runway: bool = true, new_seed: int = -1) -> void:
+## `size_in_cells` is only for tests and tools that want a map of another size; the game always
+## uses the default one (a zero size).
+func reset(with_runway: bool = true, new_seed: int = -1, size_in_cells: Vector2i = Vector2i.ZERO) -> void:
 	# A fresh brain instead of cleaning the old one: nothing can be left over.
 	var next_seed := new_seed if new_seed >= 0 else int(brain.rng.randi())
 	var old := brain
-	brain = AirportWorld.new()
+	brain = AirportWorld.new(size_in_cells if size_in_cells != Vector2i.ZERO else MAP_SIZE_CELLS)
 	old.dispose()
 	_bind()
 	brain.reset(with_runway, next_seed)

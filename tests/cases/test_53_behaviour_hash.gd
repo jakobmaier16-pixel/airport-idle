@@ -23,3 +23,14 @@ func test_wall_clock_fields_are_ignored() -> void:
 	var state := {"b": 1, "a": {"saved_at": 5.0, "z": [1, {"saved_at": 1, "y": 2}]}}
 	var other := {"a": {"z": [1, {"y": 2}]}, "b": 1}
 	check_eq(BehaviourHash.hash_state(state), BehaviourHash.hash_state(other), "saved_at and key order don't matter")
+
+
+func test_behaviour_hash_does_not_depend_on_the_map_size() -> void:
+	# The same airport at the same place relative to the map centre behaves the same on a small and on
+	# the full-size map (cells are normalised to the centre, the map size is ignored).
+	var small := BehaviourHash.compute(MapAnchor.REFERENCE_SIZE)
+	var big := BehaviourHash.compute(Vector2i(2200, 1600))
+	check_eq(small, GOLDEN_BEHAVIOUR_HASH, "benchmark airport on a 64 x 64 map")
+	check_eq(big, small, "benchmark airport on 2,200 x 1,600 cells gives the same hash")
+	var odd_shape := BehaviourHash.compute(Vector2i(400, 300))
+	check_eq(odd_shape, small, "and on a 400 x 300 map")

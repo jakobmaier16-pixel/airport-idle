@@ -58,7 +58,7 @@ func test_flight_holds_for_late_passenger() -> void:
 	late.recipe = PassengerFlow.DEPARTURE
 	late.step = 2
 	late.goal = BuildingType.Role.GATE
-	late.position = Airport.grid.cell_to_world(Vector2i(53, 37))
+	late.position = Airport.grid.cell_to_world(at(Vector2i(53, 37)))
 	late.previous_position = late.position
 	flow.passengers.append(late)
 	flow._plan(late)

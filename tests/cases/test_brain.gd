@@ -21,7 +21,7 @@ func test_fresh_brain_runs_on_its_own() -> void:
 	var brain := AirportWorld.new()
 	var placed: Array[Building] = []
 	brain.building_placed.connect(func(b: Building) -> void: placed.append(b))
-	var check_in := brain.place_building(Airport.CATALOG.find(&"check_in"), Vector2i(20, 20), 0)
+	var check_in := brain.place_building(Airport.CATALOG.find(&"check_in"), MapAnchor.cell(Vector2i(20, 20), brain.grid.size), 0)
 	check(check_in != null, "a building can be placed in a fresh brain")
 	check_eq(placed.size(), 1, "the fresh brain sent its own building_placed signal")
 	var start_seconds := brain.clock.game_seconds
@@ -36,7 +36,7 @@ func test_fresh_brain_runs_on_its_own() -> void:
 
 func test_disposed_brain_is_freed() -> void:
 	var brain := AirportWorld.new()
-	brain.place_building(Airport.CATALOG.find(&"check_in"), Vector2i(20, 20), 0)
+	brain.place_building(Airport.CATALOG.find(&"check_in"), MapAnchor.cell(Vector2i(20, 20), brain.grid.size), 0)
 	for i in 50:
 		brain.step(AirportWorld.SIM_STEP)
 	var ref: WeakRef = weakref(brain)
@@ -52,7 +52,7 @@ func test_host_forwards_to_its_brain() -> void:
 	check_eq(Airport.brain.manager_yaw, 1.5, "property writes reach the brain")
 	var heard: Array[int] = [0]
 	Airport.layout_changed.connect(func() -> void: heard[0] += 1)
-	Airport.place_building(type_of(&"check_in"), Vector2i(20, 20), 0)
+	Airport.place_building(type_of(&"check_in"), at(Vector2i(20, 20)), 0)
 	check(heard[0] >= 1, "brain signals are re-emitted by the host")
 	Airport.manager_yaw = 0.0
 
@@ -76,7 +76,7 @@ func test_reset_gives_a_fresh_brain_and_signals_fire_once() -> void:
 	Airport.reset(false)
 	check(Airport.brain != old_brain, "reset created a fresh brain")
 	check(old_brain.passenger_flow.world == null, "the old brain was disposed")
-	Airport.place_building(type_of(&"check_in"), Vector2i(20, 20), 0)
+	Airport.place_building(type_of(&"check_in"), at(Vector2i(20, 20)), 0)
 	check_eq(placed[0], 1, "building_placed fires exactly once after resets")
 	var relayed: Array[int] = [0]
 	Airport.tier_reached.connect(func(_t: Progression.Tier) -> void: relayed[0] += 1)

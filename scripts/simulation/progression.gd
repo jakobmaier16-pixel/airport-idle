@@ -19,11 +19,14 @@ const REWARDS: Array[String] = [
 	"Long-haul flights: build a wide-body stand for big planes.\nOrynth Pacific wants to fly here.",
 	"Hub status: airlines route twice as many connections through you.\nNight flights: no more curfew.\nCorvista Airlines wants to fly here.",
 ]
-## Regional airports own this part of the map (the middle columns, from the terminal area down to
-## the runway at the south edge); from National on, all of it.
-const REGIONAL_LAND: Rect2i = Rect2i(8, 8, 48, 56)
-## The map size REGIONAL_LAND is given for.
-const REGIONAL_LAND_MAP: Vector2i = Vector2i(64, 64)
+## Regional airports own this rectangle (in cells, on a map of STARTING_LAND_MAP); from National
+## on, the whole map. Placeholder, Jakob decides (game_design §19 starting airport).
+## 1,200 x 400 cells = 2.4 x 0.8 km, on the 200-cell grid of the map origin (it becomes 6 x 2 land
+## pieces of 400 m in PR 9). The map is 11 pieces wide, so it cannot be centred exactly: it sits one
+## piece left of the middle column; vertically it is centred (rows 600-1000), the terminal area in it.
+const STARTING_LAND: Rect2i = Rect2i(400, 600, 1200, 400)
+## The map size STARTING_LAND is given for.
+const STARTING_LAND_MAP: Vector2i = Vector2i(2200, 1600)
 ## Hub status: transfer shares of every route are multiplied by this (design doc §14.1).
 const HUB_TRANSFER_FACTOR: float = 2.0
 
@@ -74,8 +77,8 @@ func progress_text(stars: float) -> String:
 func owned_land(map_size: Vector2i) -> Rect2i:
 	if tier >= Tier.NATIONAL:
 		return Rect2i(Vector2i.ZERO, map_size)
-	# Given for a 64 x 64 map; a bigger or smaller map keeps it in the middle (a save is placed there too).
-	var land := Rect2i(REGIONAL_LAND.position + (map_size - REGIONAL_LAND_MAP) / 2, REGIONAL_LAND.size)
+	# A map of another size keeps it in the middle (a save is placed there too).
+	var land := Rect2i(STARTING_LAND.position + (map_size - STARTING_LAND_MAP) / 2, STARTING_LAND.size)
 	return land.intersection(Rect2i(Vector2i.ZERO, map_size))
 
 

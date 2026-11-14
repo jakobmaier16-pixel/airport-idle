@@ -159,12 +159,12 @@ func test_start_inside_the_entrance_and_saved_position() -> void:
 	var cell := Airport.grid.world_to_cell(manager().global_position)
 	check(Airport.grid.is_walkway(cell), "the manager starts on the hall floor: %s" % cell)
 	check(cell.y > entrance.origin_cell.y, "just inside the entrance")
-	manager().global_position = Airport.grid.cell_to_world(Vector2i(40, 32))
+	manager().global_position = Airport.grid.cell_to_world(at(Vector2i(40, 32)))
 	manager_camera().yaw = 1.0
 	await physics_frames(2)
 	var data := JSON.parse_string(JSON.stringify(Airport.save_state())) as Dictionary
 	await cleanup()
 	Airport.load_state(data)
 	await start_game()
-	check(manager().global_position.distance_to(Airport.grid.cell_to_world(Vector2i(40, 32))) < 0.5, "back where the manager stood")
+	check(manager().global_position.distance_to(Airport.grid.cell_to_world(at(Vector2i(40, 32)))) < 0.5, "back where the manager stood")
 	check(absf(manager_camera().yaw - 1.0) < 0.01, "looking the same way")

@@ -203,7 +203,7 @@ func _v4_to_v5(data: Dictionary) -> Dictionary:
 func _v5_to_v6(data: Dictionary) -> Dictionary:
 	var flow: Dictionary = data.get("flow", {})
 	if flow.get("passengers") is Array:
-		var map_size: Array = data.get("map_size", [AirportWorld.MAP_SIZE_CELLS.x, AirportWorld.MAP_SIZE_CELLS.y])
+		var map_size: Array = data.get("map_size", [MapAnchor.REFERENCE_SIZE.x, MapAnchor.REFERENCE_SIZE.y])
 		var size := Vector2i(int(map_size[0]), int(map_size[1]))
 		var records := PassengerSave.from_v5(flow["passengers"], size, AirportWorld.CELL_SIZE)
 		flow["passengers"] = PassengerSave.encode(records, size.x)
@@ -246,7 +246,7 @@ func _v7_to_v8(data: Dictionary) -> Dictionary:
 ## Version 8 -> 9: walkways and taxiways are lists of non-empty 64 x 64 chunks (see GridSave)
 ## instead of one dense array over the whole map, so a save does not grow with the map.
 func _v8_to_v9(data: Dictionary) -> Dictionary:
-	var map_size: Variant = data.get("map_size", [AirportWorld.MAP_SIZE_CELLS.x, AirportWorld.MAP_SIZE_CELLS.y])
+	var map_size: Variant = data.get("map_size", [MapAnchor.REFERENCE_SIZE.x, MapAnchor.REFERENCE_SIZE.y])
 	var size := Vector2i(int(map_size[0]), int(map_size[1]))
 	for key in ["walkways", "taxiways"]:
 		if data.get(key) is String:

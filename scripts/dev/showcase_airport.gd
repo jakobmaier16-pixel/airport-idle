@@ -4,12 +4,15 @@ extends RefCounted
 ## without building by hand. Test builds load it on the first start after each new export
 ## (see SaveGame); the tests and screenshots use the same layout.
 ## **When a feature is added, add it here too**, so the newest feature is visible after an update.
+## The layout is written in cells of the 64 x 64 reference map and placed around the middle of the
+## real map by `MapAnchor`, so it works on every map size.
 
 ## Builds the showcase into an empty airport. `warm_up_seconds` lets the airport run for a while
 ## first, so it's already busy when the player looks at it: after the default 3 minutes the first
 ## plane is at its stand and boarding opens, the second plane is about to taxi in.
-static func build(warm_up_seconds: float = 180.0) -> void:
-	Airport.reset()
+## `map_size` (tests only) builds it on a map of another size; zero is the game's map.
+static func build(warm_up_seconds: float = 180.0, map_size: Vector2i = Vector2i.ZERO) -> void:
+	Airport.reset(true, -1, map_size)
 	var catalog := Airport.CATALOG
 	# Build on an unlimited test budget, so nothing in the showcase fails for lack of money.
 	# The player gets the normal starting money at the end.
@@ -26,40 +29,40 @@ static func build(warm_up_seconds: float = 180.0) -> void:
 	Airport.paint_walkway(_cells(Vector2i(10, 31), Vector2i(44, 3)), true)
 
 	# Passenger route: Entrance -> Check-in -> Security -> Gate -> Stand (flights use both gates).
-	Airport.place_building(catalog.find(&"entrance"), Vector2i(30, 19), 0)
-	Airport.place_building(catalog.find(&"check_in"), Vector2i(20, 22), 2)
-	Airport.place_building(catalog.find(&"check_in"), Vector2i(39, 22), 2)
-	Airport.place_building(catalog.find(&"security"), Vector2i(30, 28), 0)
-	Airport.place_building(catalog.find(&"gate"), Vector2i(14, 34), 0)
-	Airport.place_building(catalog.find(&"gate"), Vector2i(42, 34), 0)
-	Airport.place_building(catalog.find(&"aircraft_stand"), Vector2i(10, 39), 0)
-	Airport.place_building(catalog.find(&"aircraft_stand"), Vector2i(38, 39), 0)
+	Airport.place_building(catalog.find(&"entrance"), _at(Vector2i(30, 19)), 0)
+	Airport.place_building(catalog.find(&"check_in"), _at(Vector2i(20, 22)), 2)
+	Airport.place_building(catalog.find(&"check_in"), _at(Vector2i(39, 22)), 2)
+	Airport.place_building(catalog.find(&"security"), _at(Vector2i(30, 28)), 0)
+	Airport.place_building(catalog.find(&"gate"), _at(Vector2i(14, 34)), 0)
+	Airport.place_building(catalog.find(&"gate"), _at(Vector2i(42, 34)), 0)
+	Airport.place_building(catalog.find(&"aircraft_stand"), _at(Vector2i(10, 39)), 0)
+	Airport.place_building(catalog.find(&"aircraft_stand"), _at(Vector2i(38, 39)), 0)
 	# Long-haul (§10.2): gate 3 in the middle with a wide-body stand behind it.
-	Airport.place_building(catalog.find(&"gate"), Vector2i(27, 34), 0)
-	Airport.place_building(catalog.find(&"wide_body_stand"), Vector2i(22, 39), 0)
+	Airport.place_building(catalog.find(&"gate"), _at(Vector2i(27, 34)), 0)
+	Airport.place_building(catalog.find(&"wide_body_stand"), _at(Vector2i(22, 39)), 0)
 	# Cargo (§10.3): a cargo terminal with its own stand in the east, on the parallel taxiway.
-	Airport.place_building(catalog.find(&"cargo_terminal"), Vector2i(52, 38), 0)
-	Airport.place_building(catalog.find(&"aircraft_stand"), Vector2i(50, 43), 0)
+	Airport.place_building(catalog.find(&"cargo_terminal"), _at(Vector2i(52, 38)), 0)
+	Airport.place_building(catalog.find(&"aircraft_stand"), _at(Vector2i(50, 43)), 0)
 	# Taxiways (§7.5a): a parallel taxiway along the runway, and short links down from the stands.
 	Airport.paint_taxiway(_cells(Vector2i(8, 55), Vector2i(48, 2)), true)
 	Airport.paint_taxiway(_cells(Vector2i(15, 51), Vector2i(2, 4)), true)
 	Airport.paint_taxiway(_cells(Vector2i(43, 51), Vector2i(2, 4)), true)
 
 	# Arrivals: baggage claim on the border next to security, out into the landside hall (§8.8).
-	Airport.place_building(catalog.find(&"baggage_claim"), Vector2i(37, 27), 0)
+	Airport.place_building(catalog.find(&"baggage_claim"), _at(Vector2i(37, 27)), 0)
 
 	# Transfers (§8.9): transfer security beside gate 2; a small corridor loop leads from its back
 	# exit (row 37) round to the gates' walkway again.
 	Airport.paint_walkway(_cells(Vector2i(47, 34), Vector2i(7, 4)), true)
-	Airport.place_building(catalog.find(&"transfer_security"), Vector2i(47, 34), 0)
+	Airport.place_building(catalog.find(&"transfer_security"), _at(Vector2i(47, 34)), 0)
 
 	# Airside shopping between the gates (design doc §8.6).
-	Airport.place_building(catalog.find(&"shop"), Vector2i(22, 34), 0)
-	Airport.place_building(catalog.find(&"cafe"), Vector2i(33, 34), 0)
+	Airport.place_building(catalog.find(&"shop"), _at(Vector2i(22, 34)), 0)
+	Airport.place_building(catalog.find(&"cafe"), _at(Vector2i(33, 34)), 0)
 	# Lounge for business travellers next to the café, a car park beside the landside hall, and
 	# a fast track at security (design doc §11.8).
-	Airport.place_building(catalog.find(&"lounge"), Vector2i(37, 34), 0)
-	Airport.place_building(catalog.find(&"car_park"), Vector2i(46, 21), 3)
+	Airport.place_building(catalog.find(&"lounge"), _at(Vector2i(37, 34)), 0)
+	Airport.place_building(catalog.find(&"car_park"), _at(Vector2i(46, 21)), 3)
 
 	# Station upgrades (design doc §7.8): security fully upgraded (3 lanes, faster scanners) for
 	# the morning rush.
@@ -108,6 +111,11 @@ static func build(warm_up_seconds: float = 180.0) -> void:
 	Airport.economy.balance = Economy.STARTING_MONEY
 
 
+## A cell of the reference map (see MapAnchor) on the current map.
+static func _at(reference_cell: Vector2i) -> Vector2i:
+	return MapAnchor.cell(reference_cell, Airport.grid.size)
+
+
 static func _first(role: BuildingType.Role) -> Building:
 	for building in Airport.buildings:
 		if building.type.role == role:
@@ -115,7 +123,9 @@ static func _first(role: BuildingType.Role) -> Building:
 	return null
 
 
+## The cells of a rectangle whose origin is given in reference-map cells (see MapAnchor).
 static func _cells(origin: Vector2i, size: Vector2i) -> Array[Vector2i]:
+	origin = _at(origin)
 	var result: Array[Vector2i] = []
 	for y in size.y:
 		for x in size.x:

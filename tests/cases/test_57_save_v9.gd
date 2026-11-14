@@ -43,8 +43,9 @@ func test_save_has_chunk_lists_and_no_dense_arrays() -> void:
 	var state := Airport.save_state()
 	check(_is_chunk_list(state["walkways"]) and not (state["walkways"] as Array).is_empty(), "walkways are a list of chunks")
 	check(_is_chunk_list(state["taxiways"]) and not (state["taxiways"] as Array).is_empty(), "taxiways are a list of chunks")
-	check_eq(state["map_size"], [64, 64], "the map size is still saved")
-	check_eq((state["walkways"] as Array).size(), 1, "a 64 x 64 map is one chunk")
+	check_eq(state["map_size"], [Airport.grid.size.x, Airport.grid.size.y], "the map size is still saved")
+	# The showcase is 64 x 64 cells around the map centre: it touches a few chunks, never the whole map.
+	check((state["walkways"] as Array).size() <= 4, "a showcase is a few chunks, not a whole map")
 
 
 func test_round_trip_is_exact() -> void:
@@ -171,13 +172,14 @@ func test_loading_into_a_bigger_map_centres_everything() -> void:
 	# Owned land moves too: a regional airport owns the same part of the airport, not of the map.
 	small.progression.tier = Progression.Tier.REGIONAL
 	big.progression.tier = Progression.Tier.REGIONAL
-	check_eq(big.progression.owned_land(big.grid.size).position, small.progression.owned_land(small.grid.size).position + shift, "owned land is shifted")
-	check_eq(big.progression.owned_land(big.grid.size).size, small.progression.owned_land(small.grid.size).size, "owned land keeps its size")
+	var land := big.progression.owned_land(big.grid.size)
+	check_eq(land, Progression.STARTING_LAND, "the big map's regional land is the starting land")
 	var owned_wrong := 0
 	for building in small.buildings:
-		if big.owns_cell(building.origin_cell + shift) != small.owns_cell(building.origin_cell):
+		if not land.encloses(Rect2i(building.origin_cell + shift, Building.rotated_size(building.type.footprint, building.rotation_steps))) \
+				or not small.owns_cell(building.origin_cell):
 			owned_wrong += 1
-	check_eq(owned_wrong, 0, "every building stands on land of the same ownership")
+	check_eq(owned_wrong, 0, "every building of the loaded airport stands on the regional land")
 	# Passengers: the same places in metres, and a walking one keeps its way (re-encoded to the new width).
 	check_eq(big.passenger_flow.passengers.size(), small.passenger_flow.passengers.size(), "every passenger is back")
 	var walking_checked := 0
@@ -236,6 +238,17 @@ func test_behaviour_hash_ignores_the_layer_format() -> void:
 	ShowcaseAirport.build()
 	var state := Airport.save_state()
 	var dense := state.duplicate()
-	dense["walkways"] = Marshalls.raw_to_base64(Airport.grid.get_walkway_data())
-	dense["taxiways"] = Marshalls.raw_to_base64(Airport.grid.get_taxiway_data())
+	# The old dense text of formats 1-8, over the 64 x 64 reference map (which holds the showcase).
+	var reference := MapAnchor.REFERENCE_SIZE
+	var walkways := PackedByteArray()
+	var taxiways := PackedByteArray()
+	walkways.resize(reference.x * reference.y)
+	taxiways.resize(reference.x * reference.y)
+	for y in reference.y:
+		for x in reference.x:
+			var cell := at(Vector2i(x, y))
+			walkways[y * reference.x + x] = int(Airport.grid.is_walkway(cell))
+			taxiways[y * reference.x + x] = int(Airport.grid.is_taxiway(cell))
+	dense["walkways"] = Marshalls.raw_to_base64(walkways)
+	dense["taxiways"] = Marshalls.raw_to_base64(taxiways)
 	check_eq(BehaviourHash.hash_state(state), BehaviourHash.hash_state(dense), "chunk lists hash like the old dense text")

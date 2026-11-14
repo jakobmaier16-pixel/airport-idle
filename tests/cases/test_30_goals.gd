@@ -5,9 +5,9 @@ extends TestCase
 func test_goals_follow_the_build() -> void:
 	check_eq(Airport.goals.current(), 0, "a new airport starts with goal 1")
 	check(Airport.goals.text().begins_with("Goal 1/10: Build Security and lay a walkway behind it"), "text: '%s'" % Airport.goals.text())
-	Airport.paint_walkway(cells(Vector2i(20, 31), Vector2i(5, 1)), true)
+	Airport.paint_walkway(cells(at(Vector2i(20, 31)), Vector2i(5, 1)), true)
 	check_eq(Airport.goals.current(), 0, "a walkway alone is not airside")
-	Airport.place_building(type_of(&"security"), Vector2i(20, 28), 0)
+	Airport.place_building(type_of(&"security"), at(Vector2i(20, 28)), 0)
 	check_eq(Airport.goals.current(), 1, "security with a walkway behind it: airside reached")
 	ShowcaseAirport.build(0.0)
 	Airport.progression.tier = Progression.Tier.REGIONAL

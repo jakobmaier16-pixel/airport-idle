@@ -88,13 +88,13 @@ func test_fast_track_puts_business_first() -> void:
 
 
 func test_buying_fast_track() -> void:
-	var security := Airport.place_building(type_of(&"security"), Vector2i(30, 28), 0)
+	var security := Airport.place_building(type_of(&"security"), at(Vector2i(30, 28)), 0)
 	check_eq(Airport.fast_track_problem(security), "", "can be bought")
 	var money := Airport.economy.balance
 	check(Airport.buy_fast_track(security), "bought")
 	check_eq(Airport.economy.balance, money - Airport.FAST_TRACK_COST, "for €5,000")
 	check_eq(Airport.fast_track_problem(security), "Has a fast track", "once")
-	var check_in := Airport.place_building(type_of(&"check_in"), Vector2i(20, 20), 0)
+	var check_in := Airport.place_building(type_of(&"check_in"), at(Vector2i(20, 20)), 0)
 	check_eq(Airport.fast_track_problem(check_in), "Only for security", "security only")
 	var data := JSON.parse_string(JSON.stringify(Airport.save_state())) as Dictionary
 	Airport.load_state(data)
@@ -102,7 +102,7 @@ func test_buying_fast_track() -> void:
 
 
 func test_fast_track_button() -> void:
-	var security := Airport.place_building(type_of(&"security"), Vector2i(30, 28), 0)
+	var security := Airport.place_building(type_of(&"security"), at(Vector2i(30, 28)), 0)
 	await start_game()
 	manager().global_position = Airport.grid.block_center(security.origin_cell, Vector2i(5, 3)) + Vector3(0.0, 0.0, 6.0)
 	await physics_frames(2)

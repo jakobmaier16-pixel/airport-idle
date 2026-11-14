@@ -139,8 +139,8 @@ func test_example_v3_loads_with_flights() -> void:
 
 func test_place_demolish_place_gives_new_ids() -> void:
 	var type := type_of(&"check_in")
-	var first := Airport.place_building(type, Vector2i(10, 10), 0)
+	var first := Airport.place_building(type, at(Vector2i(10, 10)), 0)
 	var first_id := first.id
 	check(Airport.demolish(first), "demolished")
-	var second := Airport.place_building(type, Vector2i(10, 10), 0)
+	var second := Airport.place_building(type, at(Vector2i(10, 10)), 0)
 	check(second != null and second.id != first_id, "the new building gets a new ID (%d, was %d)" % [second.id, first_id])

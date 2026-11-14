@@ -93,13 +93,13 @@ func test_baggage_claim_is_required() -> void:
 	ShowcaseAirport.build(0.0)
 	check(Airport.passenger_flow.route_problem.is_empty(), "showcase is complete")
 	# Cut the claim off from the landside hall (its front row y = 26, x 37..42).
-	Airport.paint_walkway(cells(Vector2i(37, 26), Vector2i(6, 1)), false)
+	Airport.paint_walkway(cells(at(Vector2i(37, 26)), Vector2i(6, 1)), false)
 	check(Airport.passenger_flow.route_problem.contains("baggage claim"), "missing exit is reported: '%s'" % Airport.passenger_flow.route_problem)
 
 
 func test_claim_sits_on_the_border() -> void:
 	var claim := type_of(&"baggage_claim")
-	check_eq(Airport.check_placement(claim, Vector2i(20, 28), 0), "", "front landside, back airside")
+	check_eq(Airport.check_placement(claim, at(Vector2i(20, 28)), 0), "", "front landside, back airside")
 
 
 func test_claim_in_panel_and_stats() -> void:

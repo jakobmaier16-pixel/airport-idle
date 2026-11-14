@@ -3,7 +3,7 @@ extends TestCase
 
 
 func _staffed_check_in() -> Building:
-	var check_in := Airport.place_building(type_of(&"check_in"), Vector2i(20, 20), 0)
+	var check_in := Airport.place_building(type_of(&"check_in"), at(Vector2i(20, 20)), 0)
 	Airport.staff_fully(check_in)
 	return check_in
 
@@ -77,9 +77,9 @@ func test_training_and_promotion_saved() -> void:
 
 func test_panel_buttons() -> void:
 	var check_in := _staffed_check_in()
-	Airport.paint_walkway(cells(Vector2i(20, 19), Vector2i(5, 1)), true)
+	Airport.paint_walkway(cells(at(Vector2i(20, 19)), Vector2i(5, 1)), true)
 	await start_game()
-	manager().global_position = Airport.grid.cell_to_world(Vector2i(22, 17))
+	manager().global_position = Airport.grid.cell_to_world(at(Vector2i(22, 17)))
 	await physics_frames(2)
 	hud().show_station(check_in)
 	await frames(1)

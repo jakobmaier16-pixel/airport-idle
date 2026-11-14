@@ -17,8 +17,8 @@ func test_example_v4_has_no_zones_and_loads() -> void:
 	check_eq(int(saved["version"]), 4, "an example save of version 4")
 	check(not saved.has("zones"), "no zones in it")
 	var loaded := _loaded(SHOWCASE_V4)
-	check_eq(loaded.grid.get_zone(Vector2i(20, 32)), AirportGrid.Zone.AIRSIDE, "airside behind security")
-	check_eq(loaded.grid.get_zone(Vector2i(20, 25)), AirportGrid.Zone.LANDSIDE, "the hall is landside")
+	check_eq(loaded.grid.get_zone(at(Vector2i(20, 32))), AirportGrid.Zone.AIRSIDE, "airside behind security")
+	check_eq(loaded.grid.get_zone(at(Vector2i(20, 25))), AirportGrid.Zone.LANDSIDE, "the hall is landside")
 	loaded.dispose()
 
 
@@ -28,8 +28,8 @@ func test_v3_zones_are_dropped_and_recomputed() -> void:
 	check(not SaveGame.migrate(saved).has("zones"), "the converter drops them")
 	var old := _loaded(SHOWCASE_V3)
 	var current := _loaded(SHOWCASE_V4)
-	check_eq(old.grid.get_zone(Vector2i(20, 32)), AirportGrid.Zone.AIRSIDE, "airside behind security")
-	check_eq(old.grid.get_zone(Vector2i(20, 25)), AirportGrid.Zone.LANDSIDE, "the hall is landside")
+	check_eq(old.grid.get_zone(at(Vector2i(20, 32))), AirportGrid.Zone.AIRSIDE, "airside behind security")
+	check_eq(old.grid.get_zone(at(Vector2i(20, 25))), AirportGrid.Zone.LANDSIDE, "the hall is landside")
 	check_eq(old.buildings.size(), current.buildings.size(), "same airport")
 	old.dispose()
 	current.dispose()

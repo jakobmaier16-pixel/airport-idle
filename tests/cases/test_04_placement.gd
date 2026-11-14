@@ -25,7 +25,7 @@ func test_all_mvp_buildings_in_menu() -> void:
 func test_place_with_buttons() -> void:
 	await start_game()
 	await open_build_view()
-	check(await place("Check-in", Vector2i(30, 20)), "check-in placed where it was dragged")
+	check(await place("Check-in", at(Vector2i(30, 20))), "check-in placed where it was dragged")
 	check_eq(main.get_node("Buildings").get_child_count(), 1, "one building visual")
 	check(not build_mode().is_placing(), "placing ends after Place")
 	check(ui("BuildMenu").visible, "build menu back")
@@ -67,9 +67,9 @@ func test_rotate_keeps_position() -> void:
 func test_overlap_is_red_and_place_disabled() -> void:
 	await start_game()
 	await open_build_view()
-	check(await place("Check-in", Vector2i(30, 30)), "first check-in")
+	check(await place("Check-in", at(Vector2i(30, 30))), "first check-in")
 	await pick_building("Check-in")
-	build_mode()._set_preview_origin(Vector2i(31, 31))
+	build_mode()._set_preview_origin(at(Vector2i(31, 31)))
 	var place_button := ui("ToolPanel/ToolBar/PlaceButton") as Button
 	check(place_button.disabled, "Place disabled on an occupied spot")
 	check_eq((ui("ToolPanel/HintLabel") as Label).text, "Space is taken", "hint")
@@ -82,10 +82,10 @@ func test_zone_rules_and_hints() -> void:
 	await open_build_view()
 	var hint := ui("ToolPanel/HintLabel") as Label
 	await pick_building("Gate")  # Gate
-	build_mode()._set_preview_origin(Vector2i(10, 10))
+	build_mode()._set_preview_origin(at(Vector2i(10, 10)))
 	check(hint.text.begins_with("Needs a walkway"), "a gate can go anywhere, hint names what's missing: '%s'" % hint.text)
 	await press(ui("ToolPanel/ToolBar/CancelButton"))
-	check_eq(Airport.check_placement(type_of(&"security"), Vector2i(20, 29), 0), "", "security on the border, front landside")
+	check_eq(Airport.check_placement(type_of(&"security"), at(Vector2i(20, 29)), 0), "", "security on the border, front landside")
 
 
 func test_leaving_build_view_cancels() -> void:
