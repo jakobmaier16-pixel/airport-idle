@@ -207,7 +207,7 @@ func test_a_taxiway_thinner_than_12_cells_does_not_count() -> void:
 	var stand_type := type_of(&"aircraft_stand")
 	for width in [2, 6, 11]:
 		Airport.paint_taxiway(cells(at(Vector2i(36, 62)), Vector2i(width, 19)), true)
-		check_eq(Airport.connection_problem(stand_type, stand_cell, 0), "Needs a taxiway to a runway", "%d cells wide: no way to the runway" % width)
+		check_eq(Airport.connection_problem(stand_type, stand_cell, 0), "No taxiway", "%d cells wide: no way to the runway" % width)
 		check(Airport.plane_network.route_to_stand(Airport.stand_behind(Airport.buildings.filter(func(b: Building) -> bool: return b.type.role == BuildingType.Role.GATE)[0])) == null, "%d cells wide: no route" % width)
 		Airport.paint_taxiway(cells(at(Vector2i(36, 62)), Vector2i(width, 19)), false)
 	Airport.paint_taxiway(cells(at(Vector2i(36, 62)), Vector2i(12, 19)), true)
